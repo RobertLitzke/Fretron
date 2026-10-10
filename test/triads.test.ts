@@ -6,6 +6,9 @@ import {
   chordName,
   chordTones,
   closestToTarget,
+  COMPACT_BONUS,
+  compactPoints,
+  COMPACT_STEP,
   displacement,
   enumerateVoicings,
   keepers,
@@ -19,6 +22,8 @@ import {
   TARGET_STEP,
   targetDistance,
   targetPoints,
+  tightestSpread,
+  spreadOf,
   timePoints,
   toneLabel,
   voicingKey,
@@ -260,5 +265,27 @@ describe('targets', () => {
       kinds.add(`${t.string === null}${t.fret === null}`);
     }
     expect(kinds.size).toBe(3);
+  });
+});
+
+describe('compactness', () => {
+  it('spreads across held frets only', () => {
+    expect(spreadOf([cells([3, 5], [4, 5], [5, 3]), cells([3, 7], [4, 8], [5, 7])])).toBe(5);
+    expect(spreadOf([cells([3, 0], [4, 1], [5, 0])])).toBe(0);
+  });
+
+  it('finds the tightest a progression can be held', () => {
+    const choices = [C, Dm, G].map((ch) => enumerateVoicings(T, ch, 0, 12));
+    const tight = tightestSpread(choices);
+    // Brute force over every combination agrees.
+    let best = Infinity;
+    for (const a of choices[0]) for (const b of choices[1]) for (const c of choices[2]) best = Math.min(best, spreadOf([a, b, c]));
+    expect(tight).toBe(best);
+  });
+
+  it('pays per chord, less for each fret wider than needed', () => {
+    expect(compactPoints(0, 4)).toBe(4 * COMPACT_BONUS);
+    expect(compactPoints(1, 3)).toBe(3 * (COMPACT_BONUS - COMPACT_STEP));
+    expect(compactPoints(99, 3)).toBe(0);
   });
 });

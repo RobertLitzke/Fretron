@@ -297,3 +297,46 @@ export function closestToTarget(target: Target, voicings: readonly Voicing[]): n
 export function targetPoints(steps: number): number {
   return TARGET_BONUS - TARGET_STEP * Math.max(0, steps);
 }
+
+// --- compactness, for the Compact game -------------------------------------------
+// A progression scores for how few frets all its chords are held across. An
+// open string takes no finger, so as in a shape's reach it does not count.
+
+/** Points per chord for a progression held across as few frets as it can be. */
+export const COMPACT_BONUS = 500;
+/** Points per chord off for each fret wider than that. */
+export const COMPACT_STEP = 125;
+
+/** The frets, lowest to highest, that a run of voicings is held across: 0 if none is held at all. */
+export function spreadOf(voicings: readonly (readonly Cell[])[]): number {
+  const held = voicings.flatMap((v) => v.map((c) => c.fret)).filter((f) => f > 0);
+  return held.length ? Math.max(...held) - Math.min(...held) : 0;
+}
+
+/** The lowest and highest held fret of a voicing, or null if it is all open strings. */
+function heldSpan(voicing: readonly Cell[]): [number, number] | null {
+  const held = voicing.map((c) => c.fret).filter((f) => f > 0);
+  return held.length ? [Math.min(...held), Math.max(...held)] : null;
+}
+
+/** The narrowest spread a progression can be played in, given every voicing of each of its chords. */
+export function tightestSpread(choices: readonly (readonly Voicing[])[]): number {
+  const spans = choices.map((vs) => vs.map(heldSpan));
+  const lows = new Set(spans.flat().filter((s): s is [number, number] => s !== null).map((s) => s[0]));
+  let best = Infinity;
+  // The window starts at some voicing's lowest held fret; each chord takes the voicing that reaches least far above it.
+  for (const low of lows) {
+    let top = low;
+    for (const chord of spans) {
+      const fits = chord.map((s) => (s === null ? low : s[0] >= low ? s[1] : Infinity));
+      top = Math.max(top, Math.min(...fits));
+    }
+    best = Math.min(best, top - low);
+  }
+  return Number.isFinite(best) ? best : 0;
+}
+
+/** What compactness adds for a progression of `chords` chords played `extra` frets wider than it had to be. */
+export function compactPoints(extra: number, chords: number): number {
+  return chords * Math.max(0, COMPACT_BONUS - COMPACT_STEP * Math.max(0, extra));
+}
