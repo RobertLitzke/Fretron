@@ -206,6 +206,8 @@ const FLAT_MAJOR = new Set([5, 10, 3, 8, 1]); // F B♭ E♭ A♭ D♭
 const FLAT_MINOR = new Set([2, 7, 0, 5, 10, 3]); // Dm Gm Cm Fm B♭m E♭m
 
 export interface Progression {
+  /** Pitch class of the key note. */
+  key: number;
   /** "C major", "A minor". */
   keyName: string;
   spelling: Spelling;
@@ -219,11 +221,27 @@ export function makeProgression(rng: Rng): Progression {
   const minor = pattern.roman[pattern.roman.length - 1] === 'i' || pattern.roman[0] === 'i';
   const spelling: Spelling = (minor ? FLAT_MINOR : FLAT_MAJOR).has(key) ? 'flat' : 'sharp';
   return {
+    key,
     keyName: `${pcName(key, spelling)} ${minor ? 'minor' : 'major'}`,
     spelling,
     roman: pattern.roman,
     chords: pattern.steps.map(([step, quality]) => ({ root: pc(key + step), quality })),
   };
+}
+
+const MAJOR_SCALE = [0, 2, 4, 5, 7, 9, 11];
+const MINOR_SCALE = [0, 2, 3, 5, 7, 8, 10];
+
+/**
+ * The notes a progression is drawn from: its key's scale, natural minor for a
+ * minor key, and any note its chords borrow besides, such as the raised
+ * seventh of a minor key's major V.
+ */
+export function progressionScale(p: Progression): number[] {
+  const steps = p.keyName.endsWith('minor') ? MINOR_SCALE : MAJOR_SCALE;
+  const tones = new Set(steps.map((s) => pc(p.key + s)));
+  for (const chord of p.chords) chordTones(chord).forEach((t) => tones.add(t));
+  return [...tones].sort((a, b) => a - b);
 }
 
 // --- scoring, after the design document's section 3.3 ---------------------------

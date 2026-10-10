@@ -10,6 +10,7 @@ import {
   keepers,
   likeliest,
   makeProgression,
+  progressionScale,
   motionBonus,
   motionOf,
   nearestVoicing,
@@ -215,5 +216,22 @@ describe('progressions', () => {
       if (p.keyName === 'G major') expect(p.spelling).toBe('sharp');
       expect(p.keyName.includes('♯') && p.spelling === 'flat').toBe(false);
     }
+  });
+
+  it('draws each progression from its key, with any borrowed notes', () => {
+    const rng = new Rng(11);
+    for (let i = 0; i < 300; i++) {
+      const p = makeProgression(rng);
+      const scale = progressionScale(p);
+      expect(scale).toContain(p.key);
+      for (const chord of p.chords) for (const t of chordTones(chord)) expect(scale).toContain(t);
+      // Seven notes, and an eighth only for a minor key's raised seventh.
+      expect(scale.length).toBe(p.keyName.endsWith('major') ? 7 : scale.includes((p.key + 11) % 12) ? 8 : 7);
+    }
+    const cMajor = { key: 0, keyName: 'C major', spelling: 'sharp' as const, roman: ['ii', 'V', 'I'], chords: [Dm, G, C] };
+    expect(progressionScale(cMajor)).toEqual([0, 2, 4, 5, 7, 9, 11]);
+    const aMinor = { key: 9, keyName: 'A minor', spelling: 'sharp' as const, roman: ['i', 'iv', 'V'], chords: [{ root: 9, quality: 'min' as const }, { root: 2, quality: 'min' as const }, { root: 4, quality: 'maj' as const }] };
+    // A natural minor, and the G♯ of its E major.
+    expect(progressionScale(aMinor)).toEqual([0, 2, 4, 5, 7, 8, 9, 11]);
   });
 });

@@ -9,7 +9,7 @@
 import { blip, buzz, strum } from '../../audio/audio';
 import type { LineData, NoteRenderData } from '../../board/renderer';
 import { formatSeconds, modeById, rankGrid, rankTriads } from '../../core/modes';
-import { cellKey, cellMidi, pc, pcName, type Cell } from '../../core/music';
+import { allCells, cellKey, cellMidi, pc, pcName, type Cell } from '../../core/music';
 import { Rng } from '../../core/rng';
 import {
   checkVoicing,
@@ -22,6 +22,7 @@ import {
   makeProgression,
   motionBonus,
   motionOf,
+  progressionScale,
   SMOOTH_BONUS,
   timePoints,
   toneLabel,
@@ -44,6 +45,8 @@ const CHORDS_PER_RUN = 12;
 const GRID_PENALTY = 3;
 /** In progressions, the wrong rake at which the chord is given away. */
 const RAKES_BEFORE_ANSWER = 5;
+/** How many frets of the key are drawn either side of a played chord: about one position. */
+const SCALE_REACH = 4;
 
 /** A chord tone as it is written on a note: 'b3' is "♭3", 'd5' is "♭5". */
 function toneText(label: string): string {
@@ -94,6 +97,8 @@ export const triadsView: View = (root, ctx) => {
   /** The last chord played in this progression, and its labels. */
   let previous: { voicing: Voicing; labels: string[] } | null = null;
   let shown: NoteRenderData[] = [];
+  /** Once a chord is played: the rest of its key around it, as rings. */
+  let scaleRings: NoteRenderData[] = [];
   /** Every way to play the chord that is up. */
   let answers: Voicing[] = [];
   /** Wrong rakes at the chord that is up. */
@@ -134,7 +139,7 @@ export const triadsView: View = (root, ctx) => {
   }
 
   function paintBoard(): void {
-    const notes: NoteRenderData[] = [...shown];
+    const notes: NoteRenderData[] = [...scaleRings, ...shown];
     const lines: LineData[] = [];
     if (previous && shown.length === 0) {
       // Where the hand was: the place to move from.
@@ -155,9 +160,41 @@ export const triadsView: View = (root, ctx) => {
     board.setLines(lines);
   }
 
+  /**
+   * The key's notes around a played chord, hollow, so the chord is seen as part
+   * of its scale. Only the key note is named.
+   */
+  function keyRings(voicing: Voicing): NoteRenderData[] {
+    const p = progressions[pIndex];
+    const tones = progressionScale(p);
+    const held = voicing.map((c) => c.fret);
+    const first = Math.max(0, Math.min(...held) - SCALE_REACH);
+    const last = Math.min(frame.frets, Math.max(...held) + SCALE_REACH);
+    const played = new Set(voicing.map(cellKey));
+    const theme = board.theme;
+    return allCells(tuning, first, last)
+      .filter((c) => !played.has(cellKey(c)) && tones.includes(pc(cellMidi(tuning, c))))
+      .map((c) => {
+        const isKey = pc(cellMidi(tuning, c)) === p.key;
+        const color = isKey ? theme.pivot : theme.cyan;
+        return {
+          fret: c.fret,
+          stringIndex: c.string,
+          displayLabel: isKey ? pcName(p.key, p.spelling) : undefined,
+          fillColor: 'transparent',
+          strokeColor: color,
+          strokeWidth: isKey ? 2.5 : 1.5,
+          labelColor: color,
+          opacity: isKey ? 0.85 : 0.5,
+          radiusScale: 0.8,
+        };
+      });
+  }
+
   function present(): void {
     asked++;
     shown = [];
+    scaleRings = [];
     tries = 0;
     kept = new Set();
     answers = enumerateVoicings(tuning, chord(), 0, frame.frets);
@@ -231,6 +268,7 @@ export const triadsView: View = (root, ctx) => {
   /** Leave the chord on the board, each note marked as the root or its distance from it, and wait for the player. */
   function settle(voicing: Voicing, labels: string[]): void {
     shown = playedNotes(voicing, labels);
+    scaleRings = keyRings(voicing);
     input.selected = [];
     kept = new Set();
     paintBoard();
@@ -248,6 +286,7 @@ export const triadsView: View = (root, ctx) => {
       }
       if (pIndex >= progressions.length) return finish();
       shown = [];
+      scaleRings = [];
       input.selected = [];
       paintBoard();
       frame.setClock('');
