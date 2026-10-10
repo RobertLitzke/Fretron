@@ -6,6 +6,7 @@ import type { Hand } from './geometry';
 import type { Rank } from './modes';
 import { DEFAULT_FRETS, NECK_SIZES } from './music';
 import type { Accidentals } from './notes';
+import { betterRank } from './tour';
 
 export const SAVE_VERSION = 1;
 
@@ -38,10 +39,12 @@ export interface SaveData {
   scores: Record<string, ScoreEntry[]>;
   /** What was last chosen before a game that asks for a choice, by game: the scale for Scale Bends. */
   picks: Record<string, string>;
+  /** World Tour: the best rank of a run played on tour, by mode id. */
+  tour: Record<string, Rank>;
 }
 
 export function emptySave(): SaveData {
-  return { v: SAVE_VERSION, hand: 'right', volume: 0.8, voice: 'synth', accidentals: 'mixed', frets: DEFAULT_FRETS, initials: 'AAA', scores: {}, picks: {} };
+  return { v: SAVE_VERSION, hand: 'right', volume: 0.8, voice: 'synth', accidentals: 'mixed', frets: DEFAULT_FRETS, initials: 'AAA', scores: {}, picks: {}, tour: {} };
 }
 
 function isObject(x: unknown): x is Record<string, unknown> {
@@ -58,7 +61,7 @@ export function cleanInitials(text: unknown): string {
 
 function cleanEntry(x: unknown): ScoreEntry | null {
   if (!isObject(x) || typeof x.value !== 'number' || !Number.isFinite(x.value)) return null;
-  const rank = x.rank === 'S' || x.rank === 'A' || x.rank === 'B' || x.rank === 'C' ? x.rank : 'C';
+  const rank = isRank(x.rank) ? x.rank : 'C';
   return { name: cleanInitials(x.name), value: x.value, rank, date: typeof x.date === 'string' ? x.date : '' };
 }
 
@@ -82,7 +85,20 @@ export function migrate(raw: unknown): SaveData {
   if (isObject(raw.picks)) {
     for (const [game, pick] of Object.entries(raw.picks)) if (typeof pick === 'string') save.picks[game] = pick;
   }
+  if (isObject(raw.tour)) {
+    for (const [mode, rank] of Object.entries(raw.tour)) if (isRank(rank)) save.tour[mode] = rank;
+  }
   return save;
+}
+
+function isRank(x: unknown): x is Rank {
+  return x === 'S' || x === 'A' || x === 'B' || x === 'C';
+}
+
+/** Keep a tour run's rank where it beats the stop's best. */
+export function withTourRank(save: SaveData, mode: string, rank: Rank): SaveData {
+  const best = betterRank(save.tour[mode], rank);
+  return best === save.tour[mode] ? save : { ...save, tour: { ...save.tour, [mode]: best } };
 }
 
 function beats(a: number, b: number, better: 'high' | 'low'): boolean {
