@@ -8,7 +8,8 @@ import { getSave } from '../store';
 
 interface Cabinet {
   title: string;
-  games: { name: string; blurb: string; modes: Mode[] }[];
+  /** `pick`: the game asks for a choice before a run, kept under this name, and has one Play button for the last one chosen. */
+  games: { name: string; blurb: string; modes: Mode[]; pick?: string }[];
 }
 
 function modesTitled(title: string): Mode[] {
@@ -35,7 +36,7 @@ const CABINETS: Cabinet[] = [
     games: [
       { name: 'Bend by Ear', blurb: 'Push the string to the pitch you heard. No meter.', modes: modesTitled('Bend by Ear') },
       { name: 'Bend Trace', blurb: 'Hear a bend that moves over time, and play it back from memory.', modes: modesTitled('Bend Trace') },
-      { name: 'Scale Bends', blurb: 'Bend from one note of a scale to the next, with the shape drawn around you.', modes: modesTitled('Scale Bends') },
+      { name: 'Scale Bends', blurb: 'Bend from one note of a scale to the next, with the shape drawn around you.', modes: modesTitled('Scale Bends'), pick: 'scalebend' },
     ],
   },
 ];
@@ -51,6 +52,12 @@ function playButton(mode: Mode, single: boolean): HTMLElement {
   );
 }
 
+/** The mode last chosen for a game that asks before a run, or its first. */
+function picked(modes: Mode[], pick: string): Mode {
+  const choice = getSave().picks[pick];
+  return modes.find((m) => m.id === `${pick}-${choice}`) ?? modes[0];
+}
+
 export const homeView: View = (root) => {
   root.replaceChildren(
     el(
@@ -64,15 +71,16 @@ export const homeView: View = (root) => {
             'section.cabinet',
             {},
             el('h2', {}, cabinet.title),
-            cabinet.games.map((game) =>
-              el(
+            cabinet.games.map((game) => {
+              const modes = game.pick ? [picked(game.modes, game.pick)] : game.modes;
+              return el(
                 'div.game-card',
                 {},
                 el('h3', {}, game.name),
                 el('p', {}, game.blurb),
-                el('div.plays', {}, game.modes.map((m) => playButton(m, game.modes.length === 1))),
-              ),
-            ),
+                el('div.plays', {}, modes.map((m) => playButton(m, modes.length === 1))),
+              );
+            }),
           ),
         ),
       ),

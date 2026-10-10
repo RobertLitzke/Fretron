@@ -820,6 +820,15 @@ input[type='range'] {
   margin-top: 4px;
 }
 
+.panel-option {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+
 /* --- the end of a run ------------------------------------------------------ */
 
 .result {

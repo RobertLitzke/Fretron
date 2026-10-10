@@ -46,9 +46,11 @@ the top if anything on a page is wider than the screen.
 | Scale Bends | A scale is drawn around the bend, the root in gold and the target note filled in (tap it to hear it); bend from one scale note up to the next | 10 bends; points as in Bend by Ear |
 
 Bend by Ear and Bend Trace come in three tiers (standard, advanced, virtuoso)
-that add wider bends. Scale Bends comes in three scales: blues (minor
-pentatonic with the ♭5, which the 4 can be bent over to the 5), major and
-natural minor, each in a new key every bend. Every game ends on a rank (S, A, B, C), a card of numbers, and a local
+that add wider bends. Scale Bends asks for a scale on the panel before
+the run: blues (minor pentatonic with the ♭5, which the 4 can be bent over to
+the 5), major or natural minor, in a new key every bend. Each scale keeps its
+own score table, and the menu's Play button returns to the last one chosen.
+Only the root, the note being bent and the target are named on the board. Every game ends on a rank (S, A, B, C), a card of numbers, and a local
 top ten with three-letter initials.
 
 The note and triad games take the open strings too: tap on the nut, or in the

@@ -1,7 +1,7 @@
-// Scale Bends: Bend by Ear inside a scale. The shape around the bend is drawn
-// as hollow notes, the root picked out, and the note to bend up to is filled
-// in where it is fretted: tap it to hear the target. Then bend up to it by ear,
-// as in Bend by Ear, and let go.
+// Scale Bends: Bend by Ear inside a scale, chosen before the run. The shape
+// around the bend is drawn as hollow notes, the root picked out and named, and
+// the note to bend up to is filled in where it is fretted: tap it to hear the
+// target. Then bend up to it by ear, as in Bend by Ear, and let go.
 
 import { BendVoice, blip, pluck } from '../../audio/audio';
 import type { BoardTouch } from '../../board/board';
@@ -10,12 +10,13 @@ import { BEND_PROMPTS, bendLabel, centsFromDrag, dragForCents, GRADE_WORDS, grad
 import { modeById, rankBend, scaleWords } from '../../core/modes';
 import { cellMidi, pc, pcName, sameCell, stringName, type Cell } from '../../core/music';
 import { Rng } from '../../core/rng';
-import { asScale, degreeOf, makeScaleBendPrompt, SCALES, scaleCells, type ScaleBendPrompt } from '../../core/scaleBend';
+import { asScale, degreeOf, makeScaleBendPrompt, SCALE_IDS, SCALES, scaleCells, type ScaleBendPrompt, type ScaleId } from '../../core/scaleBend';
 import { el } from '../dom';
-import { makeFrame, readyPanel, waiting } from '../game/frame';
+import { makeFrame, panelOption, readyPanel, waiting } from '../game/frame';
 import { showResult } from '../game/results';
 import type { View } from '../router';
-import { freshSeed } from '../ui';
+import { updateSave } from '../store';
+import { freshSeed, segmented } from '../ui';
 import { gradeColor, onPuck, reviewButtons, signedCents } from './bend';
 
 const SLIP_MS = 300;
@@ -28,6 +29,8 @@ export const scaleBendView: View = (root, ctx) => {
   const scaleId = asScale(ctx.params.scale);
   const scale = SCALES[scaleId];
   const mode = modeById(`scalebend-${scaleId}`)!;
+  // The menu's Play button comes back to the scale last played.
+  updateSave((s) => ({ ...s, picks: { ...s.picks, scalebend: scaleId } }));
   const rng = new Rng(freshSeed());
   const voice = new BendVoice();
 
@@ -63,13 +66,13 @@ export const scaleBendView: View = (root, ctx) => {
     const notes: NoteRenderData[] = [];
     for (const cell of shape) {
       if (sameCell(cell, p.cell) || sameCell(cell, p.target)) continue;
-      const degree = degreeOf(scale, p.root, cellMidi(tuning, cell))!;
-      const isRoot = degree === 'R';
+      // Only the root is named; the rest of the shape is there to be seen, not read.
+      const isRoot = degreeOf(scale, p.root, cellMidi(tuning, cell)) === 'R';
       const color = isRoot ? theme.pivot : theme.cyan;
       notes.push({
         fret: cell.fret,
         stringIndex: cell.string,
-        displayLabel: degree,
+        displayLabel: isRoot ? pcName(p.root, 'sharp') : undefined,
         fillColor: 'transparent',
         strokeColor: color,
         strokeWidth: isRoot ? 3 : 1.5,
@@ -261,7 +264,7 @@ export const scaleBendView: View = (root, ctx) => {
     frame,
     `${mode.title} · ${scaleWords(scaleId)}`,
     [
-      `Each bend is in a new key of the ${scale.name} scale. Its notes around the bend are drawn hollow, with the root in gold.`,
+      `Each bend is in a new key of the ${scale.name} scale. Its notes around the bend are drawn hollow, with the root named in gold.`,
       'The green note is the one to reach: tap it to hear it. Then hold the orange note and push it up until it matches.',
       'Afterwards, tap the orange note to hear where you let go, and the green one to hear the target.',
       `${BEND_PROMPTS} bends, scored as in Bend by Ear. Within 5 cents is a bullseye.`,
@@ -270,6 +273,17 @@ export const scaleBendView: View = (root, ctx) => {
       blip();
       next();
     },
+    panelOption(
+      'Scale',
+      segmented<ScaleId>(
+        SCALE_IDS.map((id) => ({ value: id, label: scaleWords(id) })),
+        scaleId,
+        (id) => {
+          // Each scale is its own game, with its own score table: build it afresh.
+          ctx.replace(modeById(`scalebend-${id}`)!.route);
+        },
+      ),
+    ),
   );
 
   return () => {
