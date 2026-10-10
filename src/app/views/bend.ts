@@ -40,6 +40,7 @@ import { asTier, modeById, rankBend, rankTrace, tierWords } from '../../core/mod
 import { pc, pcName, stringName, type Cell } from '../../core/music';
 import { Rng } from '../../core/rng';
 import { el } from '../dom';
+import { BendFx } from '../game/bendFx';
 import { makeFrame, readyPanel, waiting, type Frame } from '../game/frame';
 import { showResult } from '../game/results';
 import type { View } from '../router';
@@ -98,6 +99,7 @@ export const bendView: View = (root, ctx) => {
   const mode = modeById(`bend-${tier}`)!;
   const rng = new Rng(freshSeed());
   const voice = new BendVoice();
+  const fx = new BendFx();
 
   let asked = 0;
   let score = 0;
@@ -145,12 +147,16 @@ export const bendView: View = (root, ctx) => {
     g.textAlign = 'left';
     g.fillStyle = board.theme.orange;
     g.fillText(name(prompt.to), centre.x + half + 8, targetY);
-    g.font = `700 20px Orbitron, sans-serif`;
+    g.font = `700 26px Orbitron, sans-serif`;
     g.fillStyle = gradeColor(frame, shown.grade);
     g.textAlign = 'right';
-    g.fillText(signedCents(shown.error), centre.x - half - 10, centre.y + offsetY);
+    g.fillText(signedCents(shown.error), centre.x - half - 10 + fx.shake(), centre.y + offsetY);
     g.restore();
+    fx.draw(g, centre.x, centre.y + offsetY, board.noteRadius * 1.15, gradeColor(frame, shown.grade));
   };
+  frame.everyFrame((nowMs) => {
+    if (fx.tick(nowMs)) board.invalidate();
+  });
 
   function hearTarget(): void {
     if (prompt) pluck(prompt.to, { level: 0.55, ring: 0.6 });
@@ -166,6 +172,7 @@ export const bendView: View = (root, ctx) => {
   /** Clear the board, take a beat, then put up the next bend. */
   function next(): void {
     if (asked >= BEND_PROMPTS) return finish();
+    fx.clear();
     shown = null;
     prompt = null;
     phase = 'idle';
@@ -246,6 +253,7 @@ export const bendView: View = (root, ctx) => {
     secondsTotal += (touch.time - aimSince) / 1000;
     shown = { direction: offsetY < 0 ? -1 : offsetY > 0 ? 1 : -1, error, grade, cents };
     phase = 'shown';
+    fx.burst(grade);
     frame.setAction(null);
     frame.setPrompt(...promptLine, reviewButtons(hearTarget, hearYours));
     frame.setScore(score);
@@ -310,6 +318,7 @@ export const traceView: View = (root, ctx) => {
   const mode = modeById(`trace-${tier}`)!;
   const rng = new Rng(freshSeed());
   const voice = new BendVoice();
+  const fx = new BendFx();
 
   let asked = 0;
   let score = 0;
@@ -342,7 +351,12 @@ export const traceView: View = (root, ctx) => {
   const semitonePx = () => (prompt ? prompt.travel * board.layout.spacing : 1);
 
   board.overlay = (g, layout, start) => {
-    if (prompt) drawGraph(g, layout, start);
+    if (!prompt) return;
+    drawGraph(g, layout, start);
+    if (shown) {
+      const centre = layout.center(prompt.cell, start);
+      fx.draw(g, centre.x, centre.y, board.noteRadius * 1.15, gradeColor(frame, shown.grade));
+    }
   };
 
   function drawGraph(g: CanvasRenderingContext2D, layout: BoardLayout, start: number): void {
@@ -415,10 +429,10 @@ export const traceView: View = (root, ctx) => {
       for (const s of samples) g.lineTo(tx(s.t), cy(s.cents));
       g.lineTo(tx(duration), cy(samples[samples.length - 1].cents));
       g.stroke();
-      g.font = `700 13px Orbitron, sans-serif`;
+      g.font = `700 16px Orbitron, sans-serif`;
       g.textAlign = 'left';
       g.fillStyle = gradeColor(frame, shown.grade);
-      g.fillText(`${Math.round(shown.mean)} ¢ off on average`, left + padL, top + 12);
+      g.fillText(`${Math.round(shown.mean)} ¢ off on average`, left + padL + fx.shake(), top + 12);
     } else {
       g.font = `600 11px Orbitron, sans-serif`;
       g.textAlign = 'left';
@@ -487,6 +501,7 @@ export const traceView: View = (root, ctx) => {
   function next(): void {
     if (asked >= BEND_PROMPTS) return finish();
     cutPrompt?.();
+    fx.clear();
     shown = null;
     review = null;
     prompt = null;
@@ -574,6 +589,7 @@ export const traceView: View = (root, ctx) => {
     best = Math.min(best, mean);
     shown = { mean, grade };
     phase = 'shown';
+    fx.burst(grade);
     finger = -1;
     frame.setAction(null);
     frame.setPrompt(
@@ -591,6 +607,7 @@ export const traceView: View = (root, ctx) => {
   }
 
   frame.everyFrame((nowMs) => {
+    if (fx.tick(nowMs)) board.invalidate();
     if (review && prompt && (nowMs - review.since) / 1000 > contourDuration(prompt.contour)) {
       review = null;
       board.invalidate();
