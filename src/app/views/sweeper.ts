@@ -19,6 +19,8 @@ import { freshSeed } from '../ui';
 const RANDOM_BEAT_MS = 320;
 /** How long the name of a wrongly tapped fret stays up. */
 const MISS_SHOWN_MS = 1100;
+/** Frets come quickly here: it takes this many in a row to fill the streak bar. */
+const SWEEP_STREAK_MAX = 20;
 
 export const sweeperView: View = (root, ctx) => {
   const kind: SweepKind = ctx.params.variant === 'random' ? 'random' : 'note';
@@ -39,6 +41,8 @@ export const sweeperView: View = (root, ctx) => {
   /** performance.now() when the note was called, or 0 while none is. */
   let liveSince = 0;
   let penalty = 0;
+  /** Frets cleared in a row. */
+  let streak = 0;
   let name = '';
   /** Counts the wrong frets shown, so that a late timer clears only its own. */
   let missShown = 0;
@@ -97,7 +101,8 @@ export const sweeperView: View = (root, ctx) => {
       thud();
       board.flash(cell, board.theme.danger);
       showMiss(cell);
-      frame.banner(`+${SWEEP_PENALTY} s`, 'bad');
+      frame.setStreak((streak = 0), undefined, SWEEP_STREAK_MAX);
+      frame.pop(`+${SWEEP_PENALTY} s`, [cell], 'bad');
       return;
     }
     missShown++;
@@ -109,6 +114,7 @@ export const sweeperView: View = (root, ctx) => {
       board.setTinted(cleared);
     }
     board.flash(cell, board.theme.good);
+    frame.setStreak(++streak, undefined, SWEEP_STREAK_MAX);
     pluck(cellMidi(tuning, cell), { level: 0.5 });
     if (result === 'board-cleared') return finish(seconds(touch.time));
     if (result === 'next-call') {

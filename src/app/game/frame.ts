@@ -3,7 +3,7 @@
 
 import { unlock } from '../../audio/audio';
 import { Board, type BoardOptions } from '../../board/board';
-import { STANDARD_TUNING, type Tuning } from '../../core/music';
+import { STANDARD_TUNING, type Cell, type Tuning } from '../../core/music';
 import { el, type Child } from '../dom';
 import type { ViewContext } from '../router';
 import { getSave } from '../store';
@@ -22,8 +22,18 @@ export interface Frame {
   /** How many frets the neck has, from the settings. */
   frets: number;
   setScore(points: number): void;
-  /** The streak multiplier, or null to hide it. */
-  setCombo(combo: number | null): void;
+  /**
+   * The run of good answers in a row. The bar grows with it, filling at `max`,
+   * and breaks visibly when it falls back to 0. `label` is what the streak is
+   * worth, such as a multiplier; without one the count itself is shown.
+   */
+  setStreak(count: number, label?: string, max?: number): void;
+  /**
+   * A word or a number, such as the points just won, that floats up from the
+   * board and fades by itself: from the middle of `at` when it is cells, or
+   * from a point on the board.
+   */
+  pop(text: string, at: readonly Cell[] | { x: number; y: number }, kind?: PopKind): void;
   setPrompt(...children: Child[]): void;
   setClock(text: string): void;
   /** A button at the end of the top row, or none. */
@@ -60,6 +70,13 @@ export interface Frame {
   teardown(): void;
 }
 
+export type PopKind = 'good' | 'gold' | 'bad' | 'info';
+
+/** How many good answers in a row fill the streak bar, when a game does not say. */
+const STREAK_MAX = 10;
+/** A streak this long or longer is said to be lost when it breaks, not only shown. */
+const STREAK_LOST_AT = 3;
+
 type Handlers = Pick<BoardOptions, 'onDown' | 'onMove' | 'onUp' | 'onWindow'>;
 
 export function makeFrame(root: HTMLElement, ctx: ViewContext, title: string, handlers: Handlers): Frame {
@@ -68,11 +85,16 @@ export function makeFrame(root: HTMLElement, ctx: ViewContext, title: string, ha
   const board = new Board({ hand: save.hand, tuning, frets: save.frets, ...handlers });
 
   const score = el('b.num', {}, '0');
-  const combo = el('span.hud-combo', { hidden: true });
+  const streakFill = el('i.streak-fill');
+  const streakText = el('b.streak-n.num', {}, '0');
+  const streak = el('span.streak', { title: 'Streak' }, el('span.streak-bar', {}, streakFill), streakText);
+  let streakWas = 0;
   const prompt = el('div.hud-prompt');
   const clock = el('span.hud-clock.num');
   const action = el('button.btn.btn-small.hud-action', { type: 'button', hidden: true }) as HTMLButtonElement;
   const banners = el('div.banners');
+  const floats = el('div.floats');
+  board.root.querySelector('.board-wrap')?.append(floats);
   const panelHost = el('div.panel-host', { hidden: true });
 
   let actionRun: (() => void) | undefined;
@@ -103,7 +125,7 @@ export function makeFrame(root: HTMLElement, ctx: ViewContext, title: string, ha
     quit,
     el('span.hud-title', {}, title),
     el('span.hud-score', {}, el('span.caps', {}, 'Score'), score),
-    combo,
+    streak,
     prompt,
     clock,
     action,
@@ -199,14 +221,46 @@ export function makeFrame(root: HTMLElement, ctx: ViewContext, title: string, ha
     tuning,
     frets: save.frets,
     setScore(points) {
-      score.textContent = Math.round(points).toLocaleString('en-US');
+      const text = Math.round(points).toLocaleString('en-US');
+      if (text !== score.textContent && points > 0) restart(score, 'bump');
+      score.textContent = text;
     },
-    setCombo(value) {
-      combo.hidden = value === null;
-      if (value !== null) {
-        combo.textContent = `×${Number.isInteger(value) ? value : value.toFixed(1)}`;
-        combo.classList.toggle('hot', value > 1);
+    setStreak(count, label, max = STREAK_MAX) {
+      const fill = Math.min(1, count / max);
+      streak.style.setProperty('--fill', String(fill));
+      // Cool to hot as it grows; ablaze once the bar is full.
+      streak.dataset.tier = String(count === 0 ? 0 : fill >= 1 ? 3 : fill >= 0.5 ? 2 : 1);
+      streakText.textContent = label ?? String(count);
+      if (count > streakWas) restart(streak, 'bump');
+      else if (count === 0 && streakWas >= 2) {
+        restart(streak, 'broke');
+        if (streakWas >= STREAK_LOST_AT) {
+          const lost = el('span.streak-lost', {}, `Streak lost · ${streakWas}`);
+          streak.querySelector('.streak-lost')?.remove();
+          streak.append(lost);
+          lost.addEventListener('animationend', () => lost.remove());
+        }
       }
+      streakWas = count;
+    },
+    pop(text, at, kind = 'good') {
+      let x: number;
+      let y: number;
+      if ('x' in at) ({ x, y } = at);
+      else {
+        if (!at.length) return;
+        const points = at.map((c) => board.centre(c));
+        x = points.reduce((n, p) => n + p.x, 0) / points.length;
+        // From the top note, so it rises clear of the rest.
+        y = Math.min(...points.map((p) => p.y));
+      }
+      const node = el(`div.float.${kind}.num`, {}, text);
+      // Kept far enough in from the edges to be read whole.
+      const width = floats.clientWidth || 1;
+      node.style.left = `${Math.max(48, Math.min(width - 48, x))}px`;
+      node.style.top = `${Math.max(28, y - board.noteRadius)}px`;
+      floats.append(node);
+      node.addEventListener('animationend', () => node.remove());
     },
     setPrompt(...children) {
       prompt.replaceChildren(el('span', {}, ...children));
@@ -274,6 +328,13 @@ export function makeFrame(root: HTMLElement, ctx: ViewContext, title: string, ha
       document.body.classList.remove('in-game');
     },
   };
+}
+
+/** Play a one-shot animation class again from the start, even if it is still running. */
+function restart(node: HTMLElement, name: string): void {
+  node.classList.remove('bump', 'broke');
+  void node.offsetWidth;
+  node.classList.add(name);
 }
 
 /** Set while "Again" rebuilds a game screen, so its ready panel is passed straight through. */

@@ -33,6 +33,7 @@ import {
   makeTracePrompt,
   scoreGrade,
   comboMultiplier,
+  MAX_COMBO,
   traceError,
   type BendPrompt,
   type Contour,
@@ -83,6 +84,22 @@ export function reviewButtons(target: () => void, yours: () => void): HTMLElemen
 }
 
 /** Draw the note being bent, pulled `offsetY` pixels across the neck, and its string with it. */
+/** The streak meter in the bend games: the steps of the streak, and the multiplier they give. */
+export function bendStreak(frame: Frame, combo: number): void {
+  frame.setStreak(combo - 1, `×${comboMultiplier(combo).toFixed(1)}`, MAX_COMBO - 1);
+}
+
+/** The points a bend won, floated up from the note; a bullseye's in gold. An off bend wins none, and its broken streak says so. */
+export function popGrade(frame: Frame, grade: Grade, points: number, at: readonly Cell[] | { x: number; y: number }): void {
+  if (points) frame.pop(`+${points.toLocaleString('en-US')}`, at, grade === 'bullseye' ? 'gold' : 'good');
+}
+
+/** Where the note is on the board, pushed as far as it was bent. */
+export function bentTo(frame: Frame, cell: Cell, offsetY: number): { x: number; y: number } {
+  const { x, y } = frame.board.centre(cell);
+  return { x, y: y + offsetY };
+}
+
 function paintPuck(frame: Frame, cell: Cell, label: string, offsetY: number, held: boolean): void {
   const { board } = frame;
   board.setDeflection(offsetY ? { cell, offsetY } : null);
@@ -280,8 +297,9 @@ export const bendView: View = (root, ctx) => {
     frame.setAction(null);
     frame.setPrompt(...promptLine, reviewButtons(hearTarget, hearYours));
     frame.setScore(score);
-    frame.setCombo(comboMultiplier(combo));
-    frame.banner(scored.points ? `${GRADE_WORDS[grade]} · +${scored.points}` : GRADE_WORDS[grade], grade === 'off' ? 'bad' : 'good');
+    bendStreak(frame, combo);
+    popGrade(frame, grade, scored.points, bentTo(frame, prompt.cell, offsetY));
+    frame.banner(GRADE_WORDS[grade], grade === 'off' ? 'bad' : 'good');
     board.invalidate();
     frame.offerNext(next);
   }
@@ -308,7 +326,7 @@ export const bendView: View = (root, ctx) => {
     );
   }
 
-  frame.setCombo(1);
+  bendStreak(frame, 1);
   frame.setPrompt(el('span.caps', {}, tierWords(tier)));
   readyPanel(
     frame,
@@ -644,8 +662,9 @@ export const traceView: View = (root, ctx) => {
       ),
     );
     frame.setScore(score);
-    frame.setCombo(comboMultiplier(combo));
-    frame.banner(scored.points ? `${GRADE_WORDS[grade]} · +${scored.points}` : GRADE_WORDS[grade], grade === 'off' ? 'bad' : 'good');
+    bendStreak(frame, combo);
+    popGrade(frame, grade, scored.points, [prompt.cell]);
+    frame.banner(GRADE_WORDS[grade], grade === 'off' ? 'bad' : 'good');
     paintPuck(frame, prompt.cell, name(prompt.from), 0, false);
     frame.offerNext(next);
   }
@@ -683,7 +702,7 @@ export const traceView: View = (root, ctx) => {
     );
   }
 
-  frame.setCombo(1);
+  bendStreak(frame, 1);
   frame.setPrompt(el('span.caps', {}, tierWords(tier)));
   readyPanel(
     frame,
