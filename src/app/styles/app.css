@@ -599,6 +599,20 @@ input[type='range'] {
   flex: none;
 }
 
+/* After a bend: play the target and what was played, to compare them. */
+.review {
+  flex: none;
+  display: flex;
+  gap: 6px;
+  align-self: center;
+}
+
+.review-play.target {
+  border-color: var(--orange);
+  color: var(--orange);
+  background: rgba(255, 122, 26, 0.06);
+}
+
 /* "Next" is the one thing to press between prompts: make it easy to hit. */
 .hud-action.btn-primary {
   min-width: 92px;
