@@ -30,6 +30,7 @@ import {
   scoreGrade,
   traceError,
   type BendPrompt,
+  type Contour,
   type Grade,
   type TracePrompt,
   type TraceSample,
@@ -59,10 +60,20 @@ function gradeColor(frame: Frame, grade: Grade): string {
   return grade === 'bullseye' || grade === 'intune' ? theme.good : grade === 'acceptable' ? theme.pivot : theme.danger;
 }
 
-/** Whether a touch has landed on the note to be bent. */
-function onPuck(frame: Frame, cell: Cell, touch: BoardTouch): boolean {
+/** Whether a touch has landed on the note to be bent, drawn `offsetY` pixels from its place. */
+function onPuck(frame: Frame, cell: Cell, touch: BoardTouch, offsetY = 0): boolean {
   const centre = frame.board.centre(cell);
-  return Math.hypot(touch.x - centre.x, touch.y - centre.y) <= frame.board.noteRadius * 2.6;
+  return Math.hypot(touch.x - centre.x, touch.y - centre.y - offsetY) <= frame.board.noteRadius * 2.6;
+}
+
+/**
+ * Once a bend is over, the two to compare: the prompt, and what was played.
+ * Tapping the note plays the second too.
+ */
+function reviewButtons(target: () => void, yours: () => void): HTMLElement {
+  const play = (label: string, run: () => void, kind: string) =>
+    el(`button.btn.btn-small.review-play.${kind}`, { type: 'button', onclick: run }, label);
+  return el('span.review', {}, play('▶ Target', target, 'target'), play('▶ Yours', yours, 'yours'));
 }
 
 /** Draw the note being bent, pulled `offsetY` pixels across the neck, and its string with it. */
@@ -102,7 +113,7 @@ export const bendView: View = (root, ctx) => {
   let offsetY = 0;
   let cents = 0;
   /** What to draw once the finger has lifted. */
-  let shown: { direction: number; error: number; grade: Grade } | null = null;
+  let shown: { direction: number; error: number; grade: Grade; cents: number } | null = null;
 
   const frame = makeFrame(root, ctx, mode.title, { onDown, onMove, onUp });
   const { board, tuning } = frame;
@@ -145,6 +156,13 @@ export const bendView: View = (root, ctx) => {
     if (prompt) pluck(prompt.to, { level: 0.55, ring: 0.6 });
   }
 
+  /** The note where it was let go, struck the same way as the target. */
+  function hearYours(): void {
+    if (prompt && shown) pluck(prompt.from + shown.cents / 100, { level: 0.55, ring: 0.6 });
+  }
+
+  let promptLine: HTMLElement[] = [];
+
   /** Clear the board, take a beat, then put up the next bend. */
   function next(): void {
     if (asked >= BEND_PROMPTS) return finish();
@@ -165,7 +183,7 @@ export const bendView: View = (root, ctx) => {
     if (import.meta.env.DEV) (window as unknown as { __prompt?: BendPrompt }).__prompt = prompt;
     asked++;
     paintPuck(frame, prompt.cell, name(prompt.from), 0, false);
-    frame.setPrompt(
+    promptLine = [
       el('span.caps', {}, `${asked} / ${BEND_PROMPTS}`),
       el('b.call.pop', {}, `Bend ${bendLabel(prompt.semis)}`),
       el(
@@ -173,7 +191,8 @@ export const bendView: View = (root, ctx) => {
         {},
         `${name(prompt.from)} → ${name(prompt.to)} · fret ${prompt.cell.fret}, ${stringName(tuning, prompt.cell.string)} string`,
       ),
-    );
+    ];
+    frame.setPrompt(...promptLine);
     board.show([prompt.cell]);
     await board.whenSettled();
     if (frame.gone) return;
@@ -184,6 +203,8 @@ export const bendView: View = (root, ctx) => {
   }
 
   function onDown(touch: BoardTouch): void {
+    // Over: the note plays back what was played, and the rest of the board moves on.
+    if (phase === 'shown' && prompt && onPuck(frame, prompt.cell, touch, offsetY)) return hearYours();
     if (frame.takeNext(true)) return;
     if (phase !== 'aim' || !prompt || !onPuck(frame, prompt.cell, touch)) return;
     phase = 'bending';
@@ -223,9 +244,10 @@ export const bendView: View = (root, ctx) => {
     combo = scored.combo;
     missTotal += Math.abs(error);
     secondsTotal += (touch.time - aimSince) / 1000;
-    shown = { direction: offsetY < 0 ? -1 : offsetY > 0 ? 1 : -1, error, grade };
+    shown = { direction: offsetY < 0 ? -1 : offsetY > 0 ? 1 : -1, error, grade, cents };
     phase = 'shown';
     frame.setAction(null);
+    frame.setPrompt(...promptLine, reviewButtons(hearTarget, hearYours));
     frame.setScore(score);
     frame.setCombo(combo);
     frame.banner(scored.points ? `${GRADE_WORDS[grade]} · +${scored.points}` : GRADE_WORDS[grade], grade === 'off' ? 'bad' : 'good');
@@ -263,6 +285,7 @@ export const bendView: View = (root, ctx) => {
     [
       'You hear the pitch to reach. Then hold the lit note and drag it across the strings: the further you push, the higher it goes.',
       'There is no meter, and no two bends take the same push. Listen, and let go when your note matches.',
+      'Afterwards, tap the note to hear where you let go, and compare it with the target.',
       `${BEND_PROMPTS} bends. Within 5 cents is a bullseye.`,
     ],
     () => {
@@ -306,6 +329,9 @@ export const traceView: View = (root, ctx) => {
   let peak = 0;
   let samples: TraceSample[] = [];
   let shown: { mean: number; grade: Grade } | null = null;
+  /** Once a bend is over, which line is being played back, and since when. */
+  let review: { line: 'target' | 'yours'; since: number } | null = null;
+  let promptLine: HTMLElement[] = [];
 
   const frame = makeFrame(root, ctx, mode.title, { onDown, onMove, onUp });
   const { board, tuning } = frame;
@@ -401,10 +427,17 @@ export const traceView: View = (root, ctx) => {
     }
 
     const nowMs = performance.now();
-    const playhead = phase === 'listen' ? (nowMs - listenSince) / 1000 : phase === 'playing' ? (nowMs - playSince) / 1000 : -1;
+    const playhead =
+      phase === 'listen'
+        ? (nowMs - listenSince) / 1000
+        : phase === 'playing'
+          ? (nowMs - playSince) / 1000
+          : review
+            ? (nowMs - review.since) / 1000
+            : -1;
     if (playhead >= 0 && playhead <= duration) {
       const x = tx(playhead);
-      g.strokeStyle = phase === 'playing' ? theme.cyan : theme.text;
+      g.strokeStyle = phase === 'playing' || review?.line === 'yours' ? theme.cyan : theme.text;
       g.lineWidth = 2;
       g.beginPath();
       g.moveTo(x, top + padT - 6);
@@ -433,10 +466,29 @@ export const traceView: View = (root, ctx) => {
     });
   }
 
+  /** Once a bend is over, play back the prompt or what was played, with the clock running across the graph. */
+  function hearAgain(line: 'target' | 'yours'): void {
+    if (!prompt || phase !== 'shown') return;
+    cutPrompt?.();
+    cutPrompt = playContour(prompt.from, line === 'target' ? prompt.contour : playedContour());
+    review = { line, since: performance.now() + 50 };
+  }
+
+  /** What was played, as a contour to play back: held to the end of the prompt's time, as it was scored. */
+  function playedContour(): Contour {
+    const duration = contourDuration(prompt!.contour);
+    const points = samples.filter((s) => s.t <= duration);
+    const last = points[points.length - 1];
+    if (last.t < duration) points.push({ t: duration, cents: last.cents });
+    return { points, stops: [] };
+  }
+
   /** Clear the board, take a beat, then put up the next bend. */
   function next(): void {
     if (asked >= BEND_PROMPTS) return finish();
+    cutPrompt?.();
     shown = null;
+    review = null;
     prompt = null;
     phase = 'idle';
     board.setNotes([]);
@@ -454,11 +506,12 @@ export const traceView: View = (root, ctx) => {
     if (import.meta.env.DEV) (window as unknown as { __prompt?: TracePrompt }).__prompt = prompt;
     asked++;
     paintPuck(frame, prompt.cell, name(prompt.from), 0, false);
-    frame.setPrompt(
+    promptLine = [
       el('span.caps', {}, `${asked} / ${BEND_PROMPTS}`),
       el('b.call.pop', {}, `Trace ${prompt.contour.stops.map((s) => (s === 0 ? 'release' : bendLabel(s))).join(' → ')}`),
       el('span.call-sub', {}, `from ${name(prompt.from)} · fret ${prompt.cell.fret}, ${stringName(tuning, prompt.cell.string)} string`),
-    );
+    ];
+    frame.setPrompt(...promptLine);
     board.show([prompt.cell]);
     await board.whenSettled();
     if (frame.gone) return;
@@ -467,6 +520,8 @@ export const traceView: View = (root, ctx) => {
   }
 
   function onDown(touch: BoardTouch): void {
+    // Over: the note plays back what was played, and the rest of the board moves on.
+    if (phase === 'shown' && prompt && onPuck(frame, prompt.cell, touch)) return hearAgain('yours');
     if (frame.takeNext(true)) return;
     if ((phase !== 'listen' && phase !== 'ready') || !prompt || !onPuck(frame, prompt.cell, touch)) return;
     cutPrompt?.();
@@ -521,6 +576,13 @@ export const traceView: View = (root, ctx) => {
     phase = 'shown';
     finger = -1;
     frame.setAction(null);
+    frame.setPrompt(
+      ...promptLine,
+      reviewButtons(
+        () => hearAgain('target'),
+        () => hearAgain('yours'),
+      ),
+    );
     frame.setScore(score);
     frame.setCombo(combo);
     frame.banner(scored.points ? `${GRADE_WORDS[grade]} · +${scored.points}` : GRADE_WORDS[grade], grade === 'off' ? 'bad' : 'good');
@@ -529,7 +591,11 @@ export const traceView: View = (root, ctx) => {
   }
 
   frame.everyFrame((nowMs) => {
-    if (phase === 'listen' || phase === 'playing') board.invalidate();
+    if (review && prompt && (nowMs - review.since) / 1000 > contourDuration(prompt.contour)) {
+      review = null;
+      board.invalidate();
+    }
+    if (phase === 'listen' || phase === 'playing' || review) board.invalidate();
     // The prompt's time is up: the bend is over whether or not the finger has lifted.
     if (phase === 'playing' && prompt && (nowMs - playSince) / 1000 >= contourDuration(prompt.contour)) settle();
   });
@@ -564,7 +630,7 @@ export const traceView: View = (root, ctx) => {
     [
       'You hear a bend that moves: up a half step, on to a whole step, and so on. The graph shows its shape and timing.',
       'Then hold the lit note and play it back. The clock starts when you touch, and the line disappears: play it from memory.',
-      `${BEND_PROMPTS} bends, scored on how far your pitch was from the prompt along the way. Both lines are shown afterwards.`,
+      `${BEND_PROMPTS} bends, scored on how far your pitch was from the prompt along the way. Both lines are shown afterwards: tap the note to hear yours again.`,
     ],
     () => {
       blip();
