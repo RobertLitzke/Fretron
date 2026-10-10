@@ -31,6 +31,8 @@ export const sweeperView: View = (root, ctx) => {
   // From fret 0: the open strings are swept too.
   const sweep = new Sweep(rng, tuning, 0, frame.frets, kind);
   const dead = new Set<string>();
+  /** The frets of the called note already cleared: tinted, by note, so it shows what is left of it. */
+  const cleared = new Set<string>();
 
   /** Seconds spent on the calls already answered. The clock stands still between calls. */
   let ran = 0;
@@ -45,6 +47,8 @@ export const sweeperView: View = (root, ctx) => {
 
   function call(): void {
     name = promptName(rng, sweep.target, accidentals);
+    cleared.clear();
+    board.setTinted(cleared);
     // The called note, in the middle of the guitar's range.
     pluck(52 + ((sweep.target - 4 + 12) % 12), { level: 0.5 });
     paint(true);
@@ -100,6 +104,10 @@ export const sweeperView: View = (root, ctx) => {
     board.setNotes([]);
     dead.add(cellKey(cell));
     board.setDead(dead);
+    if (kind === 'note') {
+      cleared.add(cellKey(cell));
+      board.setTinted(cleared);
+    }
     board.flash(cell, board.theme.good);
     pluck(cellMidi(tuning, cell), { level: 0.5 });
     if (result === 'board-cleared') return finish(seconds(touch.time));
