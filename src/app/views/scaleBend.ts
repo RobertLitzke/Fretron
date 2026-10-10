@@ -12,6 +12,7 @@ import { cellMidi, pc, pcName, sameCell, stringName, type Cell } from '../../cor
 import { Rng } from '../../core/rng';
 import { asScale, degreeOf, makeScaleBendPrompt, SCALE_IDS, SCALES, scaleCells, type ScaleBendPrompt, type ScaleId } from '../../core/scaleBend';
 import { el } from '../dom';
+import { BendFx } from '../game/bendFx';
 import { makeFrame, panelOption, readyPanel, waiting } from '../game/frame';
 import { showResult } from '../game/results';
 import type { View } from '../router';
@@ -33,6 +34,7 @@ export const scaleBendView: View = (root, ctx) => {
   updateSave((s) => ({ ...s, picks: { ...s.picks, scalebend: scaleId } }));
   const rng = new Rng(freshSeed());
   const voice = new BendVoice();
+  const fx = new BendFx();
 
   let asked = 0;
   let score = 0;
@@ -118,13 +120,17 @@ export const scaleBendView: View = (root, ctx) => {
     g.lineTo(centre.x + half, targetY);
     g.stroke();
     g.shadowBlur = 0;
-    g.font = `700 20px Orbitron, sans-serif`;
+    g.font = `700 26px Orbitron, sans-serif`;
     g.fillStyle = gradeColor(frame, shown.grade);
     g.textAlign = 'right';
     g.textBaseline = 'middle';
-    g.fillText(signedCents(shown.error), centre.x - half - 10, centre.y + offsetY);
+    g.fillText(signedCents(shown.error), centre.x - half - 10 + fx.shake(), centre.y + offsetY);
     g.restore();
+    fx.draw(g, centre.x, centre.y + offsetY, board.noteRadius * 1.15, gradeColor(frame, shown.grade));
   };
+  frame.everyFrame((nowMs) => {
+    if (fx.tick(nowMs)) board.invalidate();
+  });
 
   function hearTarget(): void {
     if (prompt) pluck(prompt.to, { level: 0.55, ring: 0.6 });
@@ -137,6 +143,7 @@ export const scaleBendView: View = (root, ctx) => {
 
   function next(): void {
     if (asked >= BEND_PROMPTS) return finish();
+    fx.clear();
     shown = null;
     prompt = null;
     shape = [];
@@ -226,6 +233,7 @@ export const scaleBendView: View = (root, ctx) => {
     secondsTotal += (touch.time - aimSince) / 1000;
     shown = { direction: offsetY < 0 ? -1 : 1, error, grade, cents };
     phase = 'shown';
+    fx.burst(grade);
     frame.setAction(null);
     frame.setPrompt(...promptLine, reviewButtons(hearTarget, hearYours));
     frame.setScore(score);
