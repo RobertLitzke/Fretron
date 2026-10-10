@@ -1,10 +1,10 @@
 import './app/styles/app.css';
-import { registerSW } from 'virtual:pwa-register';
 import { setVoice, setVolume } from './audio/audio';
 import { el } from './app/dom';
 import { Router } from './app/router';
 import { getSave } from './app/store';
-import { canFullscreen, toast, toggleFullscreen } from './app/ui';
+import { canFullscreen, toggleFullscreen } from './app/ui';
+import { watchForUpdates } from './app/update';
 import { bendView, traceView } from './app/views/bend';
 import { homeView } from './app/views/home';
 import { hunterView } from './app/views/hunter';
@@ -66,13 +66,7 @@ function boot(): void {
 
   // The page also runs straight from disk, where there is no service worker.
   if (import.meta.env.PROD && 'serviceWorker' in navigator && location.protocol.startsWith('http')) {
-    const updateSW = registerSW({
-      onNeedRefresh() {
-        // A banner rather than confirm(): a native dialog would land in the
-        // middle of a run. This waits until the player chooses.
-        toast('A new version is ready.', { label: 'Reload', run: () => void updateSW(true) });
-      },
-    });
+    watchForUpdates();
   }
 }
 

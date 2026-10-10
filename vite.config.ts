@@ -33,6 +33,13 @@ export default defineConfig({
         inlineWorkboxRuntime: true,
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
+        // The plugin skips revisions for files under build.assetsDir, taking
+        // their names to be hashed already. The single-file build sets
+        // assetsDir to '', which made that match every file: index.html went
+        // into sw.js with no revision, sw.js came out the same on every build,
+        // and an installed copy never learned of a new deploy. Nothing here
+        // has a hashed name, so every file gets a revision.
+        dontCacheBustURLsMatching: /^(?!)/,
       },
       manifest: {
         name: 'Fretron',
