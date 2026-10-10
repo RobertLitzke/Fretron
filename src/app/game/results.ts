@@ -8,7 +8,7 @@ import { placeFor, withScore, type ScoreEntry } from '../../core/storage';
 import { el } from '../dom';
 import type { ViewContext } from '../router';
 import { getSave, updateSave } from '../store';
-import type { Frame } from './frame';
+import { replay, type Frame } from './frame';
 
 export interface RunResult {
   mode: Mode;
@@ -140,7 +140,7 @@ export function showResult(frame: Frame, ctx: ViewContext, result: RunResult, ag
     el(
       'div.row.result-buttons',
       {},
-      el('button.btn.btn-primary', { type: 'button', onclick: again }, 'Again'),
+      el('button.btn.btn-primary', { type: 'button', onclick: () => replay(again) }, 'Again'),
       el('button.btn', { type: 'button', onclick: () => ctx.navigate('/scores') }, 'Scores'),
       el('button.btn', { type: 'button', onclick: () => ctx.navigate('/home') }, 'Menu'),
     ),

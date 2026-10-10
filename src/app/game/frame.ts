@@ -276,8 +276,28 @@ export function makeFrame(root: HTMLElement, ctx: ViewContext, title: string, ha
   };
 }
 
+/** Set while "Again" rebuilds a game screen, so its ready panel is passed straight through. */
+let replaying = false;
+
+/** Rebuild a game screen for another run that starts at once, with no ready panel first. */
+export function replay(again: () => void): void {
+  replaying = true;
+  try {
+    again();
+  } finally {
+    replaying = false;
+  }
+}
+
 /** The panel shown before a run: what the game is, and a button that starts it. */
 export function readyPanel(frame: Frame, title: string, lines: readonly string[], start: () => void, extra?: Child): void {
+  if (replaying) {
+    // The player has read it already: "Again" goes straight into the next run.
+    replaying = false;
+    unlock();
+    start();
+    return;
+  }
   frame.panel(
     el('h1.panel-title', {}, title),
     el('ul.panel-lines', {}, lines.map((line) => el('li', {}, line))),
