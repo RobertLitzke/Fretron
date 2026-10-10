@@ -6,7 +6,7 @@
 import { BendVoice, blip, pluck } from '../../audio/audio';
 import type { BoardTouch } from '../../board/board';
 import type { NoteRenderData } from '../../board/renderer';
-import { BEND_PROMPTS, bendLabel, centsFromDrag, dragForCents, GRADE_WORDS, gradeBend, scoreGrade, comboMultiplier, type Grade } from '../../core/bend';
+import { BEND_PROMPTS, bendLabel, centsFromDrag, dragForCents, GRADE_WORDS, gradeBend, scoreGrade, type Grade } from '../../core/bend';
 import { modeById, rankBend, scaleWords } from '../../core/modes';
 import { cellMidi, pc, pcName, sameCell, stringName, type Cell } from '../../core/music';
 import { Rng } from '../../core/rng';
@@ -18,7 +18,7 @@ import { showResult } from '../game/results';
 import type { View } from '../router';
 import { updateSave } from '../store';
 import { freshSeed, segmented } from '../ui';
-import { gradeColor, onPuck, reviewButtons, signedCents } from './bend';
+import { bendStreak, bentTo, gradeColor, onPuck, popGrade, reviewButtons, signedCents } from './bend';
 
 const SLIP_MS = 300;
 const SLIP_CENTS = 8;
@@ -256,8 +256,9 @@ export const scaleBendView: View = (root, ctx) => {
     frame.setAction(null);
     frame.setPrompt(...promptLine, reviewButtons(hearTarget, hearYours));
     frame.setScore(score);
-    frame.setCombo(comboMultiplier(combo));
-    frame.banner(scored.points ? `${GRADE_WORDS[grade]} · +${scored.points}` : GRADE_WORDS[grade], grade === 'off' ? 'bad' : 'good');
+    bendStreak(frame, combo);
+    popGrade(frame, grade, scored.points, bentTo(frame, prompt.cell, offsetY));
+    frame.banner(GRADE_WORDS[grade], grade === 'off' ? 'bad' : 'good');
     board.invalidate();
     frame.offerNext(next);
   }
@@ -285,7 +286,7 @@ export const scaleBendView: View = (root, ctx) => {
     );
   }
 
-  frame.setCombo(1);
+  bendStreak(frame, 1);
   frame.setPrompt(el('span.caps', {}, scaleWords(scaleId)));
   readyPanel(
     frame,

@@ -495,6 +495,8 @@ input[type='range'] {
 }
 
 .hud-score b {
+  display: inline-block;
+  transform-origin: left center;
   font-size: 16px;
   font-weight: 700;
   color: var(--cyan);
@@ -504,17 +506,189 @@ input[type='range'] {
   display: none;
 }
 
-.hud-combo {
+/* The score gives a little jump each time it goes up. */
+.hud-score b.bump {
+  animation: score-bump 0.38s ease-out;
+}
+
+@keyframes score-bump {
+  0% {
+    transform: scale(1.35);
+    color: var(--text);
+    text-shadow: var(--glow-cyan);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* The streak: a bar that fills with good answers in a row, and what they are worth. */
+.streak {
+  --fill: 0;
+  position: relative;
+  --hue: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+
+.streak[data-tier='1'] {
+  --hue: var(--cyan);
+}
+
+.streak[data-tier='2'] {
+  --hue: var(--gold);
+}
+
+.streak[data-tier='3'] {
+  --hue: var(--orange);
+}
+
+.streak-bar {
+  position: relative;
+  width: 54px;
+  height: 8px;
+  overflow: hidden;
+  border: 1px solid var(--hair-dim);
+  border-radius: 4px;
+  background: var(--bg);
+}
+
+.streak-fill {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  transform: scaleX(var(--fill));
+  background: var(--hue);
+  box-shadow: 0 0 8px var(--hue);
+  transition: transform 0.25s ease-out, background-color 0.25s;
+}
+
+.streak-n {
+  min-width: 30px;
   font-family: var(--display);
   font-size: 15px;
   font-weight: 700;
-  color: var(--muted);
-  min-width: 30px;
+  color: var(--hue);
+  transition: color 0.25s;
 }
 
-.hud-combo.hot {
-  color: var(--gold);
-  text-shadow: 0 0 10px rgba(255, 209, 102, 0.7);
+.streak:not([data-tier='0']) .streak-n {
+  text-shadow: 0 0 10px var(--hue);
+}
+
+/* Full: it burns. */
+.streak[data-tier='3'] .streak-bar {
+  border-color: var(--orange);
+  animation: streak-blaze 0.7s ease-in-out infinite alternate;
+}
+
+.streak.bump .streak-n {
+  animation: streak-bump 0.32s ease-out;
+}
+
+.streak.broke {
+  animation: streak-shake 0.45s ease-out;
+}
+
+/* Said once, under the meter, when a streak worth having is lost. */
+.streak-lost {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 4;
+  font-family: var(--display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--danger);
+  text-shadow: 0 0 8px var(--danger), 0 1px 0 var(--bg);
+  pointer-events: none;
+  animation: streak-lost 1.1s ease-in forwards;
+}
+
+@keyframes streak-lost {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  15% {
+    opacity: 1;
+    transform: none;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+.streak.broke .streak-bar {
+  border-color: var(--danger);
+  animation: streak-broke 0.7s ease-out;
+}
+
+.streak.broke .streak-n {
+  animation: streak-broke-n 0.7s ease-out;
+}
+
+@keyframes streak-bump {
+  0% {
+    transform: scale(1.6);
+    filter: brightness(1.8);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes streak-blaze {
+  from {
+    box-shadow: 0 0 6px rgba(255, 122, 26, 0.5);
+  }
+  to {
+    box-shadow: 0 0 14px rgba(255, 209, 102, 0.9);
+  }
+}
+
+@keyframes streak-shake {
+  0%,
+  100% {
+    transform: none;
+  }
+  20% {
+    transform: translateX(-5px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+@keyframes streak-broke {
+  0% {
+    background: var(--danger);
+    box-shadow: 0 0 12px var(--danger);
+  }
+  100% {
+    background: var(--bg);
+  }
+}
+
+@keyframes streak-broke-n {
+  0% {
+    color: var(--danger);
+    text-shadow: 0 0 10px var(--danger);
+  }
 }
 
 .hud-prompt {
@@ -784,6 +958,83 @@ input[type='range'] {
     opacity: 1;
     transform: none;
   }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Points, or seconds, floating up from where they were won. */
+.floats {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.float {
+  position: absolute;
+  translate: -50% -100%;
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  color: var(--good);
+  text-shadow: 0 0 10px currentColor, 0 2px 0 rgba(3, 6, 15, 0.9);
+  animation: float-up 1s ease-out forwards;
+}
+
+.float.gold {
+  font-size: 26px;
+  color: var(--gold);
+}
+
+.float.bad {
+  font-size: 18px;
+  color: var(--danger);
+}
+
+.float.info {
+  color: var(--cyan);
+}
+
+@keyframes float-up {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.6);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1.15);
+  }
+  30% {
+    transform: translateY(-10px) scale(1);
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-46px) scale(0.95);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .float {
+    animation-name: float-still;
+  }
+
+  .streak.broke,
+  .streak[data-tier='3'] .streak-bar {
+    animation: none;
+  }
+}
+
+@keyframes float-still {
+  0%,
   70% {
     opacity: 1;
   }

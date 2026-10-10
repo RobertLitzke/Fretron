@@ -108,6 +108,8 @@ export const triadsView: View = (root, ctx) => {
   let moved = 0;
   let moves = 0;
   let decided = 0;
+  /** Chords played in a row with no wrong rake. */
+  let streak = 0;
   /** performance.now() when the chord was put up, or 0 between chords. */
   let since = 0;
   /** The last chord played in this progression, and its labels. */
@@ -292,6 +294,8 @@ export const triadsView: View = (root, ctx) => {
   function miss(cells: Cell[], reason: string): void {
     wrong++;
     tries++;
+    streak = 0;
+    frame.setStreak(streak);
     buzz();
     if (tries >= RAKES_BEFORE_ANSWER) return giveAnswer(cells);
     kept = new Set(keepers(cells, answers, previous?.voicing ?? null).map(cellKey));
@@ -346,7 +350,12 @@ export const triadsView: View = (root, ctx) => {
     const close = closeProgression();
     score += points + close.points;
     frame.setScore(score);
-    frame.banner(close.words ? `+${points} · ${close.words}` : `${words}+${points}`, 'good');
+    frame.setStreak(++streak);
+    frame.pop(`+${points.toLocaleString('en-US')}`, voicing, 'good');
+    // The progression's bonus comes up after, in gold, so the two are read apart.
+    if (close.points) frame.later(320, () => frame.pop(`+${close.points.toLocaleString('en-US')}`, voicing, 'gold'));
+    const said = close.words || words.replace(/ · $/, '');
+    if (said) frame.banner(said, 'good');
     settle(voicing, check.labels!);
   }
 
@@ -474,6 +483,7 @@ export const gridClearView: View = (root, ctx) => {
   let startedAt = 0;
   let penalty = 0;
   let wrong = 0;
+  let streak = 0;
 
   function paintPrompt(): void {
     frame.setPrompt(el('b.call', {}, name), el('span.call-sub', {}, `${found.size} / ${all.length} found`));
@@ -507,7 +517,9 @@ export const gridClearView: View = (root, ctx) => {
       penalty += GRID_PENALTY;
       buzz();
       cells.forEach((c) => board.flash(c, board.theme.danger));
-      frame.banner(`${check.reason ?? 'Not the chord'} · +${GRID_PENALTY} s`, 'bad');
+      frame.setStreak((streak = 0));
+      frame.pop(`+${GRID_PENALTY} s`, cells, 'bad');
+      frame.banner(check.reason ?? 'Not the chord', 'bad');
       return;
     }
     const key = voicingKey(check.voicing!);
@@ -518,6 +530,7 @@ export const gridClearView: View = (root, ctx) => {
       return;
     }
     found.set(key, { voicing: check.voicing!, labels: check.labels! });
+    frame.setStreak(++streak);
     frame.banner(`${check.inversion === 'Root' ? 'Root position' : `${check.inversion} inversion`}`, 'good');
     input.clear();
     paintPrompt();

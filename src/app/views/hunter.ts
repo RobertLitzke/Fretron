@@ -26,6 +26,8 @@ import { freshSeed } from '../ui';
 const NEXT_AFTER_MS = 2000;
 /** A finger that travels this far between notes is swiping on to the next. */
 const SWIPE_PX = 40;
+/** A find this quick, in seconds, has its time shown in gold. */
+const FAST_S = 1;
 
 export const hunterView: View = (root, ctx) => {
   const wanted = ctx.params.variant;
@@ -40,6 +42,8 @@ export const hunterView: View = (root, ctx) => {
   let looking = 0;
   let foundSeconds = 0;
   let penalty = 0;
+  /** Notes found in a row. */
+  let streak = 0;
   let prompt: HuntPrompt | null = null;
   /** performance.now() when the prompt went live, or 0 while none is. */
   let liveSince = 0;
@@ -126,13 +130,16 @@ export const hunterView: View = (root, ctx) => {
       foundSeconds += seconds;
       pluck(cellMidi(tuning, cell), { level: 0.55 });
       board.flash(cell, board.theme.good);
-      frame.banner(`${seconds.toFixed(2)} s`, 'good');
+      frame.setStreak(++streak);
+      frame.pop(`${seconds.toFixed(2)} s`, [cell], seconds < FAST_S ? 'gold' : 'good');
     } else {
       penalty += HUNT_PENALTY;
       thud();
       marks.push({ fret: cell.fret, stringIndex: cell.string, displayLabel: label(cell), fillColor: 'transparent', strokeColor: board.theme.danger, labelColor: board.theme.danger, xOverlay: true });
       board.flash(cell, board.theme.danger);
-      frame.banner(`Miss · +${HUNT_PENALTY} s`, 'bad');
+      frame.setStreak((streak = 0));
+      frame.pop(`+${HUNT_PENALTY} s`, [cell], 'bad');
+      frame.banner('Miss', 'bad');
     }
     // The ear game names the note only now.
     if (variant === 'ear') frame.setPrompt(el('span.caps', {}, `${asked} / ${HUNT_PROMPTS}`), el('b.call.pop', {}, prompt.name));
