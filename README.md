@@ -53,14 +53,26 @@ own score table, and the menu's Play button returns to the last one chosen.
 Only the root, the note being bent and the target are named on the board. Every game ends on a rank (S, A, B, C), a card of numbers, and a local
 top ten with three-letter initials.
 
-**World Tour** (the Tour tab) strings the same games into a 1970s rock tour:
-six legs of three cities, each stop one game played exactly as it is from the
+**World Tour** (the Tour tab) strings the same games into rock tours: six
+legs of three cities, each stop one game played exactly as it is from the
 menu. The order goes round notes, triads and bends, one or two of each, a step
-harder each time round. A stop's best rank on tour earns stars (S 3, A 2, B 1),
-and stars book the next leg. Runs on tour go on the usual score tables. The
-tour wears its own skin: `<html data-skin="tour">`, set by the router on the
-`/tour` routes, re-points the design tokens (`src/app/styles/tour.css`),
-including the board's, which the canvas reads as it is built.
+harder each time round. A stop's best rank on a tour earns stars (S 3, A 2,
+B 1), stars book the next leg, and booking a tour's last leg opens the next
+tour. Each tour keeps its own best rank and score for every stop, apart from
+the usual score tables, which tour runs also go on.
+
+The first tour is fixed: a 1970s hard rock World Tour. The other twelve are
+drawn from their number (`src/core/tour.ts`): the same climb in a shuffled
+order, on a continent of its own with its own cities, in a genre (hard rock,
+heavy metal, British beat, psychedelic, punk, glam) and an era ('60s, '70s,
+'80s) from `src/core/looks.ts`. The three layers of look stack: the genre sets
+colours, type, the guitar's wood and the leg's album sleeves; the era sets
+textures, the band under the bars and whether the board glows; the continent
+tints the map, draws the road and stamps the postmark. The router puts the
+tour's `data-genre`, `data-era` and `data-continent` on `<html>` beside
+`data-skin="tour"` on the `/tour` routes; `src/app/styles/looks.css` holds the
+layers and `tour.css` turns them into the app's tokens, the board's included,
+which the canvas reads as it is built.
 
 The note and triad games take the open strings too: tap on the nut, or in the
 ring beside it that carries the string's name. Bends need a fretted note.

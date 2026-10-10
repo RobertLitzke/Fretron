@@ -1,0 +1,277 @@
+/* The three layers of a tour's look, which stack: a genre (colours, type,
+   wood), an era (textures, the band under the bars, whether things glow) and a
+   continent (the map's tint, the road, the postmark). <html> carries one of
+   each as data-genre, data-era and data-continent while on tour; the ids are
+   core/looks.ts's. tour.css turns these into the app's tokens. */
+
+@font-face {
+  font-family: 'Shrikhand';
+  font-display: swap;
+  src: url('../../../node_modules/@fontsource/shrikhand/files/shrikhand-latin-400-normal.woff2') format('woff2');
+}
+
+/* Upright only: this file is inlined into the page, and italics would add
+   another 45 KB. The browser slants it where italic is asked for. */
+@font-face {
+  font-family: 'Fraunces';
+  font-display: swap;
+  font-weight: 300 900;
+  src: url('../../../node_modules/@fontsource-variable/fraunces/files/fraunces-latin-wght-normal.woff2')
+    format('woff2-variations');
+}
+
+@font-face {
+  font-family: 'Pirata One';
+  font-display: swap;
+  src: url('../../../node_modules/@fontsource/pirata-one/files/pirata-one-latin-400-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Alfa Slab One';
+  font-display: swap;
+  src: url('../../../node_modules/@fontsource/alfa-slab-one/files/alfa-slab-one-latin-400-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Righteous';
+  font-display: swap;
+  src: url('../../../node_modules/@fontsource/righteous/files/righteous-latin-400-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Monoton';
+  font-display: swap;
+  src: url('../../../node_modules/@fontsource/monoton/files/monoton-latin-400-normal.woff2') format('woff2');
+}
+
+/* --- genre: colours, type, the guitar ---------------------------------------
+   --ink and --paper are the dark and the light; --rust, --mustard and --olive
+   the three accents (named for the first tour, whatever they are here); --c1
+   to --c6 the stickers; --stage the dark behind a game; --wood and --strings
+   the guitar. --display is for words in the look's own type, --poster for the
+   biggest of them. */
+
+:root[data-skin='tour'],
+:root[data-genre='hardrock'] {
+  --ink: #3b2416;
+  --paper: #f8f1df;
+  --map: #ecd9b0;
+  --rust: #c8502a;
+  --mustard: #e3a72f;
+  --olive: #8fa33a;
+  --c1: #2e6b68;
+  --c2: #7d2a25;
+  --c3: #c8502a;
+  --c4: #6f7a2b;
+  --c5: #5a3a5a;
+  --c6: #b0302a;
+  --stage: #2a1a10;
+  --wood: #4a2a18; /* rosewood */
+  --strings: #d9c7a0;
+  --font: 'Fraunces', Georgia, serif;
+  --display: 'Shrikhand', 'Cooper Black', Georgia, serif;
+  --poster: var(--display);
+}
+
+/* Heavy metal: bone and oxblood on black, blackletter, an ebony board. */
+:root[data-genre='metal'] {
+  --ink: #141016;
+  --paper: #e4ddd0;
+  --map: #cfc6b6;
+  --rust: #8a2232;
+  --mustard: #7b55a0;
+  --olive: #8b8a80;
+  --c1: #3a1d2e;
+  --c2: #8a2232;
+  --c3: #2b2b33;
+  --c4: #5e3d7a;
+  --c5: #4a4a44;
+  --c6: #6a1520;
+  --stage: #0d0a0e;
+  --wood: #17121a;
+  --strings: #c9c3b8;
+  --display: 'Pirata One', 'Old English Text MT', Georgia, serif;
+}
+
+/* British beat: a mod's red, white and blue with a yellow, slab poster type. */
+:root[data-genre='beat'] {
+  --ink: #1c2a4a;
+  --paper: #fbf7ec;
+  --map: #efe8d6;
+  --rust: #d22f2f;
+  --mustard: #f2c12e;
+  --olive: #2f6fc2;
+  --c1: #d22f2f;
+  --c2: #2f6fc2;
+  --c3: #1c2a4a;
+  --c4: #e08a1e;
+  --c5: #2a8a5a;
+  --c6: #b02060;
+  --stage: #15203a;
+  --wood: #2a1e18;
+  --strings: #dcd6c8;
+  --display: 'Alfa Slab One', 'Rockwell', Georgia, serif;
+}
+
+/* Psychedelic: pink, orange and teal on plum, rounded type. */
+:root[data-genre='psych'] {
+  --ink: #2a1240;
+  --paper: #fbecd2;
+  --map: #f6dcb4;
+  --rust: #e0457b;
+  --mustard: #f29c1f;
+  --olive: #3fb59a;
+  --c1: #e0457b;
+  --c2: #7a3fb5;
+  --c3: #f29c1f;
+  --c4: #3fb59a;
+  --c5: #c43a2f;
+  --c6: #2a6fb5;
+  --stage: #1e0d30;
+  --wood: #3a1c40;
+  --strings: #e8d4f0;
+  --display: 'Righteous', 'Trebuchet MS', sans-serif;
+}
+
+/* Punk: black, fluorescent pink and yellow, typewriter type, a black board. */
+:root[data-genre='punk'] {
+  --ink: #111111;
+  --paper: #f4f2ec;
+  --map: #e4e2da;
+  --rust: #ff3d8b;
+  --mustard: #ffe23a;
+  --olive: #8a8a8a;
+  --c1: #111111;
+  --c2: #ff3d8b;
+  --c3: #2a2a2a;
+  --c4: #c9a800;
+  --c5: #555555;
+  --c6: #d0206a;
+  --stage: #0b0b0b;
+  --wood: #141414;
+  --strings: #d0d0d0;
+  --font: 'Courier New', Courier, ui-monospace, monospace;
+  --display: 'Courier New', Courier, ui-monospace, monospace;
+}
+
+/* Glam: magenta, teal and silver on midnight, chrome type for the posters. */
+:root[data-genre='glam'] {
+  --ink: #1a1830;
+  --paper: #f1ecf8;
+  --map: #e2daf0;
+  --rust: #c3247a;
+  --mustard: #29b3c3;
+  --olive: #a8a8c4;
+  --c1: #c3247a;
+  --c2: #29b3c3;
+  --c3: #5a3a9a;
+  --c4: #1a1830;
+  --c5: #b8860b;
+  --c6: #7a2a8a;
+  --stage: #110f22;
+  --wood: #221a34;
+  --strings: #d8d0ec;
+  --display: 'Righteous', 'Trebuchet MS', sans-serif;
+  --poster: 'Monoton', 'Righteous', sans-serif;
+}
+
+/* Courier needs weight to read as display type. */
+:root[data-genre='punk'] :is(.tour-title, .setlist h2, .sticker .name, .panel-title, .btn, .tour-play, .result-rank, .call) {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+}
+
+/* --- era: textures, the band under the bars, glow -------------------------- */
+
+/* The '70s: three stripes and a ruled map, printed flat. */
+:root[data-skin='tour'],
+:root[data-era='seventies'] {
+  --band-h: 12px;
+  --band: linear-gradient(var(--rust) 0 33.3%, var(--mustard) 33.3% 66.6%, var(--olive) 66.6%);
+  --band-glow: none;
+  --texture:
+    repeating-linear-gradient(0deg, transparent 0 46px, color-mix(in srgb, var(--ink) 14%, transparent) 46px 47px),
+    repeating-linear-gradient(90deg, transparent 0 62px, color-mix(in srgb, var(--ink) 14%, transparent) 62px 63px);
+  --board-glow: 0;
+  /* Glows become the offset ink of a screen print. */
+  --glow-cyan: 2px 2px 0 var(--ink);
+  --glow-orange: 2px 2px 0 var(--ink);
+}
+
+/* The '60s: a checkerboard band and halftone dots, like a printed handbill. */
+:root[data-era='sixties'] {
+  --band-h: 10px;
+  --band: conic-gradient(var(--ink) 25%, var(--paper) 0 50%, var(--ink) 0 75%, var(--paper) 0) 0 0 / 10px 10px;
+  --texture: radial-gradient(color-mix(in srgb, var(--ink) 16%, transparent) 1.3px, transparent 1.8px) 0 0 / 9px 9px;
+  --glow-cyan: 3px 3px 0 var(--rust);
+  --glow-orange: 3px 3px 0 var(--olive);
+}
+
+/* The '80s: a neon line, a grid on the horizon, and the board lit again. */
+:root[data-era='eighties'] {
+  --band-h: 5px;
+  --band: linear-gradient(90deg, var(--rust), var(--mustard), var(--olive));
+  --band-glow: 0 0 12px var(--rust), 0 0 24px var(--mustard);
+  --texture:
+    linear-gradient(transparent 55%, color-mix(in srgb, var(--rust) 16%, transparent)),
+    repeating-linear-gradient(0deg, transparent 0 38px, color-mix(in srgb, var(--rust) 22%, transparent) 38px 39px),
+    repeating-linear-gradient(90deg, transparent 0 38px, color-mix(in srgb, var(--mustard) 18%, transparent) 38px 39px);
+  --board-glow: 0.7;
+  --glow-cyan: 0 0 10px color-mix(in srgb, var(--mustard) 70%, transparent);
+  --glow-orange: 0 0 10px color-mix(in srgb, var(--rust) 70%, transparent);
+  --poster: 'Monoton', var(--display);
+}
+
+:root[data-era='eighties'] :is(.tour-title, .panel-title) {
+  text-shadow: 0 0 8px color-mix(in srgb, var(--rust) 80%, transparent), 2px 2px 0 var(--ink);
+}
+
+/* --- continent: the map's tint, the road, the postmark --------------------- */
+
+:root[data-skin='tour'] {
+  --tint: var(--map);
+  --road: 7 6;
+  --road-width: 2.5px;
+  --postmark: 'Worldwide';
+}
+
+/* Britain: a railway. */
+:root[data-continent='britain'] {
+  --tint: #7f9a7a;
+  --road: 2 4;
+  --road-width: 5px;
+  --postmark: 'British Isles';
+}
+
+/* Europe: a dotted border crossing. */
+:root[data-continent='europe'] {
+  --tint: #7a8fb0;
+  --road: 0.1 7;
+  --road-width: 4px;
+  --postmark: 'Europe';
+}
+
+/* America: the highway. */
+:root[data-continent='america'] {
+  --tint: #c79a5a;
+  --road: 16 6;
+  --road-width: 3px;
+  --postmark: 'North America';
+}
+
+/* The Pacific: a flight path. */
+:root[data-continent='pacific'] {
+  --tint: #5aa0a8;
+  --road: 3 9;
+  --road-width: 2px;
+  --postmark: 'Air mail';
+}
+
+/* Latin America: a road with a centre line. */
+:root[data-continent='latin'] {
+  --tint: #c46a4a;
+  --road: 12 4 2 4;
+  --road-width: 3px;
+  --postmark: 'America Latina';
+}

@@ -1,5 +1,7 @@
 // The album sleeves on the tour: one small drawing per leg, each a nod to a
-// 1970s rock cover, drawn here from scratch. Plain SVG strings, 100 by 100.
+// rock cover of its genre, drawn here from scratch. Plain SVG strings, 100 by
+// 100. The first six keep their own colours; the rest take the tour's genre
+// colours (--ink, --paper, --rust, --mustard, --olive in styles/tour.css).
 
 import type { Sleeve } from '../../core/tour';
 
@@ -21,6 +23,23 @@ function rays(cx: number, cy: number, n: number, r: number, a: string, b: string
   }
   return out;
 }
+
+/** A fill from the genre's palette. */
+const f = (token: 'ink' | 'paper' | 'rust' | 'mustard' | 'olive') => `style="fill:var(--${token})"`;
+const sk = (token: 'ink' | 'paper' | 'rust' | 'mustard' | 'olive', width: number) =>
+  `style="fill:none;stroke:var(--${token});stroke-width:${width}"`;
+
+function starPath(cx: number, cy: number, outer: number, inner: number): string {
+  let d = '';
+  for (let i = 0; i < 10; i++) {
+    const r = i % 2 ? inner : outer;
+    const t = -Math.PI / 2 + (i * Math.PI) / 5;
+    d += `${i ? 'L' : 'M'}${(cx + r * Math.cos(t)).toFixed(1)} ${(cy + r * Math.sin(t)).toFixed(1)}`;
+  }
+  return d + 'Z';
+}
+
+const BOLT = 'M58 8 L30 54 L48 54 L38 92 L72 40 L53 40 L66 8Z';
 
 const SLEEVES: Record<Sleeve, string> = {
   // A single on a sunburst: where everyone starts.
@@ -86,6 +105,118 @@ const SLEEVES: Record<Sleeve, string> = {
     <path d="M0 100 L50 50 L100 100Z" fill="${TEAL}"/>
     <path d="M40 60 L50 50 L60 60 L55 58 L50 62 L45 58Z" fill="${CREAM}"/>
     <rect y="94" width="100" height="6" fill="${OLIVE}"/>`,
+
+  // A crescent moon in a night sky.
+  moon: `
+    <rect width="100" height="100" ${f('ink')}/>
+    <circle cx="50" cy="50" r="32" ${f('paper')}/>
+    <circle cx="64" cy="42" r="28" ${f('ink')}/>
+    <path d="${starPath(76, 70, 5, 2)}" ${f('mustard')}/><path d="${starPath(70, 22, 3, 1.2)}" ${f('paper')}/><path d="${starPath(24, 84, 3, 1.2)}" ${f('paper')}/>`,
+
+  // A raven on a bare branch, against a full moon.
+  raven: `
+    <rect width="100" height="100" ${f('rust')}/>
+    <circle cx="58" cy="40" r="26" ${f('paper')}/>
+    <path d="M0 76 Q40 70 100 80 L100 84 Q40 74 0 80Z" ${f('ink')}/>
+    <path d="M70 80 L64 66 Q60 54 50 50 Q44 42 36 44 L30 40 L34 47 Q30 52 34 58 Q42 66 52 70 L58 80Z" ${f('ink')}/>
+    <circle cx="38" cy="46" r="1.2" ${f('paper')}/>`,
+
+  // A dark tower under a lightning bolt, one window lit.
+  tower: `
+    <rect width="100" height="100" ${f('mustard')}/>
+    <path d="M78 0 L66 22 L74 22 L62 44" ${sk('paper', 3)}/>
+    <path d="M36 100 L40 40 L36 34 L36 26 L42 26 L42 30 L48 30 L48 26 L54 26 L54 30 L60 30 L60 26 L66 26 L66 34 L62 40 L66 100Z" ${f('ink')}/>
+    <rect x="49" y="48" width="4" height="8" ${f('paper')}/>
+    <rect y="92" width="100" height="8" ${f('ink')}/>`,
+
+  // An open eye, rayed like a sun.
+  eye: `
+    <rect width="100" height="100" ${f('ink')}/>
+    ${Array.from({ length: 16 }, (_, i) => {
+      const t = (i / 16) * 2 * Math.PI;
+      return `<path d="M${(50 + 30 * Math.cos(t)).toFixed(1)} ${(50 + 30 * Math.sin(t)).toFixed(1)} L${(50 + 46 * Math.cos(t)).toFixed(1)} ${(50 + 46 * Math.sin(t)).toFixed(1)}" ${sk('mustard', 3)}/>`;
+    }).join('')}
+    <path d="M14 50 Q50 18 86 50 Q50 82 14 50Z" ${f('paper')}/>
+    <circle cx="50" cy="50" r="15" ${f('rust')}/>
+    <circle cx="50" cy="50" r="7" ${f('ink')}/>
+    <circle cx="54" cy="46" r="2.5" ${f('paper')}/>`,
+
+  // A lightning bolt across a face-round disc.
+  bolt: `
+    <rect width="100" height="100" ${f('paper')}/>
+    <circle cx="50" cy="50" r="38" ${f('mustard')}/>
+    <path d="${BOLT}" ${f('rust')}/>
+    <path d="${BOLT}" ${sk('ink', 2)}/>`,
+
+  // A target roundel, as on a parka.
+  roundel: `
+    <rect width="100" height="100" ${f('paper')}/>
+    <circle cx="50" cy="50" r="42" ${f('olive')}/>
+    <circle cx="50" cy="50" r="28" ${f('paper')}/>
+    <circle cx="50" cy="50" r="15" ${f('rust')}/>`,
+
+  // A submarine in a cartoon sea.
+  submarine: `
+    <rect width="100" height="100" ${f('olive')}/>
+    <path d="M0 74 Q12 68 25 74 T50 74 T75 74 T100 74 V100 H0Z" ${f('paper')} opacity=".35"/>
+    <path d="M14 54 Q14 40 32 40 L70 40 Q86 40 86 54 Q86 66 70 66 L32 66 Q14 66 14 54Z" ${f('mustard')}/>
+    <rect x="46" y="26" width="16" height="16" rx="3" ${f('mustard')}/>
+    <path d="M54 26 V16 H62" ${sk('ink', 2.5)}/>
+    <circle cx="36" cy="53" r="5" ${f('paper')}/><circle cx="52" cy="53" r="5" ${f('paper')}/><circle cx="68" cy="53" r="5" ${f('paper')}/>
+    <path d="M86 54 L94 46 L94 62Z" ${f('rust')}/>`,
+
+  // Four figures on a zebra crossing.
+  crossing: `
+    <rect width="100" height="100" ${f('olive')}/>
+    <rect y="58" width="100" height="42" ${f('ink')}/>
+    ${[0, 1, 2, 3, 4, 5].map((i) => `<rect x="${4 + i * 16}" y="62" width="9" height="34" ${f('paper')}/>`).join('')}
+    ${[18, 38, 58, 78]
+      .map(
+        (x) =>
+          `<circle cx="${x}" cy="34" r="4" ${f('ink')}/><path d="M${x - 3} 39 H${x + 3} L${x + 2} 52 L${x + 6} 62 L${x + 3} 62 L${x} 54 L${x - 3} 62 L${x - 6} 62 L${x - 2} 52Z" ${f('ink')}/>`,
+      )
+      .join('')}`,
+
+  // A guitar, body and neck.
+  guitar: `
+    <rect width="100" height="100" ${f('mustard')}/>
+    <rect x="46" y="6" width="8" height="50" ${f('ink')}/>
+    <rect x="43" y="4" width="14" height="10" rx="2" ${f('ink')}/>
+    <circle cx="50" cy="62" r="20" ${f('rust')}/>
+    <circle cx="50" cy="80" r="16" ${f('rust')}/>
+    <circle cx="50" cy="64" r="6" ${f('ink')}/>
+    <rect x="42" y="78" width="16" height="4" ${f('ink')}/>`,
+
+  // A spiral, the way a light show turns.
+  spiral: `
+    <rect width="100" height="100" ${f('mustard')}/>
+    ${[44, 36, 28, 20, 12].map((r, i) => `<circle cx="50" cy="50" r="${r}" ${f(i % 2 ? 'olive' : 'rust')}/>`).join('')}
+    <path d="M50 50 m0 -4 a4 4 0 1 1 -4 4 a8 8 0 1 1 8 8 a12 12 0 1 1 -12 -12 a16 16 0 1 1 16 16 a20 20 0 1 1 -20 -20 a24 24 0 1 1 24 24" ${sk('paper', 2.5)}/>`,
+
+  // A safety pin on a torn scrap.
+  pin: `
+    <rect width="100" height="100" ${f('rust')}/>
+    <path d="M10 22 L86 14 L80 40 L92 52 L84 86 L14 90 L20 60 L8 46Z" ${f('paper')}/>
+    <path d="M24 70 L72 30" ${sk('ink', 3)}/>
+    <path d="M30 74 L76 36 Q82 30 76 26 Q70 22 66 28" ${sk('ink', 3)}/>
+    <circle cx="26" cy="72" r="5" ${sk('ink', 3)}/>
+    <rect x="62" y="22" width="14" height="10" rx="2" transform="rotate(-40 69 27)" ${f('mustard')}/>`,
+
+  // A crown, cut out like a ransom note.
+  crown: `
+    <rect width="100" height="100" ${f('mustard')}/>
+    <path d="M20 70 L16 34 L34 50 L50 26 L66 50 L84 34 L80 70Z" ${f('paper')}/>
+    <path d="M20 70 L16 34 L34 50 L50 26 L66 50 L84 34 L80 70Z" ${sk('ink', 3)}/>
+    <rect x="18" y="72" width="64" height="10" ${f('ink')}/>
+    <rect x="8" y="10" width="40" height="12" transform="rotate(-6 28 16)" ${f('rust')}/>
+    <rect x="56" y="84" width="34" height="10" transform="rotate(4 73 89)" ${f('rust')}/>`,
+
+  // A star with sparkles.
+  star: `
+    <rect width="100" height="100" ${f('ink')}/>
+    <path d="${starPath(50, 54, 38, 16)}" ${f('mustard')}/>
+    <path d="${starPath(50, 54, 38, 16)}" ${sk('rust', 3)}/>
+    <path d="${starPath(18, 18, 7, 2)}" ${f('paper')}/><path d="${starPath(84, 22, 5, 1.5)}" ${f('paper')}/><path d="${starPath(82, 86, 6, 1.8)}" ${f('olive')}/>`,
 };
 
 export function sleeveSvg(sleeve: Sleeve): string {

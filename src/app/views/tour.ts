@@ -14,16 +14,19 @@ import {
   starsFor,
   stopMode,
   totalStars,
+  tourFor,
   type Leg,
 } from '../../core/tour';
 import { el } from '../dom';
 import type { View } from '../router';
 import { getSave, updateSave } from '../store';
-import { currentTour, openYears } from '../tour/current';
+import { applyLook, currentTour, openTours } from '../tour/current';
 import { sleeveSvg } from '../tour/sleeves';
+import { GENRES } from '../../core/looks';
+
+const GENRE_WORDS: Record<string, string> = Object.fromEntries(GENRES.map((g) => [g.id, g.words]));
 
 const SHAPES = ['round', 'pennant', 'oval', 'shield', 'round', 'pennant'] as const;
-const COLOURS = ['#2e6b68', '#7d2a25', '#c8502a', '#6f7a2b', '#5a3a5a', '#b0302a'];
 /** Where each sticker sits on the map, in percent: a zigzag along the road. */
 const PLACES: readonly (readonly [number, number, number])[] = [
   [13, 70, -8],
@@ -47,13 +50,14 @@ function sleeve(leg: Leg, booked: boolean): HTMLElement {
 export const tourView: View = (root) => {
   const render = () => {
     const save = getSave();
-    const { year, legs } = currentTour(save);
-    const years = openYears(save);
-    const record = save.tours[year] ?? {};
+    const tour = currentTour(save);
+    const { id, year, legs } = tour;
+    const ids = openTours(save);
+    const record = save.tours[id] ?? {};
     const stars = totalStars(legs, record);
     const next = nextBooking(legs, stars);
     const now = currentLeg(legs, stars);
-    const legKey = `tour${year}`;
+    const legKey = `tour${id}`;
     const picked = Number(save.picks[legKey]);
     const legIndex = Number.isInteger(picked) && picked >= 0 && picked < legs.length ? picked : now;
     const leg = legs[legIndex];
@@ -63,13 +67,15 @@ export const tourView: View = (root) => {
       updateSave((s) => ({ ...s, picks: { ...s.picks, [legKey]: String(i) } }));
       render();
     };
-    const toYear = (y: number) => {
-      updateSave((s) => ({ ...s, picks: { ...s.picks, tourYear: String(y) } }));
+    const toTour = (to: number) => {
+      updateSave((s) => ({ ...s, picks: { ...s.picks, tour: String(to) } }));
+      // The look changes with the tour.
+      applyLook(tour.id === to ? tour : tourFor(to));
       render();
     };
-    const yearAt = years.indexOf(year);
-    const earlier = years[yearAt - 1];
-    const later = years[yearAt + 1];
+    const at = ids.indexOf(id);
+    const earlier = ids[at - 1];
+    const later = ids[at + 1];
 
     const stickers = legs.map((l, i) => {
       const isBooked = legBooked(l, stars);
@@ -80,7 +86,7 @@ export const tourView: View = (root) => {
         .join('.');
       return el(
         `button.${classes}`,
-        { type: 'button', style: `left:${x}%;top:${y}%;--c:${COLOURS[i]};--r:${turn}deg`, onclick: () => pick(i) },
+        { type: 'button', style: `left:${x}%;top:${y}%;--c:var(--c${i + 1});--r:${turn}deg`, onclick: () => pick(i) },
         el(
           'span.face',
           {},
@@ -139,20 +145,20 @@ export const tourView: View = (root) => {
         'header.tour-top',
         {},
         el('a.tour-back', { href: '#/home', 'aria-label': 'Back to the games' }, '←'),
-        el('span.tour-title', {}, 'Fretron World Tour'),
+        el('span.tour-title', {}, `Fretron ${tour.title}`),
         el(
           'span.tour-years',
           {},
-          el('button.tour-year-step', { type: 'button', disabled: earlier === undefined, 'aria-label': 'Earlier tour', onclick: () => toYear(earlier) }, '‹'),
-          el('b', {}, `'${year}`),
-          el('button.tour-year-step', { type: 'button', disabled: later === undefined, 'aria-label': 'Later tour', onclick: () => toYear(later) }, '›'),
+          el('button.tour-year-step', { type: 'button', disabled: earlier === undefined, 'aria-label': 'Earlier tour', onclick: () => toTour(earlier) }, '‹'),
+          el('b', {}, `'${year}`, el('i', {}, GENRE_WORDS[tour.look.genre])),
+          el('button.tour-year-step', { type: 'button', disabled: later === undefined, 'aria-label': 'Later tour', onclick: () => toTour(later) }, '›'),
         ),
-        el('span.tour-total', {}, el('b', {}, '★'), ` ${stars}`, el('i', {}, ` / ${MAX_STARS}${next ? ` · next leg at ${next.booking}` : later ? ` · the '${later} tour is booked` : ' · the whole tour'}`)),
+        el('span.tour-total', {}, el('b', {}, '★'), ` ${stars}`, el('i', {}, ` / ${MAX_STARS}${next ? ` · next leg at ${next.booking}` : later ? ' · your next tour is booked' : ' · the whole tour'}`)),
       ),
       el(
         'div.tour-body',
         {},
-        el('div.tour-map', {}, road(), stickers),
+        el('div.tour-map', {}, road(), stickers, el('span.tour-postmark', {}, el('b', {}, `'${year}`))),
         el(
           'div.setlist',
           {},

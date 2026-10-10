@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
+import { CONTINENTS, ERAS, GENRES } from '../src/core/looks';
 import { modeById, MODES } from '../src/core/modes';
 import { emptySave, migrate, withTourRun } from '../src/core/storage';
 import {
   betterRank,
   CLASSIC,
   currentLeg,
-  FIRST_YEAR,
-  LAST_YEAR,
+  FIRST_TOUR,
+  LAST_TOUR,
   legBooked,
   legSoldOut,
   longestRun,
@@ -23,11 +24,11 @@ import {
 import { tourRewrite } from '../src/app/tour/route';
 
 const modesOf = (year: number) => tourFor(year).legs.flatMap((leg) => leg.stops.map((s) => s.mode));
-const YEARS = Array.from({ length: LAST_YEAR - FIRST_YEAR + 1 }, (_, i) => FIRST_YEAR + i);
+const TOURS = Array.from({ length: LAST_TOUR - FIRST_TOUR + 1 }, (_, i) => FIRST_TOUR + i);
 
 describe('the tours', () => {
   it('each play every game once', () => {
-    for (const year of YEARS) {
+    for (const year of TOURS) {
       const ids = modesOf(year);
       expect(ids.slice().sort()).toEqual(MODES.map((m) => m.id).sort());
       for (const id of ids) expect(modeById(id)).toBeDefined();
@@ -35,7 +36,7 @@ describe('the tours', () => {
   });
 
   it('book their legs in order, the first free', () => {
-    for (const year of YEARS) {
+    for (const year of TOURS) {
       const legs = tourFor(year).legs;
       expect(legs[0].booking).toBe(0);
       for (let i = 1; i < legs.length; i++) expect(legs[i].booking).toBeGreaterThan(legs[i - 1].booking);
@@ -44,11 +45,11 @@ describe('the tours', () => {
   });
 
   it('never have more than two of a kind in a row before the encore', () => {
-    for (const year of YEARS) expect(longestRun(modesOf(year).slice(0, -2))).toBeLessThanOrEqual(MAX_RUN);
+    for (const year of TOURS) expect(longestRun(modesOf(year).slice(0, -2))).toBeLessThanOrEqual(MAX_RUN);
   });
 
   it('keep the climb, only shuffled: the encore last, the easiest games early', () => {
-    for (const year of YEARS) {
+    for (const year of TOURS) {
       const ids = modesOf(year);
       expect(ids.slice(-2).sort()).toEqual(['bend-virtuoso', 'trace-virtuoso']);
       for (const easy of ['hunter-name', 'sweeper', 'triads', 'bend-standard', 'scalebend-blues']) expect(ids.indexOf(easy)).toBeLessThan(5);
@@ -56,12 +57,31 @@ describe('the tours', () => {
   });
 
   it('differ from year to year, and are the same each time a year is drawn', () => {
-    expect(tourFor(FIRST_YEAR).legs).toBe(CLASSIC);
-    expect(modesOf(78)).toEqual(modesOf(78));
-    expect(tourFor(78)).toEqual(tourFor(78));
-    const orders = new Set(YEARS.map((y) => modesOf(y).join()));
-    expect(orders.size).toBeGreaterThan(YEARS.length / 2);
-    for (const year of YEARS) expect(new Set(tourFor(year).legs.map((l) => l.name)).size).toBe(6);
+    expect(tourFor(FIRST_TOUR).legs).toBe(CLASSIC);
+    expect(modesOf(2)).toEqual(modesOf(2));
+    expect(tourFor(2)).toEqual(tourFor(2));
+    const orders = new Set(TOURS.map((y) => modesOf(y).join()));
+    expect(orders.size).toBeGreaterThan(TOURS.length / 2);
+    for (const year of TOURS) expect(new Set(tourFor(year).legs.map((l) => l.name)).size).toBe(6);
+  });
+
+  it('each have a continent, genre and era of their own, its cities on that continent', () => {
+    for (const id of TOURS.slice(1)) {
+      const tour = tourFor(id);
+      const continent = CONTINENTS.find((c) => c.id === tour.look.continent)!;
+      expect(continent).toBeDefined();
+      expect(GENRES.some((g) => g.id === tour.look.genre)).toBe(true);
+      const era = ERAS.find((e) => e.id === tour.look.era)!;
+      expect(tour.year).toBeGreaterThanOrEqual(era.from);
+      expect(tour.year).toBeLessThanOrEqual(era.to);
+      const cities = continent.regions.flatMap((r) => r.cities);
+      for (const leg of tour.legs) for (const stop of leg.stops) expect(cities).toContain(stop.city);
+      const sleeves = GENRES.find((g) => g.id === tour.look.genre)!.sleeves;
+      for (const leg of tour.legs) expect(sleeves).toContain(leg.sleeve);
+      const before = tourFor(id - 1);
+      expect(tour.look.genre).not.toBe(before.look.genre);
+      expect(tour.look.continent).not.toBe(before.look.continent);
+    }
   });
 
   it('turn ranks into stars', () => {
@@ -85,31 +105,31 @@ describe('the tours', () => {
   });
 
   it('open a tour once the last leg of the one before is booked', () => {
-    expect(tourOpen(FIRST_YEAR, {})).toBe(true);
-    expect(tourOpen(78, {})).toBe(false);
+    expect(tourOpen(FIRST_TOUR, {})).toBe(true);
+    expect(tourOpen(2, {})).toBe(false);
     const all: TourRecord = Object.fromEntries(MODES.map((m) => [m.id, { rank: 'A' as const }]));
-    expect(tourOpen(78, { 77: all })).toBe(true);
-    expect(tourOpen(79, { 77: all })).toBe(false);
-    expect(tourOpen(LAST_YEAR + 1, {})).toBe(false);
+    expect(tourOpen(2, { 1: all })).toBe(true);
+    expect(tourOpen(3, { 1: all })).toBe(false);
+    expect(tourOpen(LAST_TOUR + 1, {})).toBe(false);
   });
 });
 
 describe('a tour in the save', () => {
   it('keeps the best rank and the best score, each on its own', () => {
-    let save = withTourRun(emptySave(), 77, 'sweeper', 'A', 80, 'low');
-    save = withTourRun(save, 77, 'sweeper', 'C', 70, 'low');
-    expect(save.tours[77]).toEqual({ sweeper: { rank: 'A', value: 70 } });
-    expect(withTourRun(save, 77, 'sweeper', 'B', 90, 'low')).toBe(save);
-    save = withTourRun(save, 78, 'triads', 'B', 9000, 'high');
-    save = withTourRun(save, 78, 'triads', 'B', 12000, 'high');
-    expect(save.tours[78]).toEqual({ triads: { rank: 'B', value: 12000 } });
-    expect(save.tours[77].triads).toBeUndefined();
+    let save = withTourRun(emptySave(), 1, 'sweeper', 'A', 80, 'low');
+    save = withTourRun(save, 1, 'sweeper', 'C', 70, 'low');
+    expect(save.tours[1]).toEqual({ sweeper: { rank: 'A', value: 70 } });
+    expect(withTourRun(save, 1, 'sweeper', 'B', 90, 'low')).toBe(save);
+    save = withTourRun(save, 2, 'triads', 'B', 9000, 'high');
+    save = withTourRun(save, 2, 'triads', 'B', 12000, 'high');
+    expect(save.tours[2]).toEqual({ triads: { rank: 'B', value: 12000 } });
+    expect(save.tours[1].triads).toBeUndefined();
     expect(migrate(JSON.parse(JSON.stringify(save)))).toEqual(save);
   });
 
   it('repairs what it cannot read, and moves the first tour\'s ranks over', () => {
-    expect(migrate({ tours: { 77: { sweeper: { rank: 'Z' }, triads: { rank: 'S', value: 'x' } }, 78: 'x' } }).tours).toEqual({ 77: { triads: { rank: 'S' } } });
-    expect(migrate({ tour: { sweeper: 'A', triads: 'Q' } }).tours).toEqual({ 77: { sweeper: { rank: 'A' } } });
+    expect(migrate({ tours: { 1: { sweeper: { rank: 'Z' }, triads: { rank: 'S', value: 'x' } }, 2: 'x' } }).tours).toEqual({ 1: { triads: { rank: 'S' } } });
+    expect(migrate({ tour: { sweeper: 'A', triads: 'Q' } }).tours).toEqual({ 1: { sweeper: { rank: 'A' } } });
   });
 });
 

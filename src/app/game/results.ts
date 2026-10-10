@@ -5,7 +5,7 @@ import { fanfare } from '../../audio/audio';
 import { formatValue, RANK_WORDS, tableKey, type Mode, type Rank } from '../../core/modes';
 import { DEFAULT_FRETS } from '../../core/music';
 import { placeFor, withScore, withTourRun, type ScoreEntry } from '../../core/storage';
-import { LAST_YEAR, legBooked, starsFor, stopFor, totalStars } from '../../core/tour';
+import { LAST_TOUR, legBooked, starsFor, stopFor, totalStars } from '../../core/tour';
 import { el } from '../dom';
 import type { ViewContext } from '../router';
 import { getSave, updateSave } from '../store';
@@ -100,11 +100,11 @@ function initialsEntry(initial: string, done: (name: string) => void): HTMLEleme
 
 /** On tour: keep what the run beat of the stop's bests, and say what it earned. */
 function tourEarned(result: RunResult): HTMLElement | null {
-  const { year, legs } = currentTour(getSave());
+  const { id, year, legs } = currentTour(getSave());
   const at = stopFor(legs, result.mode.id);
   if (!onTour() || !at) return null;
-  const before = getSave().tours[year] ?? {};
-  const after = updateSave((s) => withTourRun(s, year, result.mode.id, result.rank, result.value, result.mode.better)).tours[year];
+  const before = getSave().tours[id] ?? {};
+  const after = updateSave((s) => withTourRun(s, id, result.mode.id, result.rank, result.value, result.mode.better)).tours[id];
   const starsBefore = totalStars(legs, before);
   const starsAfter = totalStars(legs, after);
   const booked = legs.filter((leg) => !legBooked(leg, starsBefore) && legBooked(leg, starsAfter));
@@ -120,7 +120,7 @@ function tourEarned(result: RunResult): HTMLElement | null {
     el('div', {}, starsAfter > starsBefore ? `+${starsAfter - starsBefore} ★` : stars === 3 ? 'Sold out' : 'No new stars: play it again'),
     newBest ? el('b', {}, `New best on the '${year} tour`) : null,
     booked.map((leg) => el('b', {}, `${leg.name} booked!`)),
-    tourDone && year < LAST_YEAR ? el('b', {}, `The '${year + 1} tour is booked!`) : null,
+    tourDone && id < LAST_TOUR ? el('b', {}, 'Your next tour is booked!') : null,
   );
 }
 

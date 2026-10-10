@@ -1,9 +1,11 @@
 // World Tour: the existing games strung into tours. Each stop is one mode,
 // played as it is anywhere else; its best rank on a tour earns stars, and
 // stars book the legs that follow. The first tour is fixed; each later one is
-// drawn from its year, keeping the same climb in a shuffled order. Pure data
-// and arithmetic: the view and the save live elsewhere.
+// drawn from its number: the same climb in a shuffled order, on its own
+// continent, in its own genre and era (looks.ts). Pure data and arithmetic: the
+// view and the save live elsewhere.
 
+import { CONTINENTS, ERAS, GENRES, VENUES } from './looks';
 import { modeById, type Mode, type Rank } from './modes';
 import { hash2, Rng } from './rng';
 
@@ -14,8 +16,10 @@ export interface Stop {
 }
 
 /** The emblem drawn on a leg's sleeve: see app/tour/sleeves.ts. */
-export type Sleeve = 'record' | 'pig' | 'prism' | 'airship' | 'lantern' | 'sun';
-export const SLEEVES: readonly Sleeve[] = ['record', 'pig', 'prism', 'airship', 'lantern', 'sun'];
+export type Sleeve =
+  | 'record' | 'pig' | 'prism' | 'airship' | 'lantern' | 'sun'
+  | 'moon' | 'raven' | 'tower' | 'eye' | 'bolt' | 'roundel' | 'submarine'
+  | 'crossing' | 'guitar' | 'spiral' | 'pin' | 'crown' | 'star';
 
 export interface Leg {
   name: string;
@@ -27,9 +31,21 @@ export interface Leg {
   stops: readonly Stop[];
 }
 
+export interface Look {
+  /** A continent id from looks.ts, or 'world' for the first tour. */
+  continent: string;
+  genre: string;
+  era: string;
+}
+
 export interface Tour {
-  /** Two digits: '77 is the first tour. */
+  /** 1 is the first tour; what the save keeps its bests under. */
+  id: number;
+  /** Two digits, as the poster has it: '77. */
   year: number;
+  /** "World Tour". */
+  title: string;
+  look: Look;
   legs: readonly Leg[];
 }
 
@@ -118,24 +134,10 @@ export const CLASSIC: readonly Leg[] = [
 
 export const STOPS_PER_LEG = 3;
 export const MAX_STARS = 3 * CLASSIC.length * STOPS_PER_LEG;
-export const FIRST_YEAR = 77;
-export const LAST_YEAR = 89;
+export const FIRST_TOUR = 1;
+export const LAST_TOUR = 13;
 
-const VENUES = ['pub back rooms', 'the club circuit', 'ballroom tour', 'theatres', 'arenas', 'stadium encore'];
 const BOOKINGS = CLASSIC.map((leg) => leg.booking);
-
-const REGIONS: readonly { name: string; cities: readonly string[] }[] = [
-  { name: 'The Midlands', cities: ['Birmingham', 'Wolverhampton', 'Coventry', 'Leicester', 'Nottingham'] },
-  { name: 'British Isles', cities: ['London', 'Manchester', 'Glasgow', 'Dublin', 'Liverpool', 'Newcastle'] },
-  { name: 'Motor City', cities: ['Detroit', 'Cleveland', 'Chicago', 'Milwaukee', 'Toledo'] },
-  { name: 'Europe', cities: ['Amsterdam', 'Paris', 'Berlin', 'Brussels', 'Hamburg', 'Rome'] },
-  { name: 'America', cities: ['New York', 'Philadelphia', 'Boston', 'Baltimore', 'Washington'] },
-  { name: 'Japan', cities: ['Nagoya', 'Osaka', 'Tokyo', 'Kyoto', 'Fukuoka'] },
-  { name: 'Scandinavia', cities: ['Stockholm', 'Oslo', 'Copenhagen', 'Helsinki', 'Gothenburg'] },
-  { name: 'Down Under', cities: ['Sydney', 'Melbourne', 'Auckland', 'Adelaide', 'Brisbane'] },
-  { name: 'The South', cities: ['Atlanta', 'Memphis', 'New Orleans', 'Nashville', 'Austin'] },
-  { name: 'West Coast', cities: ['Los Angeles', 'San Francisco', 'Seattle', 'Portland', 'San Diego'] },
-];
 
 export type Kind = 'notes' | 'triads' | 'bends';
 
@@ -190,25 +192,42 @@ function order(rng: Rng): string[] {
   }
 }
 
-function drawn(year: number): readonly Leg[] {
-  const rng = new Rng(hash2(0x7004, year));
+// Genres and continents each come round in a shuffled order, so tours that
+// follow each other never share either; the era is drawn per tour.
+const deck = new Rng(0x7004);
+const GENRE_ORDER = deck.shuffle(GENRES);
+const CONTINENT_ORDER = deck.shuffle(CONTINENTS);
+
+function drawn(id: number): Tour {
+  const rng = new Rng(hash2(0x7004, id));
+  const genre = GENRE_ORDER[(id - 2) % GENRE_ORDER.length];
+  const continent = CONTINENT_ORDER[(id - 2) % CONTINENT_ORDER.length];
+  const era = rng.pick(ERAS);
   const modes = order(rng);
-  const regions = rng.shuffle(REGIONS).slice(0, BOOKINGS.length);
-  const sleeves = rng.shuffle(SLEEVES);
-  return regions.map((region, i) => {
-    const cities = rng.shuffle(region.cities);
-    return {
-      name: region.name,
-      venue: VENUES[i],
-      sleeve: sleeves[i % sleeves.length],
-      booking: BOOKINGS[i],
-      stops: modes.slice(i * STOPS_PER_LEG, (i + 1) * STOPS_PER_LEG).map((mode, k) => ({ city: cities[k], mode })),
-    };
-  });
+  const regions = rng.shuffle(continent.regions);
+  const sleeves = rng.shuffle(genre.sleeves);
+  return {
+    id,
+    year: era.from + rng.int(era.to - era.from + 1),
+    title: continent.title,
+    look: { continent: continent.id, genre: genre.id, era: era.id },
+    legs: regions.map((region, i) => {
+      const cities = rng.shuffle(region.cities);
+      return {
+        name: region.name,
+        venue: VENUES[i],
+        sleeve: sleeves[i],
+        booking: BOOKINGS[i],
+        stops: modes.slice(i * STOPS_PER_LEG, (i + 1) * STOPS_PER_LEG).map((mode, k) => ({ city: cities[k], mode })),
+      };
+    }),
+  };
 }
 
-export function tourFor(year: number): Tour {
-  return { year, legs: year === FIRST_YEAR ? CLASSIC : drawn(year) };
+const FIRST: Tour = { id: FIRST_TOUR, year: 77, title: 'World Tour', look: { continent: 'world', genre: 'hardrock', era: 'seventies' }, legs: CLASSIC };
+
+export function tourFor(id: number): Tour {
+  return id === FIRST_TOUR ? FIRST : drawn(id);
 }
 
 /** C: you played the gig, but nobody came. */
@@ -260,11 +279,11 @@ export function currentLeg(legs: readonly Leg[], stars: number): number {
 }
 
 /** A tour is open once the one before it has booked its last leg. */
-export function tourOpen(year: number, records: Readonly<Record<string, TourRecord>>): boolean {
-  if (year === FIRST_YEAR) return true;
-  if (year < FIRST_YEAR || year > LAST_YEAR) return false;
-  const before = tourFor(year - 1);
-  return legBooked(before.legs.at(-1)!, totalStars(before.legs, records[year - 1] ?? {}));
+export function tourOpen(id: number, records: Readonly<Record<string, TourRecord>>): boolean {
+  if (id === FIRST_TOUR) return true;
+  if (!Number.isInteger(id) || id < FIRST_TOUR || id > LAST_TOUR) return false;
+  const before = tourFor(id - 1);
+  return legBooked(before.legs.at(-1)!, totalStars(before.legs, records[id - 1] ?? {}));
 }
 
 /** Where a mode sits on a tour. */

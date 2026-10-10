@@ -6,7 +6,7 @@ import type { Hand } from './geometry';
 import type { Rank } from './modes';
 import { DEFAULT_FRETS, NECK_SIZES } from './music';
 import type { Accidentals } from './notes';
-import { betterRank, FIRST_YEAR, type TourBest } from './tour';
+import { betterRank, FIRST_TOUR, type TourBest } from './tour';
 
 export const SAVE_VERSION = 1;
 
@@ -99,7 +99,7 @@ export function migrate(raw: unknown): SaveData {
     // The first tour kept only ranks, under `tour`.
     const kept: Record<string, TourBest> = {};
     for (const [mode, rank] of Object.entries(raw.tour)) if (isRank(rank)) kept[mode] = { rank };
-    if (Object.keys(kept).length) save.tours[FIRST_YEAR] = kept;
+    if (Object.keys(kept).length) save.tours[FIRST_TOUR] = kept;
   }
   return save;
 }
