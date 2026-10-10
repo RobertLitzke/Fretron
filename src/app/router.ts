@@ -17,11 +17,22 @@ interface Route {
   view: View;
 }
 
+export interface RouterHooks {
+  /** Change where a view asks to go, given where it is now. */
+  rewrite?: (path: string, here: string) => string;
+  /** Called with the path before its view renders. */
+  before?: (path: string) => void;
+}
+
 export class Router {
   private routes: Route[] = [];
   private teardown: (() => void) | void = undefined;
+  private here = '';
 
-  constructor(private outlet: HTMLElement) {}
+  constructor(
+    private outlet: HTMLElement,
+    private hooks: RouterHooks = {},
+  ) {}
 
   add(pattern: string, view: View): this {
     this.routes.push({ segments: pattern.split('/').filter(Boolean), view });
@@ -36,6 +47,7 @@ export class Router {
   }
 
   navigate(path: string, replace = false): void {
+    if (this.hooks.rewrite) path = this.hooks.rewrite(path, this.here);
     const hash = '#' + path;
     if (hash === location.hash) this.resolve(path);
     else if (replace) {
@@ -69,6 +81,8 @@ export class Router {
       this.teardown();
       this.teardown = undefined;
     }
+    this.here = path;
+    this.hooks.before?.(path);
     this.outlet.replaceChildren();
     window.scrollTo(0, 0);
     const matched = this.match(path);

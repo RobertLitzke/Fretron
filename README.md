@@ -53,6 +53,15 @@ own score table, and the menu's Play button returns to the last one chosen.
 Only the root, the note being bent and the target are named on the board. Every game ends on a rank (S, A, B, C), a card of numbers, and a local
 top ten with three-letter initials.
 
+**World Tour** (the Tour tab) strings the same games into a 1970s rock tour:
+six legs of three cities, each stop one game played exactly as it is from the
+menu. The order goes round notes, triads and bends, one or two of each, a step
+harder each time round. A stop's best rank on tour earns stars (S 3, A 2, B 1),
+and stars book the next leg. Runs on tour go on the usual score tables. The
+tour wears its own skin: `<html data-skin="tour">`, set by the router on the
+`/tour` routes, re-points the design tokens (`src/app/styles/tour.css`),
+including the board's, which the canvas reads as it is built.
+
 The note and triad games take the open strings too: tap on the nut, or in the
 ring beside it that carries the string's name. Bends need a fretted note.
 

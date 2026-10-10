@@ -4,10 +4,13 @@
 import { fanfare } from '../../audio/audio';
 import { formatValue, RANK_WORDS, tableKey, type Mode, type Rank } from '../../core/modes';
 import { DEFAULT_FRETS } from '../../core/music';
-import { placeFor, withScore, type ScoreEntry } from '../../core/storage';
+import { placeFor, withScore, withTourRank, type ScoreEntry } from '../../core/storage';
+import { legBooked, LEGS, starsFor, stopFor, totalStars } from '../../core/tour';
 import { el } from '../dom';
 import type { ViewContext } from '../router';
 import { getSave, updateSave } from '../store';
+import { onTour } from '../tour/route';
+import { starRow } from '../views/tour';
 import { replay, type Frame } from './frame';
 
 export interface RunResult {
@@ -94,10 +97,30 @@ function initialsEntry(initial: string, done: (name: string) => void): HTMLEleme
   return node;
 }
 
+/** On tour: keep the rank if it is the stop's best, and say what it earned. */
+function tourEarned(result: RunResult): HTMLElement | null {
+  const at = stopFor(result.mode.id);
+  if (!onTour() || !at) return null;
+  const before = getSave().tour;
+  const after = updateSave((s) => withTourRank(s, result.mode.id, result.rank)).tour;
+  const gained = totalStars(after) - totalStars(before);
+  const booked = LEGS.filter((leg) => !legBooked(leg, before) && legBooked(leg, after));
+  const stars = starsFor(after[result.mode.id]);
+  return el(
+    'div.tour-earned',
+    {},
+    el('div', {}, at.stop.city),
+    starRow(stars),
+    el('div', {}, gained > 0 ? `+${gained} ★` : stars === 3 ? 'Sold out' : 'No new stars: play it again'),
+    booked.map((leg) => el('b', {}, `${leg.name} booked!`)),
+  );
+}
+
 export function showResult(frame: Frame, ctx: ViewContext, result: RunResult, again: () => void): void {
   const { mode, value, rank } = result;
   fanfare();
   frame.setAction(null);
+  const earned = tourEarned(result);
 
   const key = tableKey(mode, frame.frets);
   const entries = () => getSave().scores[key] ?? [];
@@ -134,6 +157,7 @@ export function showResult(frame: Frame, ctx: ViewContext, result: RunResult, ag
           {},
           result.stats.map(([label, text]) => [el('dt', {}, label), el('dd.num', {}, text)]),
         ),
+        earned,
       ),
       side,
     ),
@@ -142,7 +166,7 @@ export function showResult(frame: Frame, ctx: ViewContext, result: RunResult, ag
       {},
       el('button.btn.btn-primary', { type: 'button', onclick: () => replay(again) }, 'Again'),
       el('button.btn', { type: 'button', onclick: () => ctx.navigate('/scores') }, 'Scores'),
-      el('button.btn', { type: 'button', onclick: () => ctx.navigate('/home') }, 'Menu'),
+      el('button.btn', { type: 'button', onclick: () => ctx.navigate('/home') }, earned ? 'Tour' : 'Menu'),
     ),
   );
   panel.classList.add('panel-wide');

@@ -4,6 +4,7 @@ import { el } from './app/dom';
 import { Router } from './app/router';
 import { getSave } from './app/store';
 import { canFullscreen, toggleFullscreen } from './app/ui';
+import { inTour, tourRewrite } from './app/tour/route';
 import { watchForUpdates } from './app/update';
 import { bendView, traceView } from './app/views/bend';
 import { homeView } from './app/views/home';
@@ -12,10 +13,12 @@ import { scoresView } from './app/views/scores';
 import { scaleBendView } from './app/views/scaleBend';
 import { settingsView } from './app/views/settings';
 import { sweeperView } from './app/views/sweeper';
+import { tourView } from './app/views/tour';
 import { gridClearView, triadsView } from './app/views/triads';
 
 const NAV: readonly [string, string][] = [
   ['/home', 'Games'],
+  ['/tour', 'Tour'],
   ['/scores', 'Scores'],
   ['/settings', 'Settings'],
 ];
@@ -48,16 +51,29 @@ function boot(): void {
   };
   window.addEventListener('hashchange', markHere);
 
-  new Router(outlet)
-    .add('/home', homeView)
-    .add('/play/hunter/:variant', hunterView)
-    .add('/play/sweeper/:variant', sweeperView)
-    .add('/play/triads', triadsView)
-    .add('/play/triads/:variant', triadsView)
-    .add('/play/gridclear', gridClearView)
-    .add('/play/bend/:tier', bendView)
-    .add('/play/trace/:tier', traceView)
-    .add('/play/scalebend/:scale', scaleBendView)
+  // The tour skin goes on before a view draws: the board reads its colours as it is built.
+  const router = new Router(outlet, {
+    rewrite: tourRewrite,
+    before: (path) => {
+      if (inTour(path)) document.documentElement.dataset.skin = 'tour';
+      else delete document.documentElement.dataset.skin;
+      document.body.classList.toggle('in-tour', path === '/tour');
+    },
+  });
+  router.add('/home', homeView).add('/tour', tourView);
+  // Every game plays the same on tour, under /tour.
+  for (const base of ['', '/tour']) {
+    router
+      .add(`${base}/play/hunter/:variant`, hunterView)
+      .add(`${base}/play/sweeper/:variant`, sweeperView)
+      .add(`${base}/play/triads`, triadsView)
+      .add(`${base}/play/triads/:variant`, triadsView)
+      .add(`${base}/play/gridclear`, gridClearView)
+      .add(`${base}/play/bend/:tier`, bendView)
+      .add(`${base}/play/trace/:tier`, traceView)
+      .add(`${base}/play/scalebend/:scale`, scaleBendView);
+  }
+  router
     .add('/scores', scoresView)
     .add('/settings', settingsView)
     .start('/home');

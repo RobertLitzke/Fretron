@@ -1,0 +1,678 @@
+/* World Tour: a 1970s tour poster in place of the lit grid. Everything here is
+   under <html data-skin="tour">, which main.ts sets on the /tour routes only.
+   Mostly the same tokens re-pointed; below them, the few things that change
+   shape rather than colour. */
+
+@font-face {
+  font-family: 'Shrikhand';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('../../../node_modules/@fontsource/shrikhand/files/shrikhand-latin-400-normal.woff2') format('woff2');
+}
+
+/* Upright only: this file is inlined into the page, and italics would add
+   another 45 KB. The browser slants it where italic is asked for. */
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 300 900;
+  src: url('../../../node_modules/@fontsource-variable/fraunces/files/fraunces-latin-wght-normal.woff2')
+    format('woff2-variations');
+}
+
+:root[data-skin='tour'] {
+  --ink: #3b2416;
+  --paper: #f8f1df;
+  --rust: #c8502a;
+  --mustard: #e3a72f;
+  --olive: #8fa33a;
+
+  --bg: #2a1a10;
+  --panel: #3b2416;
+  --panel-2: #4a2e1c;
+  --hair: #3b2416;
+  --hair-dim: #8a6a45;
+  --text: #f1e2c0;
+  --muted: #b89a72;
+  --cyan: #e3a72f; /* "the player" becomes mustard */
+  --cyan-dim: #6b4a1c;
+  --orange: #c8502a; /* "what is asked for" becomes rust */
+  --orange-dim: #5e2a16;
+  --good: #8fa33a;
+  --danger: #d0402a;
+  --gold: #e3a72f;
+
+  --note-root: #c8502a;
+  --note-third: #e3a72f;
+  --note-fifth: #8fa33a;
+  --note-pivot: #f1e2c0;
+  --board-string: #d9c7a0;
+  --board-fret: #b8a27a;
+  --board-fret-bold: #e6d7b5;
+  --board-nut: #f4ead2;
+  --board-wood: #4a2a18; /* rosewood */
+  --board-tint: rgba(0, 0, 0, 0.12);
+  --board-glow: 0;
+  --board-inlay: #efe6d2; /* mother of pearl */
+  --board-number-font: 'Shrikhand', Georgia, serif;
+  --board-label-font: 'Fraunces', Georgia, serif;
+  --board-dead: #24150c;
+  --board-dead-edge: #3a2414;
+
+  --font: 'Fraunces', Georgia, serif;
+  --display: 'Shrikhand', 'Cooper Black', Georgia, serif;
+
+  --radius: 14px;
+  /* Glows become the offset ink of a screen print. */
+  --glow-cyan: 2px 2px 0 var(--ink);
+  --glow-orange: 2px 2px 0 var(--ink);
+  color-scheme: dark;
+}
+
+[data-skin='tour'] body {
+  background: var(--bg);
+}
+
+/* Shrikhand has one weight and no use for tracking or capitals. */
+[data-skin='tour'] :is(h1, h2, h3, .caps, .btn, .call, .banner, .result-words, .result-new, .hud-combo, .panel-title) {
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* --- in a game ----------------------------------------------------------- */
+
+/* The three stripes, under the bar. */
+[data-skin='tour'] .hud {
+  border-bottom: 0;
+  box-shadow: 0 4px 0 var(--rust), 0 8px 0 var(--mustard), 0 12px 0 var(--olive);
+  position: relative;
+  z-index: 2;
+  margin-bottom: 12px;
+}
+
+[data-skin='tour'] .hud-quit {
+  border-radius: 50%;
+  color: var(--text);
+  border-color: var(--hair-dim);
+}
+
+[data-skin='tour'] .hud-title {
+  font-family: var(--font);
+  font-style: italic;
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 13px;
+}
+
+[data-skin='tour'] .call {
+  font-size: 24px;
+  color: var(--mustard);
+  text-shadow: 2px 2px 0 var(--rust);
+}
+
+[data-skin='tour'] :is(.hud-clock, .hud-score b) {
+  font-family: var(--display);
+  font-weight: 400;
+  color: var(--text);
+}
+
+[data-skin='tour'] .hud-combo.hot {
+  text-shadow: 2px 2px 0 var(--rust);
+}
+
+[data-skin='tour'] .banner {
+  font-size: 16px;
+  color: var(--mustard);
+  background: var(--ink);
+  border: 0;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.4);
+}
+
+[data-skin='tour'] .banner.good {
+  color: var(--olive);
+}
+
+[data-skin='tour'] .banner.bad {
+  color: #f0866a;
+}
+
+/* Panels are paper, with dark ink: the tokens turn over inside them. */
+[data-skin='tour'] .panel-host {
+  background: rgba(42, 26, 16, 0.72);
+}
+
+[data-skin='tour'] .panel {
+  --text: var(--ink);
+  --muted: #6b5236;
+  --cyan: var(--rust);
+  --orange: var(--rust);
+  --good: #5f6e1e;
+  --gold: #b07a10;
+  --hair-dim: #c9b28a;
+  color: var(--ink);
+  background: var(--paper);
+  border: 0;
+  border-top: 6px solid var(--rust);
+  border-radius: 2px;
+  box-shadow: 4px 5px 0 rgba(0, 0, 0, 0.35);
+}
+
+[data-skin='tour'] .panel-title {
+  font-size: 24px;
+  color: var(--rust);
+  text-shadow: none;
+}
+
+[data-skin='tour'] :is(.rank-S, .result-value) {
+  text-shadow: 2px 2px 0 rgba(59, 36, 22, 0.25);
+}
+
+[data-skin='tour'] .btn {
+  font-family: var(--display);
+  border-radius: 999px;
+  border: 0;
+  color: var(--ink);
+  background: var(--mustard);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+[data-skin='tour'] .btn:hover:not(:disabled) {
+  box-shadow: 3px 3px 0 var(--ink);
+  filter: brightness(1.06);
+}
+
+[data-skin='tour'] .btn-primary {
+  color: var(--paper);
+  background: var(--rust);
+}
+
+[data-skin='tour'] .seg button[aria-pressed='true'] {
+  color: var(--paper);
+  background: var(--rust);
+}
+
+/* What a run on tour earned, on the result card: one line. */
+.tour-earned {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 2px 10px;
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+.tour-earned .tour-stars {
+  font-size: 18px;
+}
+
+.tour-earned b {
+  flex-basis: 100%;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 15px;
+  color: var(--rust);
+}
+
+/* --- the map ------------------------------------------------------------- */
+
+body.in-tour .topbar {
+  display: none;
+}
+
+body.in-tour #app {
+  max-width: none;
+  padding: 0;
+}
+
+.tour {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  color: var(--ink);
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, 0.35), transparent 60%),
+    radial-gradient(ellipse at 80% 90%, rgba(120, 70, 20, 0.18), transparent 55%),
+    repeating-linear-gradient(0deg, transparent 0 46px, rgba(138, 106, 69, 0.18) 46px 47px),
+    repeating-linear-gradient(90deg, transparent 0 62px, rgba(138, 106, 69, 0.18) 62px 63px),
+    #ecd9b0;
+}
+
+.tour-top {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 50px;
+  padding: 0 max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
+  color: var(--text);
+  background: var(--ink);
+  box-shadow: 0 4px 0 var(--rust), 0 8px 0 var(--mustard), 0 12px 0 var(--olive);
+  margin-bottom: 12px;
+}
+
+.tour-back {
+  font-size: 22px;
+  color: var(--text);
+  text-decoration: none;
+  opacity: 0.85;
+}
+
+.tour-title {
+  font-family: var(--display);
+  font-size: 24px;
+  line-height: 1;
+  color: var(--mustard);
+  text-shadow: 2px 2px 0 var(--rust);
+  white-space: nowrap;
+}
+
+.tour-title small {
+  margin-left: 8px;
+  font-family: var(--font);
+  font-size: 14px;
+  font-style: italic;
+  color: var(--text);
+  text-shadow: none;
+}
+
+.tour-total {
+  margin-left: auto;
+  font-family: var(--display);
+  font-size: 19px;
+  white-space: nowrap;
+}
+
+.tour-total b {
+  color: var(--mustard);
+  font-weight: 400;
+}
+
+.tour-total i {
+  margin-left: 4px;
+  font-family: var(--font);
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.tour-body {
+  flex: 1;
+  width: 100%;
+  max-width: 1100px;
+  max-height: 640px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 300px);
+  gap: 8px;
+  padding: 4px max(12px, env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+}
+
+.tour-map {
+  position: relative;
+  min-height: 280px;
+}
+
+.tour-road {
+  position: absolute;
+  inset: 0;
+  color: rgba(59, 36, 22, 0.5);
+}
+
+.tour-road svg {
+  width: 100%;
+  height: 100%;
+}
+
+.sticker {
+  position: absolute;
+  padding: 0;
+  font: inherit;
+  text-align: center;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  transform: translate(-50%, -50%) rotate(var(--r, 0deg));
+  filter: drop-shadow(2px 3px 0 rgba(59, 36, 22, 0.35));
+  transition: transform 0.15s ease-out;
+}
+
+.sticker.picked {
+  transform: translate(-50%, -50%) rotate(var(--r, 0deg)) scale(1.08);
+}
+
+.sticker .face {
+  display: grid;
+  place-items: center;
+  color: var(--c);
+  background: #f8eed8;
+  border: 4px solid #f8eed8;
+  outline: 3px solid var(--c);
+  outline-offset: -9px;
+}
+
+.sticker .face > span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.sticker .leg {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.sticker .name {
+  font-family: var(--display);
+  font-size: 14px;
+  line-height: 1;
+}
+
+.sticker .sub {
+  margin-top: 2px;
+  font-size: 9px;
+  font-style: italic;
+  color: var(--ink);
+}
+
+.sticker .got {
+  margin-top: 1px;
+  font-size: 11px;
+  color: var(--ink);
+}
+
+.sticker.round .face {
+  width: 98px;
+  height: 98px;
+  padding: 10px;
+  border-radius: 50%;
+}
+
+.sticker.oval .face {
+  width: 118px;
+  height: 82px;
+  padding: 8px 14px;
+  border-radius: 50%;
+}
+
+.sticker.pennant .face {
+  width: 118px;
+  height: 92px;
+  padding: 6px 8px 16px;
+  border-radius: 6px;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 86%, 0 100%);
+}
+
+.sticker.shield .face {
+  width: 98px;
+  height: 100px;
+  padding: 10px;
+  border-radius: 10px 10px 50px 50px;
+}
+
+.sticker.filled .face {
+  color: #f8eed8;
+  background: var(--c);
+  outline-color: #f8eed8;
+}
+
+.sticker.filled :is(.sub, .got) {
+  color: #f8eed8;
+}
+
+.sticker.here::before {
+  content: 'NOW PLAYING';
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 6px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  white-space: nowrap;
+  color: var(--mustard);
+  background: var(--ink);
+  border-radius: 3px;
+}
+
+.sticker.locked .face {
+  color: #a08868;
+  background: #ecd9b0;
+  border-style: dashed;
+  border-color: #b39c78;
+  outline: none;
+}
+
+.sticker.locked .sub {
+  color: #9a8262;
+}
+
+.stamp {
+  position: absolute;
+  right: -12px;
+  bottom: -4px;
+  padding: 1px 5px;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  color: #b0302a;
+  background: rgba(248, 238, 216, 0.9);
+  border: 2px solid currentColor;
+  border-radius: 3px;
+  transform: rotate(-14deg);
+}
+
+.stamp.gold {
+  color: #a0700a;
+}
+
+/* --- the set list -------------------------------------------------------- */
+
+.setlist {
+  position: relative;
+  align-self: start;
+  margin: 6px 4px 0;
+  padding: 12px 14px 12px;
+  background: var(--paper);
+  border-top: 6px solid var(--rust);
+  box-shadow: 3px 4px 0 rgba(59, 36, 22, 0.25);
+  transform: rotate(1deg);
+}
+
+.setlist::before,
+.setlist::after {
+  content: '';
+  position: absolute;
+  top: -14px;
+  width: 54px;
+  height: 18px;
+  background: rgba(227, 167, 47, 0.55);
+}
+
+.setlist::before {
+  left: 18px;
+  transform: rotate(-6deg);
+}
+
+.setlist::after {
+  right: 18px;
+  transform: rotate(5deg);
+}
+
+.setlist-head {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.setlist h2 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--rust);
+}
+
+.setlist .where {
+  margin-top: 3px;
+  font-size: 12px;
+  font-style: italic;
+  line-height: 1.25;
+  color: #6b5236;
+}
+
+.tour-sleeve {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  box-shadow: 2px 2px 0 rgba(59, 36, 22, 0.4);
+  transform: rotate(-3deg);
+}
+
+.tour-sleeve svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* A leg not yet booked: its record is still in the shrink wrap. */
+.tour-sleeve.wrapped {
+  filter: grayscale(1) contrast(0.6) brightness(1.2);
+  opacity: 0.6;
+}
+
+.song {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  column-gap: 8px;
+  align-items: baseline;
+  width: 100%;
+  padding: 5px 6px;
+  font: inherit;
+  text-align: left;
+  color: var(--ink);
+  background: none;
+  border: 0;
+  border-bottom: 1px dashed #c9b28a;
+  cursor: pointer;
+}
+
+.song:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.song.sel {
+  background: linear-gradient(90deg, rgba(227, 167, 47, 0.3), transparent);
+}
+
+.song .n {
+  font-family: var(--display);
+  font-size: 14px;
+  color: #8a6a45;
+}
+
+.song .t {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.song .t i {
+  display: block;
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  font-weight: 400;
+  color: #6b5236;
+}
+
+
+.tour-stars {
+  font-size: 14px;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  color: var(--rust);
+}
+
+.tour-stars em {
+  font-style: normal;
+  color: #c9b28a;
+}
+
+.tour-play {
+  display: block;
+  margin-top: 10px;
+  padding: 7px;
+  font-family: var(--display);
+  font-size: 19px;
+  text-align: center;
+  text-decoration: none;
+  color: var(--paper);
+  background: var(--rust);
+  border-radius: 14px;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.tour-locked {
+  margin: 10px 0 0;
+  font-size: 13px;
+  font-style: italic;
+  color: #6b5236;
+}
+
+/* A phone held upright, or a narrow window: the set list goes under the map. */
+@media (max-width: 640px) {
+  .tour-body {
+    grid-template-columns: 1fr;
+  }
+
+  .tour-title {
+    font-size: 19px;
+  }
+
+  .tour-total i {
+    display: none;
+  }
+
+  .tour-map {
+    min-height: 300px;
+  }
+
+  .sticker {
+    scale: 0.72;
+  }
+}
+
+/* A phone on its side: keep the set list and its Play button on the screen. */
+@media (max-height: 460px) {
+  .tour-top {
+    height: 42px;
+  }
+
+  .tour-sleeve {
+    width: 48px;
+    height: 48px;
+  }
+
+  .setlist {
+    padding: 8px 12px 10px;
+  }
+
+  .song {
+    padding: 3px 6px;
+  }
+
+  .tour-play {
+    margin-top: 8px;
+    padding: 5px;
+    font-size: 17px;
+  }
+
+  .sticker {
+    scale: 0.9;
+  }
+}

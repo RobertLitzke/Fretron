@@ -107,6 +107,17 @@ export interface BoardTheme {
   cyan: string;
   orange: string;
   good: string;
+  /** The board's own colour, where a skin wants it apart from the panels'. */
+  wood: string;
+  /** The wash over the heavy strings' half. */
+  tint: string;
+  /** How much the strings, nut and notes glow: 1 is the arcade look, 0 none. */
+  glow: number;
+  /** The fret numbers' and the notes' labels' fonts. */
+  numberFont: string;
+  labelFont: string;
+  /** The inlay dots. */
+  inlay: string;
   tiers: Record<string, string>;
 }
 
@@ -130,6 +141,12 @@ export function readTheme(): BoardTheme {
     cyan: v('--cyan', '#6fe9ff'),
     orange: v('--orange', '#ff7a1a'),
     good: v('--good', '#7dffb0'),
+    wood: v('--board-wood', v('--panel', '#070d1c')),
+    tint: v('--board-tint', 'rgba(111, 233, 255, 0.035)'),
+    glow: Number(v('--board-glow', '1')) || 0,
+    numberFont: v('--board-number-font', "Orbitron, 'Space Grotesk', sans-serif"),
+    labelFont: v('--board-label-font', "'Space Grotesk', sans-serif"),
+    inlay: v('--board-inlay', v('--board-fret-bold', '#3f78a8')),
     tiers,
   };
 }
@@ -232,10 +249,10 @@ export class Fretboard {
 
     // The board itself, and a tint on the half holding the heavy strings to
     // convey weight (as FretFalcon does).
-    ctx.fillStyle = theme.panel;
+    ctx.fillStyle = theme.wood;
     ctx.fillRect(Math.min(xNear, xFar), top, Math.abs(xFar - xNear), bottom - top);
     const midY = layout.y(Math.floor(stringCount / 2) - 0.5);
-    ctx.fillStyle = 'rgba(111, 233, 255, 0.035)';
+    ctx.fillStyle = theme.tint;
     ctx.fillRect(Math.min(xNear, xFar), midY, Math.abs(xFar - xNear), bottom - midY);
     if (this.glowFret) {
       const [from, to] = layout.span(this.glowFret.fret);
@@ -257,7 +274,7 @@ export class Fretboard {
       ctx.lineWidth = (isNut ? 4.5 : bold ? 2 : 1) * scale;
       ctx.strokeStyle = isNut ? theme.nut : bold ? theme.fretBold : theme.fret;
       ctx.shadowColor = isNut ? theme.cyan : 'transparent';
-      ctx.shadowBlur = isNut ? 10 : 0;
+      ctx.shadowBlur = isNut ? 10 * theme.glow : 0;
       ctx.moveTo(x, top);
       ctx.lineTo(x, bottom);
       ctx.stroke();
@@ -266,13 +283,13 @@ export class Fretboard {
 
     // Inlay dots and fret numbers.
     const dotRadius = 5 * scale;
-    ctx.font = `600 ${Math.round(11 * Math.min(1.2, scale))}px Orbitron, 'Space Grotesk', sans-serif`;
+    ctx.font = `600 ${Math.round(11 * Math.min(1.2, scale))}px ${theme.numberFont}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     for (let n = Math.max(1, firstWire); n <= lastWire; n++) {
       const x = layout.x(n - 0.5, startFret);
       const marker = MARKER_DOTS[n] ?? 0;
-      ctx.fillStyle = theme.fretBold;
+      ctx.fillStyle = theme.inlay;
       ctx.globalAlpha = 0.55;
       if (marker === 1) {
         ctx.beginPath();
@@ -328,7 +345,7 @@ export class Fretboard {
       ctx.strokeStyle = lit ? this.glowString!.color : theme.string;
       ctx.globalAlpha = lit ? 1 : 0.8;
       ctx.shadowColor = lit ? this.glowString!.color : theme.cyan;
-      ctx.shadowBlur = lit ? 14 : 5;
+      ctx.shadowBlur = (lit ? 14 : 5) * theme.glow;
       ctx.moveTo(xNear, y);
       if (bend && carried![s]) ctx.lineTo(layout.x(bend.cell.fret - 0.5, startFret), y + carried![s]);
       ctx.lineTo(xFar, y);
@@ -415,7 +432,7 @@ export class Fretboard {
       ctx.globalAlpha = note.opacity ?? 1;
       if (note.glow) {
         ctx.shadowColor = note.glow;
-        ctx.shadowBlur = 16;
+        ctx.shadowBlur = 16 * this.theme.glow;
       }
       if (note.dashed) ctx.setLineDash([4, 3]);
       ctx.lineWidth = (note.strokeWidth ?? 1) * scale;
@@ -447,7 +464,7 @@ export class Fretboard {
       if (note.displayLabel) {
         const fontSize = Math.min(18 * scale, radius * 2 * 0.63) * (note.displayLabel.length > 2 ? 0.82 : 1);
         ctx.fillStyle = note.labelColor ?? (fill === 'transparent' ? this.theme.text : textColorFor(fill));
-        ctx.font = `600 ${fontSize}px 'Space Grotesk', sans-serif`;
+        ctx.font = `600 ${fontSize}px ${this.theme.labelFont}`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(note.displayLabel, x, y + fontSize * 0.05);
@@ -484,7 +501,7 @@ export class Fretboard {
       ctx.globalAlpha = Math.max(0, 1 - flash.age);
       ctx.strokeStyle = flash.color;
       ctx.shadowColor = flash.color;
-      ctx.shadowBlur = 12;
+      ctx.shadowBlur = 12 * this.theme.glow;
       ctx.lineWidth = 3 * (1 - flash.age) + 1;
       ctx.beginPath();
       ctx.arc(x, y, radius * (0.9 + 1.5 * flash.age), 0, 2 * Math.PI);
