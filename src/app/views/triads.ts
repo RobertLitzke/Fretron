@@ -321,7 +321,7 @@ export const triadsView: View = (root, ctx) => {
     frame,
     `${mode.title} · ${mode.variant}`,
     [
-      'Build each chord on three neighbouring strings: tap a fret on each, or beside the nut for an open string. Then drag across the three to play it.',
+      'Build each chord on three neighbouring strings: tap a fret on each, or beside the nut for an open string. Then drag anywhere on the board to play it.',
       'Points for speed, and a bonus for staying close to the chord before. There is no time limit.',
       `A wrong rake keeps the notes that were right and spells the chord. The ${RAKES_BEFORE_ANSWER}th shows the answer, for no points.`,
     ],
@@ -437,7 +437,7 @@ export const gridClearView: View = (root, ctx) => {
     `${mode.title} · ${mode.variant}`,
     [
       'One chord. Find every close voicing of it: all three inversions, on every set of three neighbouring strings, open strings included.',
-      'Tap one fret on each string, or beside the nut for an open string, then drag across the three strings to play it.',
+      'Tap one fret on each string, or beside the nut for an open string, then drag anywhere on the board to play it.',
       `A wrong rake adds ${GRID_PENALTY} seconds.`,
     ],
     () => {

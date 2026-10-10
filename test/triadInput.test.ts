@@ -80,27 +80,31 @@ describe('tap and rake', () => {
     }
   });
 
-  it('plays a string the rake starts or ends on, even a little off its line', () => {
-    // C major on D G B: a finger lands just above the D string and stops just short of the B string.
-    for (const [from, to] of [
-      [2.3, 4.0],
-      [2.0, 3.7],
-      [2.3, 3.7],
-      [3.7, 2.3],
+  it('hands the chord in on any drag, wherever it is and whatever strings it crosses', () => {
+    // C major on D G B, then a drag that misses those strings, crosses others, or runs along one.
+    for (const [from, to, fret] of [
+      [0, 1.2, 1],
+      [5.2, 3.9, 12],
+      [3.0, 3.5, 7],
+      [0, 5, 3],
     ]) {
       const { handedIn, tap, rake } = setup();
       [{ string: 2, fret: 10 }, { string: 3, fret: 9 }, { string: 4, fret: 8 }].forEach((c) => tap(c));
-      rake(from, to);
-      expect(handedIn, `rake ${from} → ${to}`).toHaveLength(1);
+      rake(from, to, fret);
+      expect(handedIn, `drag ${from} → ${to} at fret ${fret}`).toHaveLength(1);
       expect(checkVoicing(T, handedIn[0], C).ok).toBe(true);
     }
   });
 
-  it('does not play a string the rake never came near', () => {
+  it('hands nothing in until three notes are chosen, and only once a drag', () => {
     const { handedIn, tap, rake } = setup();
-    [{ string: 2, fret: 10 }, { string: 3, fret: 9 }, { string: 4, fret: 8 }].forEach((c) => tap(c));
-    rake(1.6, 3.4);
+    tap({ string: 2, fret: 10 });
+    tap({ string: 3, fret: 9 });
+    rake(0, 5);
     expect(handedIn).toHaveLength(0);
+    tap({ string: 4, fret: 8 });
+    rake(0, 5);
+    expect(handedIn).toHaveLength(1);
   });
 
   it('keeps the notes that fit a new shape when one too many is tapped', () => {

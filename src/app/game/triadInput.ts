@@ -1,6 +1,6 @@
 // "Tap and rake": tap up to three frets to choose them, then drag a finger
-// across their strings to play them. Each string sounds as the finger passes
-// over it, and the chord is handed in once all three have sounded in one stroke.
+// anywhere on the board to hand them in. The rake is only a way to say "this
+// one": it need not cross the chosen strings, and other strings do not matter.
 
 import { pluck } from '../../audio/audio';
 import type { Board, BoardTouch } from '../../board/board';
@@ -13,11 +13,7 @@ interface Stroke {
   x: number;
   y: number;
   cell: Cell | null;
-  /** The span of string positions the finger has covered. */
-  low: number;
-  high: number;
   raking: boolean;
-  sounded: Set<number>;
   handedIn: boolean;
 }
 
@@ -46,10 +42,7 @@ export class TriadInput {
       x: touch.x,
       y: touch.y,
       cell: touch.cell,
-      low: touch.string,
-      high: touch.string,
       raking: false,
-      sounded: new Set(),
       handedIn: false,
     });
   }
@@ -57,25 +50,11 @@ export class TriadInput {
   move(touch: BoardTouch): void {
     const stroke = this.strokes.get(touch.id);
     if (!stroke || !this.enabled) return;
-    stroke.low = Math.min(stroke.low, touch.string);
-    stroke.high = Math.max(stroke.high, touch.string);
     if (!stroke.raking && Math.hypot(touch.x - stroke.x, touch.y - stroke.y) > TAP_SLOP) stroke.raking = true;
-    if (!stroke.raking || stroke.handedIn) return;
-    // A string is touched once the finger has been nearer it than any other:
-    // a rake that starts or stops a little off a string's line still plays it.
-    const low = Math.round(stroke.low);
-    const high = Math.round(stroke.high);
-    for (const cell of this.selected) {
-      if (stroke.sounded.has(cell.string)) continue;
-      if (cell.string < low || cell.string > high) continue;
-      stroke.sounded.add(cell.string);
-      pluck(cellMidi(this.tuning, cell), { level: 0.5, ring: 0.7 });
-      this.board.flash(cell, this.board.theme.cyan);
-    }
-    if (this.selected.length === 3 && this.selected.every((c) => stroke.sounded.has(c.string))) {
-      stroke.handedIn = true;
-      this.onRake(this.selected.slice());
-    }
+    if (!stroke.raking || stroke.handedIn || this.selected.length !== 3) return;
+    stroke.handedIn = true;
+    for (const cell of this.selected) this.board.flash(cell, this.board.theme.cyan);
+    this.onRake(this.selected.slice());
   }
 
   up(touch: BoardTouch): void {
