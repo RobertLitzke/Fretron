@@ -1,9 +1,12 @@
-// The guitar voice: an electric guitar through a warm, lightly driven amp.
+// The guitar voice: an electric guitar through a low-gain overdrive into a
+// clean amp.
 //
 // The string is a physical model (stringProcessor.ts), so its tone changes as
-// it rings the way a real one does. It goes into one amp shared by every
-// string, so that a chord distorts as one: a humbucker's soft top, a gentle
-// clipper, a closed-back speaker cabinet and a small room.
+// it rings the way a real one does. Single notes go through the overdrive,
+// which works as a Klon Centaur does: the clean signal is kept and a clipped,
+// mid-heavy copy is blended under it, so the note stays clear and only gets
+// some hair. Chords skip the overdrive, where clipping would smear them. Both
+// then go through a speaker cabinet and a small room.
 
 import { STRING_PROCESSOR } from './stringProcessor';
 
@@ -61,34 +64,56 @@ function biquad(c: BaseAudioContext, type: BiquadFilterType, frequency: number, 
   return f;
 }
 
-/** The amp, from its input to `out`. Returns the input. */
-export function buildAmp(c: BaseAudioContext, out: AudioNode): AudioNode {
-  const input = c.createGain();
-  // A humbucker under a cable: no resonant peak to speak of, little past 4 kHz.
-  const pickup = biquad(c, 'lowpass', 3600, 0.6);
-  // Low strings into a clipper turn to mud: keep the bottom out of it.
-  const tight = biquad(c, 'highpass', 100, 0.5);
-  const drive = c.createGain();
-  drive.gain.value = 2.2;
+/** Where a string goes in: through the overdrive, or straight to the amp. */
+export interface Amp {
+  drive: AudioNode;
+  clean: AudioNode;
+}
+
+/** The overdrive and amp, ending at `out`. */
+export function buildAmp(c: BaseAudioContext, out: AudioNode): Amp {
+  // A humbucker under a cable: no resonant peak to speak of.
+  const drive = biquad(c, 'lowpass', 4500, 0.6);
+  const clean = biquad(c, 'lowpass', 4500, 0.6);
+  const amp = c.createGain();
+
+  // The overdrive. Its clean half carries the note...
+  const dry = c.createGain();
+  dry.gain.value = 0.75;
+  drive.connect(dry).connect(amp);
+  // ...and the clipped half, with the lows kept out and the mids pushed up
+  // before the clipper, adds grit under it. The gain knob a little before noon.
+  const tight = biquad(c, 'highpass', 180, 0.6);
+  const mids = biquad(c, 'peaking', 1000, 0.7, 5);
+  const push = c.createGain();
+  push.gain.value = 3;
   const shaper = c.createWaveShaper();
-  shaper.curve = driveCurve(1.4, 0.12);
+  shaper.curve = driveCurve(1.8, 0.04);
   shaper.oversample = '4x';
-  // The cabinet: some thump, a falling top, and the fizz the clipper makes
-  // above 4 kHz taken away. Two lowpasses make a steep slope.
-  const thump = biquad(c, 'lowshelf', 180, 0, 3);
-  const top = biquad(c, 'highshelf', 2200, 0, -4);
-  const cab1 = biquad(c, 'lowpass', 4000, 0.55);
-  const cab2 = biquad(c, 'lowpass', 4600, 0.55);
+  const smooth = biquad(c, 'lowpass', 3800, 0.6);
+  const dirt = c.createGain();
+  dirt.gain.value = 0.32;
+  drive.connect(tight).connect(mids).connect(push).connect(shaper).connect(smooth).connect(dirt).connect(amp);
+  // Chords are several strings at once: a little lower, to sit level with a single note.
+  const chord = c.createGain();
+  chord.gain.value = 0.8;
+  clean.connect(chord).connect(amp);
+
+  // The cabinet: some thump, a little treble for clarity, and a steep slope
+  // past 5 kHz to take off any fizz.
+  const thump = biquad(c, 'lowshelf', 160, 0, 2);
+  const treble = biquad(c, 'highshelf', 2500, 0, 1);
+  const cab1 = biquad(c, 'lowpass', 5000, 0.6);
+  const cab2 = biquad(c, 'lowpass', 5600, 0.55);
   const level = c.createGain();
-  level.gain.value = 0.36;
-  input.connect(pickup).connect(tight).connect(drive).connect(shaper);
-  shaper.connect(thump).connect(top).connect(cab1).connect(cab2).connect(level).connect(out);
+  level.gain.value = 0.6;
+  amp.connect(thump).connect(treble).connect(cab1).connect(cab2).connect(level).connect(out);
   const room = c.createConvolver();
   room.buffer = roomImpulse(c);
   const wet = c.createGain();
-  wet.gain.value = 0.18;
+  wet.gain.value = 0.16;
   level.connect(room).connect(wet).connect(out);
-  return input;
+  return { drive, clean };
 }
 
 /**
@@ -96,7 +121,7 @@ export function buildAmp(c: BaseAudioContext, out: AudioNode): AudioNode {
  * seven seconds; a held one (`hold` above zero) sustains for a bend to be
  * found by ear.
  */
-export function strikeGuitar(c: BaseAudioContext, amp: AudioNode, hz: number, when: number, level: number, ring: number, hold: number): StringNodes {
+export function strikeGuitar(c: BaseAudioContext, input: AudioNode, hz: number, when: number, level: number, ring: number, hold: number): StringNodes {
   const node = new AudioWorkletNode(c, 'fretron-string', {
     numberOfInputs: 0,
     outputChannelCount: [1],
@@ -107,7 +132,7 @@ export function strikeGuitar(c: BaseAudioContext, amp: AudioNode, hz: number, wh
   const detune = node.parameters.get('detune')!;
   const gain = c.createGain();
   gain.gain.value = 1;
-  node.connect(gain).connect(amp);
+  node.connect(gain).connect(input);
   return {
     detune,
     gain,

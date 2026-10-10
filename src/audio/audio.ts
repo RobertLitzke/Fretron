@@ -10,14 +10,14 @@
 
 import { contourDuration, type Contour } from '../core/bend';
 import { midiToHz } from '../core/music';
-import { buildAmp, loadString, strikeGuitar, type StringNodes } from './guitar';
+import { buildAmp, loadString, strikeGuitar, type Amp, type StringNodes } from './guitar';
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
 let wave: PeriodicWave | null = null;
 let noise: AudioBuffer | null = null;
 let volume = 0.8;
-let amp: AudioNode | null = null;
+let amp: Amp | null = null;
 let stringReady: Promise<void> = Promise.resolve();
 let stringLoaded = false;
 
@@ -84,8 +84,10 @@ export function voiceReady(): Promise<void> {
  * settles at that level with the filter left further open, so that a bend can
  * be found by ear.
  */
-function strike(midi: number, when: number, level: number, ring: number, hold = 0): StringNodes {
-  if (voice === 'guitar' && stringLoaded) return strikeGuitar(context(), amp!, midiToHz(midi), when, level, ring, hold);
+function strike(midi: number, when: number, level: number, ring: number, hold = 0, clean = false): StringNodes {
+  if (voice === 'guitar' && stringLoaded) {
+    return strikeGuitar(context(), clean ? amp!.clean : amp!.drive, midiToHz(midi), when, level, ring, hold);
+  }
   return strikeSynth(midi, when, level, ring, hold);
 }
 
@@ -115,18 +117,20 @@ export interface PluckOptions {
   level?: number;
   /** How long the note rings: the time for it to fall to about a third. */
   ring?: number;
+  /** Part of a chord: the guitar voice plays it without overdrive. */
+  chord?: boolean;
 }
 
 export function pluck(midi: number, options: PluckOptions = {}): void {
   const c = context();
   const when = c.currentTime + (options.delay ?? 0);
   const ring = options.ring ?? 0.45;
-  strike(midi, when, options.level ?? 0.5, ring).stop(when + ring * 7);
+  strike(midi, when, options.level ?? 0.5, ring, 0, options.chord).stop(when + ring * 7);
 }
 
-/** Several strings struck one after another, low to high. */
+/** Several strings struck one after another, low to high: a chord. */
 export function strum(midis: readonly number[], gap = 0.035, options: PluckOptions = {}): void {
-  midis.forEach((m, i) => pluck(m, { ...options, delay: (options.delay ?? 0) + i * gap }));
+  midis.forEach((m, i) => pluck(m, { ...options, chord: true, delay: (options.delay ?? 0) + i * gap }));
 }
 
 /** The level a held string settles at. */
@@ -269,5 +273,5 @@ export function blip(hz = 1320, length = 0.05, level = 0.18): void {
 
 /** A run finished. */
 export function fanfare(): void {
-  [52, 59, 64, 68, 71, 76].forEach((m, i) => pluck(m, { delay: i * 0.07, level: 0.4, ring: 0.5 }));
+  [52, 59, 64, 68, 71, 76].forEach((m, i) => pluck(m, { delay: i * 0.07, level: 0.4, ring: 0.5, chord: true }));
 }
