@@ -27,7 +27,7 @@ const CABINETS: Cabinet[] = [
   {
     title: 'Triads',
     games: [
-      { name: 'Progressions', blurb: 'Tap three frets, rake the chord, stay close to the last one.', modes: MODES.filter((m) => m.id === 'triads') },
+      { name: 'Progressions', blurb: 'Tap three frets, rake the chord, stay close to the last one.', modes: MODES.filter((m) => m.id === 'triads' || m.id.startsWith('triads-')), pick: 'triads' },
       { name: 'Grid Clear', blurb: 'Find every inversion of one chord on the neck.', modes: MODES.filter((m) => m.id === 'gridclear') },
     ],
   },

@@ -5,14 +5,25 @@ import {
   checkVoicing,
   chordName,
   chordTones,
+  closestToTarget,
+  COMPACT_BONUS,
+  compactPoints,
+  COMPACT_STEP,
   displacement,
   enumerateVoicings,
   keepers,
   likeliest,
   makeProgression,
+  makeTarget,
   motionBonus,
   motionOf,
   nearestVoicing,
+  TARGET_BONUS,
+  TARGET_STEP,
+  targetDistance,
+  targetPoints,
+  tightestSpread,
+  spreadOf,
   timePoints,
   toneLabel,
   voicingKey,
@@ -215,5 +226,66 @@ describe('progressions', () => {
       if (p.keyName === 'G major') expect(p.spelling).toBe('sharp');
       expect(p.keyName.includes('♯') && p.spelling === 'flat').toBe(false);
     }
+  });
+});
+
+describe('targets', () => {
+  const shape = cells([3, 5], [4, 5], [5, 3]); // C on the top three strings, 5th fret
+
+  it('measures to the nearest note of the chord', () => {
+    expect(targetDistance({ string: null, fret: 5 }, shape)).toBe(0);
+    expect(targetDistance({ string: null, fret: 9 }, shape)).toBe(4);
+    expect(targetDistance({ string: 1, fret: null }, shape)).toBe(2);
+    expect(targetDistance({ string: 5, fret: null }, shape)).toBe(0);
+    // Both: frets and strings added, from whichever note is nearest.
+    expect(targetDistance({ string: 2, fret: 4 }, shape)).toBe(2);
+    expect(targetDistance({ string: 5, fret: 3 }, shape)).toBe(0);
+  });
+
+  it('knows how near the chord can get', () => {
+    const all = enumerateVoicings(T, C, 0, 12);
+    expect(closestToTarget({ string: null, fret: 5 }, all)).toBe(0);
+    for (let s = 0; s < 6; s++) expect(closestToTarget({ string: s, fret: null }, all)).toBe(0);
+  });
+
+  it('takes points off for each step further out than needed', () => {
+    expect(targetPoints(0)).toBe(TARGET_BONUS);
+    expect(targetPoints(1)).toBe(TARGET_BONUS - TARGET_STEP);
+    expect(targetPoints(4)).toBeLessThan(0);
+  });
+
+  it('lights a fret, a string or both, within the frets given', () => {
+    const rng = new Rng(7);
+    const kinds = new Set<string>();
+    for (let i = 0; i < 200; i++) {
+      const t = makeTarget(rng, 6, 3, 9);
+      expect(t.string !== null || t.fret !== null).toBe(true);
+      if (t.fret !== null) expect(t.fret >= 3 && t.fret <= 9).toBe(true);
+      if (t.string !== null) expect(t.string >= 0 && t.string < 6).toBe(true);
+      kinds.add(`${t.string === null}${t.fret === null}`);
+    }
+    expect(kinds.size).toBe(3);
+  });
+});
+
+describe('compactness', () => {
+  it('spreads across held frets only', () => {
+    expect(spreadOf([cells([3, 5], [4, 5], [5, 3]), cells([3, 7], [4, 8], [5, 7])])).toBe(5);
+    expect(spreadOf([cells([3, 0], [4, 1], [5, 0])])).toBe(0);
+  });
+
+  it('finds the tightest a progression can be held', () => {
+    const choices = [C, Dm, G].map((ch) => enumerateVoicings(T, ch, 0, 12));
+    const tight = tightestSpread(choices);
+    // Brute force over every combination agrees.
+    let best = Infinity;
+    for (const a of choices[0]) for (const b of choices[1]) for (const c of choices[2]) best = Math.min(best, spreadOf([a, b, c]));
+    expect(tight).toBe(best);
+  });
+
+  it('pays per chord, less for each fret wider than needed', () => {
+    expect(compactPoints(0, 4)).toBe(4 * COMPACT_BONUS);
+    expect(compactPoints(1, 3)).toBe(3 * (COMPACT_BONUS - COMPACT_STEP));
+    expect(compactPoints(99, 3)).toBe(0);
   });
 });
