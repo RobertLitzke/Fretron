@@ -10,7 +10,7 @@ describe('the save', () => {
   });
 
   it('survives a round trip', () => {
-    let save: SaveData = { ...emptySave(), hand: 'left', volume: 0.3, voice: 'guitar', accidentals: 'flat', frets: 15 };
+    let save: SaveData = { ...emptySave(), hand: 'left', volume: 0.3, voice: 'guitar', accidentals: 'flat', frets: 15, picks: { scalebend: 'major' } };
     save = withScore(save, 'sweeper', entry(201.4, 'ROB'), 'low');
     expect(migrate(JSON.parse(JSON.stringify(save)))).toEqual(save);
   });

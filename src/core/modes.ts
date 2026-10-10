@@ -3,6 +3,7 @@
 
 import { BEND_TIERS, type BendTier } from './bend';
 import { DEFAULT_FRETS } from './music';
+import { SCALE_IDS, type ScaleId } from './scaleBend';
 
 export type Rank = 'S' | 'A' | 'B' | 'C';
 
@@ -27,6 +28,7 @@ export interface Mode {
 }
 
 const TIER_WORDS: Record<BendTier, string> = { standard: 'Standard', advanced: 'Advanced', virtuoso: 'Virtuoso' };
+const SCALE_WORDS: Record<ScaleId, string> = { blues: 'Blues', major: 'Major', minor: 'Minor' };
 
 export const MODES: readonly Mode[] = [
   { id: 'hunter-name', title: 'Speed Hunter', variant: 'By name', route: '/play/hunter/name', better: 'low', unit: 'seconds' },
@@ -41,6 +43,9 @@ export const MODES: readonly Mode[] = [
   ),
   ...BEND_TIERS.map(
     (tier): Mode => ({ id: `trace-${tier}`, title: 'Bend Trace', variant: TIER_WORDS[tier], route: `/play/trace/${tier}`, better: 'high', unit: 'points' }),
+  ),
+  ...SCALE_IDS.map(
+    (scale): Mode => ({ id: `scalebend-${scale}`, title: 'Scale Bends', variant: SCALE_WORDS[scale], route: `/play/scalebend/${scale}`, better: 'high', unit: 'points' }),
   ),
 ];
 
@@ -58,6 +63,10 @@ export function tableKey(mode: Mode, frets: number): string {
 
 export function tierWords(tier: BendTier): string {
   return TIER_WORDS[tier];
+}
+
+export function scaleWords(scale: ScaleId): string {
+  return SCALE_WORDS[scale];
 }
 
 export function asTier(text: string): BendTier {

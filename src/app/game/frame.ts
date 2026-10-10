@@ -317,6 +317,11 @@ export function readyPanel(frame: Frame, title: string, lines: readonly string[]
   );
 }
 
+/** A choice to make on a ready panel before a run, such as which scale to play in. */
+export function panelOption(label: string, control: HTMLElement): HTMLElement {
+  return el('div.panel-option', {}, el('span.caps', {}, label), control);
+}
+
 /** What the top row shows during the beat before a prompt. */
 export function waiting(count: string): Child[] {
   return [el('span.caps', {}, count), el('b.call.wait', {}, '· · ·')];
