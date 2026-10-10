@@ -139,6 +139,9 @@ cannot disagree with its own touch targets.
   toward fret 12) and by a random 10% either way per prompt, so a bend cannot be
   learned as a distance. The relation between distance and pitch is linear.
 - **Bend Trace** and **Scale Bends** are new: neither is in the document.
+- **Bend streaks** add ×0.1 a step, up to ×1.7, not ×1 a step up to ×8, so a
+  bend is worth about what a triad chord is and the point games share a scale.
+  The bend score tables were started afresh when this changed.
 - **Mis-taps** add 3 seconds; they do not freeze the clock.
 - **Fret Sweeper, random** is new: the document has only the note-at-a-time
   sweep.

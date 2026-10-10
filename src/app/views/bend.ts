@@ -32,6 +32,7 @@ import {
   makeBendPrompt,
   makeTracePrompt,
   scoreGrade,
+  comboMultiplier,
   traceError,
   type BendPrompt,
   type Contour,
@@ -279,7 +280,7 @@ export const bendView: View = (root, ctx) => {
     frame.setAction(null);
     frame.setPrompt(...promptLine, reviewButtons(hearTarget, hearYours));
     frame.setScore(score);
-    frame.setCombo(combo);
+    frame.setCombo(comboMultiplier(combo));
     frame.banner(scored.points ? `${GRADE_WORDS[grade]} · +${scored.points}` : GRADE_WORDS[grade], grade === 'off' ? 'bad' : 'good');
     board.invalidate();
     frame.offerNext(next);
@@ -643,7 +644,7 @@ export const traceView: View = (root, ctx) => {
       ),
     );
     frame.setScore(score);
-    frame.setCombo(combo);
+    frame.setCombo(comboMultiplier(combo));
     frame.banner(scored.points ? `${GRADE_WORDS[grade]} · +${scored.points}` : GRADE_WORDS[grade], grade === 'off' ? 'bad' : 'good');
     paintPuck(frame, prompt.cell, name(prompt.from), 0, false);
     frame.offerNext(next);

@@ -25,6 +25,8 @@ export interface Mode {
   /** Whether a bigger number or a smaller one is the better run. */
   better: 'high' | 'low';
   unit: 'points' | 'seconds';
+  /** The key its score table is stored under, where that is not its id: a table started afresh when the scoring changed. */
+  table?: string;
 }
 
 const TIER_WORDS: Record<BendTier, string> = { standard: 'Standard', advanced: 'Advanced', virtuoso: 'Virtuoso' };
@@ -41,13 +43,13 @@ export const MODES: readonly Mode[] = [
   { id: 'triads-compact', title: 'Triads', variant: 'Compact', route: '/play/triads/compact', better: 'high', unit: 'points' },
   { id: 'gridclear', title: 'Triads', variant: 'Grid clear', route: '/play/gridclear', better: 'low', unit: 'seconds' },
   ...BEND_TIERS.map(
-    (tier): Mode => ({ id: `bend-${tier}`, title: 'Bend by Ear', variant: TIER_WORDS[tier], route: `/play/bend/${tier}`, better: 'high', unit: 'points' }),
+    (tier): Mode => ({ id: `bend-${tier}`, title: 'Bend by Ear', variant: TIER_WORDS[tier], route: `/play/bend/${tier}`, better: 'high', unit: 'points', table: `bend-${tier}.2` }),
   ),
   ...BEND_TIERS.map(
-    (tier): Mode => ({ id: `trace-${tier}`, title: 'Bend Trace', variant: TIER_WORDS[tier], route: `/play/trace/${tier}`, better: 'high', unit: 'points' }),
+    (tier): Mode => ({ id: `trace-${tier}`, title: 'Bend Trace', variant: TIER_WORDS[tier], route: `/play/trace/${tier}`, better: 'high', unit: 'points', table: `trace-${tier}.2` }),
   ),
   ...SCALE_IDS.map(
-    (scale): Mode => ({ id: `scalebend-${scale}`, title: 'Scale Bends', variant: SCALE_WORDS[scale], route: `/play/scalebend/${scale}`, better: 'high', unit: 'points' }),
+    (scale): Mode => ({ id: `scalebend-${scale}`, title: 'Scale Bends', variant: SCALE_WORDS[scale], route: `/play/scalebend/${scale}`, better: 'high', unit: 'points', table: `scalebend-${scale}.2` }),
   ),
 ];
 
@@ -60,7 +62,8 @@ export function modeById(id: string): Mode | undefined {
  * game (more frets to sweep, more places to look), so each length has its own.
  */
 export function tableKey(mode: Mode, frets: number): string {
-  return frets === DEFAULT_FRETS ? mode.id : `${mode.id}@${frets}`;
+  const id = mode.table ?? mode.id;
+  return frets === DEFAULT_FRETS ? id : `${id}@${frets}`;
 }
 
 export function tierWords(tier: BendTier): string {
