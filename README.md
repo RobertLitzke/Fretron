@@ -43,9 +43,12 @@ the top if anything on a page is wider than the screen.
 | Triads, grid clear | Find every close voicing of one chord on the neck | total time, +3 s for a wrong rake |
 | Bend by Ear | Hear a target pitch, push the string until your note matches, let go | 10 bends; points by how many cents off |
 | Bend Trace | Hear and see a bend that changes over time, then play it back from memory | 10 bends; points by the mean distance from the prompt |
+| Scale Bends | A scale is drawn around the bend, the root in gold and the target note filled in (tap it to hear it); bend from one scale note up to the next | 10 bends; points as in Bend by Ear |
 
-Bend games come in three tiers (standard, advanced, virtuoso) that add wider
-bends. Every game ends on a rank (S, A, B, C), a card of numbers, and a local
+Bend by Ear and Bend Trace come in three tiers (standard, advanced, virtuoso)
+that add wider bends. Scale Bends comes in three scales: blues (minor
+pentatonic with the ♭5, which the 4 can be bent over to the 5), major and
+natural minor, each in a new key every bend. Every game ends on a rank (S, A, B, C), a card of numbers, and a local
 top ten with three-letter initials.
 
 The note and triad games take the open strings too: tap on the nut, or in the
@@ -99,6 +102,7 @@ src/core/    pure TypeScript, no DOM or Web Audio; everything here is unit-teste
   notes.ts     Speed Hunter prompts, Fret Sweeper state
   triads.ts    checking and listing voicings, voice-leading distance, progressions
   bend.ts      bend prompts, travel per string and fret, traces and their scoring
+  scaleBend.ts the scales, the bends each offers, Scale Bends prompts
   modes.ts     the list of games, score-table keys, ranks
   storage.ts   the save file and score tables
 src/board/   renderer.ts (canvas drawing, ported from FretFalcon),
@@ -132,7 +136,7 @@ cannot disagree with its own touch targets.
 - **Bend travel:** how far a semitone is differs by string, by fret (further
   toward fret 12) and by a random 10% either way per prompt, so a bend cannot be
   learned as a distance. The relation between distance and pitch is linear.
-- **Bend Trace** is new: it is not in the document.
+- **Bend Trace** and **Scale Bends** are new: neither is in the document.
 - **Mis-taps** add 3 seconds; they do not freeze the clock.
 - **Fret Sweeper, random** is new: the document has only the note-at-a-time
   sweep.
