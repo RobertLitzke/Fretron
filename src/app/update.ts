@@ -4,14 +4,12 @@
 // a changed build is a changed sw.js. The browser only looks at sw.js when a
 // page is navigated to, though, and an installed app on a phone is mostly
 // resumed from the background rather than opened afresh. So this also asks for
-// an update whenever the app comes back to the foreground, and now and then
-// while it stays open. A new worker waits until the player taps Reload.
+// an update whenever the app comes back to the foreground. A new worker waits
+// until the player taps Reload.
 
 import { registerSW } from 'virtual:pwa-register';
 import { el } from './dom';
 
-/** How often to look for a new version while the app stays open. */
-const POLL_MS = 30 * 60 * 1000;
 /** Don't look again sooner than this after the last look. */
 const MIN_GAP_MS = 60 * 1000;
 
@@ -41,8 +39,6 @@ export function watchForUpdates(): void {
         if (document.visibilityState === 'visible') void check();
       });
       window.addEventListener('focus', () => void check());
-      window.addEventListener('online', () => void check());
-      window.setInterval(() => void check(), POLL_MS);
     },
   });
 }
