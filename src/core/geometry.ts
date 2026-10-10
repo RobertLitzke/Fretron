@@ -154,3 +154,24 @@ export function visibleFrets(width: number, neck: number): number {
   if (neck <= 12) return neck;
   return Math.min(neck, Math.max(12, Math.floor((width - PAD_NUT - PAD_BODY) / MIN_FRET_PX)));
 }
+
+/**
+ * How far each string is pulled aside when one of them is bent `offsetY`
+ * pixels across the neck. As on a real neck, the bent string sweeps up the
+ * strings it passes and carries them along, packed `pack` pixels apart ahead
+ * of it; the strings it has not reached stay where they are. A negative
+ * offset is up the screen, toward the higher strings.
+ */
+export function carriedOffsets(strings: number, bent: number, offsetY: number, spacing: number, pack: number): number[] {
+  const offsets = new Array<number>(strings).fill(0);
+  offsets[bent] = offsetY;
+  if (!offsetY) return offsets;
+  const step = offsetY < 0 ? 1 : -1;
+  const push = Math.abs(offsetY);
+  for (let k = 1, s = bent + step; s >= 0 && s < strings; k++, s += step) {
+    const carried = push + k * pack - k * spacing;
+    if (carried <= 0) break;
+    offsets[s] = Math.sign(offsetY) * carried;
+  }
+  return offsets;
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BoardLayout, visibleFrets, type Hand } from '../src/core/geometry';
+import { BoardLayout, carriedOffsets, visibleFrets, type Hand } from '../src/core/geometry';
 
 /** A long neck seen through a seven-fret window: the general, scrolling case. */
 function layout(hand: Hand, width = 900, height = 330): BoardLayout {
@@ -127,5 +127,20 @@ describe('board layout', () => {
     expect(layout('right', 667, 375 - 42 - 34).spacing).toBeGreaterThanOrEqual(44);
     // The default neck has no rail, and the board gets its room.
     expect(layout('right', 915, 412 - 42).spacing).toBeGreaterThanOrEqual(52);
+  });
+});
+
+describe('a bend carries the strings it passes', () => {
+  it('leaves the other strings alone until the bent one reaches them', () => {
+    expect(carriedOffsets(6, 2, -20, 40, 5)).toEqual([0, 0, -20, 0, 0, 0]);
+    expect(carriedOffsets(6, 2, 0, 40, 5)).toEqual([0, 0, 0, 0, 0, 0]);
+  });
+
+  it('sweeps up each string in the direction of the push, packed just ahead', () => {
+    // Up the screen, toward the higher strings: the next one is caught 35 px out.
+    expect(carriedOffsets(6, 2, -50, 40, 5)).toEqual([0, 0, -50, -15, 0, 0]);
+    expect(carriedOffsets(6, 2, -80, 40, 5)).toEqual([0, 0, -80, -45, -10, 0]);
+    // Down the screen, toward the lower strings, and off the end of the neck.
+    expect(carriedOffsets(6, 1, 100, 40, 5)).toEqual([65, 100, 0, 0, 0, 0]);
   });
 });
