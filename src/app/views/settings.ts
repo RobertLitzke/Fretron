@@ -1,4 +1,4 @@
-import { pluck, setVoice, setVolume, strum, unlock, type Voice } from '../../audio/audio';
+import { pluck, setVoice, setVolume, strum, unlock, voiceReady, type Voice } from '../../audio/audio';
 import type { Hand } from '../../core/geometry';
 import { NECK_SIZES } from '../../core/music';
 import type { Accidentals } from '../../core/notes';
@@ -112,7 +112,7 @@ export const settingsView: View = (root) => {
                 updateSave((s) => ({ ...s, voice }));
                 setVoice(voice);
                 unlock();
-                strum([55, 59, 62]);
+                void voiceReady().then(() => strum([55, 59, 62]));
               },
             ),
           ),
