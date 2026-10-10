@@ -133,7 +133,20 @@ export const scaleBendView: View = (root, ctx) => {
   });
 
   function hearTarget(): void {
+    if (phase === 'bending') cancel();
     if (prompt) pluck(prompt.to, { level: 0.55, ring: 0.6 });
+  }
+
+  /** Mute the bend being held and put the note back, unscored, to be tried again. */
+  function cancel(): void {
+    if (phase !== 'bending' || !prompt) return;
+    voice.stop();
+    phase = 'aim';
+    finger = -1;
+    offsetY = 0;
+    cents = 0;
+    paint(false);
+    frame.banner('Bend cancelled');
   }
 
   /** The note where it was let go, struck the same way as the target. */
@@ -181,6 +194,12 @@ export const scaleBendView: View = (root, ctx) => {
   }
 
   function onDown(touch: BoardTouch): void {
+    // A second finger while the bend is held calls it off; on the target, it plays it too.
+    if (phase === 'bending') {
+      if (touch.id === finger) return;
+      if (prompt && touch.cell && sameCell(touch.cell, prompt.target)) return hearTarget();
+      return cancel();
+    }
     // Over: the bent note plays back what was played, the target plays the target, and the rest of the board moves on.
     if (phase === 'shown' && prompt) {
       if (onPuck(frame, prompt.cell, touch, offsetY)) return hearYours();
@@ -274,6 +293,7 @@ export const scaleBendView: View = (root, ctx) => {
     [
       `Each bend is in a new key of the ${scale.name} scale. Its notes around the bend are drawn hollow, with the root named in gold.`,
       'The green note is the one to reach: tap it to hear it. Then hold the orange note and push it up until it matches.',
+      'Mid-bend, tap anywhere else with another finger to mute the bend and call it off; tap the green note to hear the target again too.',
       'Afterwards, tap the orange note to hear where you let go, and the green one to hear the target.',
       `${BEND_PROMPTS} bends, scored as in Bend by Ear. Within 5 cents is a bullseye.`,
     ],
