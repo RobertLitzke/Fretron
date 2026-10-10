@@ -69,14 +69,31 @@ export interface ScaleBendPrompt extends BendPrompt {
   scale: ScaleId;
   /** Pitch class of the root. */
   root: number;
-  /** Where the note the bend should reach is fretted: on the same string, `semis` frets up. */
+  /** Where the note the bend should reach is fretted: see targetCell. */
   target: Cell;
+}
+
+/** From a whole step up the target is shown on the next string up, where a player would fret it to check the bend. */
+const NEXT_STRING_SEMIS = 2;
+
+/**
+ * Where the pitch a bend should reach is fretted: on the next string up for a
+ * whole step or more, as it lies under the hand in a scale shape, and
+ * otherwise (or from the top string) on the same string, `semis` frets up.
+ */
+export function targetCell(tuning: Tuning, cell: Cell, semis: number): Cell {
+  const up = cell.string + 1;
+  if (semis >= NEXT_STRING_SEMIS && up < tuning.open.length) {
+    const fret = cell.fret + semis - (tuning.open[up] - tuning.open[cell.string]);
+    if (fret >= 1) return { string: up, fret };
+  }
+  return { string: cell.string, fret: cell.fret + semis };
 }
 
 /**
  * A key, then a scale note to bend from on the upper frets, mostly on the
- * three high strings and only there for a step and a half. The target is
- * fretted on the same string, so it is always on the neck.
+ * three high strings and only there for a step and a half, with its target
+ * fretted on the neck.
  */
 export function makeScaleBendPrompt(rng: Rng, tuning: Tuning, scaleId: ScaleId, frets: number): ScaleBendPrompt {
   const scale = SCALES[scaleId];
@@ -90,7 +107,7 @@ export function makeScaleBendPrompt(rng: Rng, tuning: Tuning, scaleId: ScaleId, 
       const at = pc(tuning.open[string] + fret - root);
       for (const [from, to] of bends) {
         const semis = to - from;
-        if (from !== at || fret + semis > frets) continue;
+        if (from !== at || targetCell(tuning, { string, fret }, semis).fret > frets) continue;
         const stringWeight = semis >= 3 ? (fromTop <= 2 ? 3 : 0) : fromTop <= 2 ? 4 : fromTop === 3 ? 2 : 1;
         if (stringWeight) options.push({ cell: { string, fret }, semis, weight: stringWeight * SEMIS_WEIGHT[semis] });
       }
@@ -106,7 +123,7 @@ export function makeScaleBendPrompt(rng: Rng, tuning: Tuning, scaleId: ScaleId, 
     to: from + semis,
     scale: scaleId,
     root,
-    target: { string: cell.string, fret: cell.fret + semis },
+    target: targetCell(tuning, cell, semis),
   };
 }
 
