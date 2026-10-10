@@ -11,6 +11,10 @@
 // In both, how far the string must be pushed for a semitone differs from one
 // prompt to the next (core/bend.ts, semitoneTravel), so it cannot be learned
 // as a distance.
+//
+// In all of them a second finger anywhere on the board while a bend is held
+// mutes it and calls it off: it is not scored, and the same bend is asked
+// again, so the target can be heard once more first.
 
 import { BendVoice, blip, playContour, pluck } from '../../audio/audio';
 import type { BoardTouch } from '../../board/board';
@@ -159,12 +163,25 @@ export const bendView: View = (root, ctx) => {
   });
 
   function hearTarget(): void {
+    if (phase === 'bending') cancel();
     if (prompt) pluck(prompt.to, { level: 0.55, ring: 0.6 });
   }
 
   /** The note where it was let go, struck the same way as the target. */
   function hearYours(): void {
     if (prompt && shown) pluck(prompt.from + shown.cents / 100, { level: 0.55, ring: 0.6 });
+  }
+
+  /** Mute the bend being held and put the note back, unscored, to be tried again. */
+  function cancel(): void {
+    if (phase !== 'bending' || !prompt) return;
+    voice.stop();
+    phase = 'aim';
+    finger = -1;
+    offsetY = 0;
+    cents = 0;
+    paintPuck(frame, prompt.cell, name(prompt.from), 0, false);
+    frame.banner('Bend cancelled');
   }
 
   let promptLine: HTMLElement[] = [];
@@ -210,6 +227,11 @@ export const bendView: View = (root, ctx) => {
   }
 
   function onDown(touch: BoardTouch): void {
+    // A second finger while the bend is held calls it off.
+    if (phase === 'bending') {
+      if (touch.id !== finger) cancel();
+      return;
+    }
     // Over: the note plays back what was played, and the rest of the board moves on.
     if (phase === 'shown' && prompt && onPuck(frame, prompt.cell, touch, offsetY)) return hearYours();
     if (frame.takeNext(true)) return;
@@ -293,6 +315,7 @@ export const bendView: View = (root, ctx) => {
     [
       'You hear the pitch to reach. Then hold the lit note and drag it across the strings: the further you push, the higher it goes.',
       'There is no meter, and no two bends take the same push. Listen, and let go when your note matches.',
+      'To hear the target again mid-bend, tap anywhere else with another finger: the bend is muted and called off, and you can try it again.',
       'Afterwards, tap the note to hear where you let go, and compare it with the target.',
       `${BEND_PROMPTS} bends. Within 5 cents is a bullseye.`,
     ],
@@ -468,7 +491,8 @@ export const traceView: View = (root, ctx) => {
   }
 
   function listen(): void {
-    if (!prompt || phase === 'playing' || phase === 'shown') return;
+    if (!prompt || phase === 'shown') return;
+    cancel();
     cutPrompt?.();
     cutPrompt = playContour(prompt.from, prompt.contour);
     listenSince = performance.now() + 50;
@@ -478,6 +502,20 @@ export const traceView: View = (root, ctx) => {
       if (prompt === mine && phase === 'listen') phase = 'ready';
       board.invalidate();
     });
+  }
+
+  /** Mute the bend being played and put the note back, unscored, to be tried again. */
+  function cancel(): void {
+    if (phase !== 'playing' || !prompt) return;
+    voice.stop();
+    phase = 'ready';
+    finger = -1;
+    offsetY = 0;
+    cents = 0;
+    peak = 0;
+    samples = [];
+    paintPuck(frame, prompt.cell, name(prompt.from), 0, false);
+    frame.banner('Bend cancelled');
   }
 
   /** Once a bend is over, play back the prompt or what was played, with the clock running across the graph. */
@@ -535,6 +573,11 @@ export const traceView: View = (root, ctx) => {
   }
 
   function onDown(touch: BoardTouch): void {
+    // A second finger while the bend is played calls it off.
+    if (phase === 'playing') {
+      if (touch.id !== finger) cancel();
+      return;
+    }
     // Over: the note plays back what was played, and the rest of the board moves on.
     if (phase === 'shown' && prompt && onPuck(frame, prompt.cell, touch)) return hearAgain('yours');
     if (frame.takeNext(true)) return;
@@ -647,6 +690,7 @@ export const traceView: View = (root, ctx) => {
     [
       'You hear a bend that moves: up a half step, on to a whole step, and so on. The graph shows its shape and timing.',
       'Then hold the lit note and play it back. The clock starts when you touch, and the line disappears: play it from memory.',
+      'Lost it? Tap anywhere else with another finger to mute the bend and call it off, then hear it again and start over.',
       `${BEND_PROMPTS} bends, scored on how far your pitch was from the prompt along the way. Both lines are shown afterwards: tap the note to hear yours again.`,
     ],
     () => {
