@@ -1,0 +1,65 @@
+/* Design tokens. A dark grid lit in two colours: cyan is the player and the
+   board, orange is whatever is being asked for. */
+
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 300 700;
+  /* Latin only: this file is inlined into the page, so every subset costs. */
+  src: url('../../../node_modules/@fontsource-variable/space-grotesk/files/space-grotesk-latin-wght-normal.woff2')
+    format('woff2-variations');
+}
+
+@font-face {
+  font-family: 'Orbitron';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400 900;
+  src: url('../../../node_modules/@fontsource-variable/orbitron/files/orbitron-latin-wght-normal.woff2')
+    format('woff2-variations');
+}
+
+:root {
+  --bg: #03060f; /* keep in sync with theme_color in vite.config.ts and index.html */
+  --panel: #070d1c;
+  --panel-2: #0b1428;
+  --hair: #9fb4c8;
+  --hair-dim: #1d2c47;
+  --text: #dff6ff;
+  --muted: #6d86a0;
+  --cyan: #6fe9ff;
+  --cyan-dim: #1c4a58;
+  --orange: #ff7a1a;
+  --orange-dim: #6b3410;
+  --good: #7dffb0;
+  --danger: #ff4d6d;
+  --gold: #ffd166;
+
+  /* The board. The names are FretFalcon's (style/theme-tokens.css) and the
+     canvas renderer reads them the same way; the colours are its neon theme
+     moved onto this palette. */
+  --note-root: #ff7a1a;
+  --note-second: #c8a8ff;
+  --note-third: #6fe9ff;
+  --note-fourth: #a070ff;
+  --note-fifth: #b6ff5c;
+  --note-sixth: #7a5cc8;
+  --note-seventh: #5a4a90;
+  --note-pivot: #ffd166;
+  --board-string: #7fdcf0;
+  --board-fret: #25456a;
+  --board-fret-bold: #3f78a8;
+  --board-nut: #dff6ff;
+  --board-dead: #1b2434;
+  --board-dead-edge: #2c3a52;
+
+  --font: 'Space Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --display: 'Orbitron', 'Space Grotesk', system-ui, sans-serif;
+  --mono: ui-monospace, 'Cascadia Mono', 'SF Mono', Consolas, 'Liberation Mono', monospace;
+
+  --radius: 4px;
+  --glow-cyan: 0 0 12px rgba(111, 233, 255, 0.55);
+  --glow-orange: 0 0 12px rgba(255, 122, 26, 0.6);
+  color-scheme: dark;
+}

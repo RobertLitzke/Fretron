@@ -1,0 +1,1088 @@
+@import './tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Components set `display`, which would otherwise beat the hidden attribute. */
+[hidden] {
+  display: none !important;
+}
+
+html {
+  background: var(--bg);
+  /* A phone must not enlarge text on its own: the layout is built to the pixel
+     sizes written here, and inflated labels push it wider than the screen. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Nothing here is meant to scroll sideways. If something ever pokes out past
+   the edge, cut it off rather than let the whole page slide about. */
+html,
+body {
+  overflow-x: clip;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  /* The grid: faint lines on black, brighter toward the middle. */
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(111, 233, 255, 0.1), transparent 60%),
+    linear-gradient(rgba(111, 233, 255, 0.045) 1px, transparent 1px) 0 0 / 44px 44px,
+    linear-gradient(90deg, rgba(111, 233, 255, 0.045) 1px, transparent 1px) 0 0 / 44px 44px,
+    var(--bg);
+}
+
+#app {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 max(16px, env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+}
+
+a {
+  color: var(--cyan);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--display);
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0;
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: 20px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+p {
+  margin: 0 0 0.8em;
+  max-width: 65ch;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.caps {
+  font-family: var(--display);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.num {
+  font-family: var(--display);
+  font-variant-numeric: tabular-nums;
+}
+
+.note {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* --- top bar ------------------------------------------------------------- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 0 8px;
+  border-bottom: 1px solid var(--hair-dim);
+  margin-bottom: 12px;
+}
+
+.wordmark {
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  text-decoration: none;
+  text-shadow: var(--glow-cyan);
+}
+
+.wordmark b {
+  color: var(--orange);
+  font-weight: 800;
+  text-shadow: var(--glow-orange);
+}
+
+.wordmark i {
+  font-style: normal;
+  color: var(--gold);
+  text-shadow: 0 0 12px rgba(255, 209, 102, 0.7);
+}
+
+.topbar nav {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.topbar nav a,
+.nav-full {
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-decoration: none;
+  padding: 8px 10px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.nav-full {
+  font-size: 16px;
+  padding: 4px 10px;
+}
+
+.topbar nav a:hover,
+.topbar nav a.here,
+.nav-full:hover {
+  color: var(--cyan);
+}
+
+body.in-game .topbar {
+  display: none;
+}
+
+body.in-game #app {
+  max-width: none;
+  padding: 0;
+}
+
+/* --- buttons and inputs -------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 16px;
+  font-family: var(--display);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--cyan);
+  background: rgba(111, 233, 255, 0.04);
+  border: 1px solid var(--cyan-dim);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--cyan);
+  box-shadow: var(--glow-cyan);
+}
+
+.btn-primary {
+  color: var(--bg);
+  background: var(--cyan);
+  border-color: var(--cyan);
+  box-shadow: var(--glow-cyan);
+}
+
+.btn-small {
+  min-height: 30px;
+  padding: 4px 10px;
+  font-size: 10px;
+}
+
+.btn-big {
+  min-height: 52px;
+  padding: 10px 28px;
+  font-size: 15px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+input[type='range'] {
+  accent-color: var(--cyan);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--cyan-dim);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.seg button {
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-left: 1px solid var(--cyan-dim);
+  padding: 9px 12px;
+  cursor: pointer;
+}
+
+.seg button:first-child {
+  border-left: 0;
+}
+
+.seg button.on {
+  color: var(--bg);
+  background: var(--cyan);
+}
+
+/* --- pages --------------------------------------------------------------- */
+
+.page {
+  max-width: 760px;
+}
+
+.page section {
+  margin-top: 18px;
+  padding: 14px;
+  background: rgba(7, 13, 28, 0.85);
+  border: 1px solid var(--hair-dim);
+  border-radius: var(--radius);
+}
+
+.page section h2 {
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin-bottom: 10px;
+}
+
+.page section .row + .row,
+.page section .row + .note,
+.page section .note + .row {
+  margin-top: 10px;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--panel-2);
+  border: 1px solid var(--cyan-dim);
+  border-radius: var(--radius);
+  box-shadow: var(--glow-cyan);
+  font-size: 14px;
+}
+
+.overflow-alarm {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 4px 8px;
+  background: var(--orange);
+  color: #000;
+  font: 12px/1.3 var(--mono);
+}
+
+/* --- menu ---------------------------------------------------------------- */
+
+.cabinets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+  gap: 12px;
+}
+
+.cabinet {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cabinet > h2 {
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--orange);
+  text-shadow: var(--glow-orange);
+}
+
+.game-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  background: rgba(7, 13, 28, 0.9);
+  border: 1px solid var(--cyan-dim);
+  border-radius: var(--radius);
+  box-shadow: inset 0 0 24px rgba(111, 233, 255, 0.05);
+}
+
+.game-card h3 {
+  font-size: 15px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.game-card p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.plays {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+.play {
+  flex: 1 1 0;
+  min-width: 78px;
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 8px;
+  text-decoration: none;
+  color: var(--cyan);
+  border: 1px solid var(--cyan);
+  border-radius: var(--radius);
+  background: rgba(111, 233, 255, 0.06);
+}
+
+.play:hover {
+  box-shadow: var(--glow-cyan);
+}
+
+.play b {
+  font-family: var(--display);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.play i {
+  font-style: normal;
+  font-size: 10px;
+  color: var(--gold);
+}
+
+/* --- a game screen --------------------------------------------------------- */
+
+.game {
+  position: fixed;
+  inset: 0;
+  /* A column, not a grid: the fuse comes and goes, and the board takes what is left. */
+  display: flex;
+  flex-direction: column;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  background: var(--bg);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  overscroll-behavior: none;
+}
+
+.hud {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 42px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--cyan-dim);
+  background: var(--panel);
+  white-space: nowrap;
+}
+
+.hud-quit {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  font-size: 15px;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--hair-dim);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+/* Pressed once in the middle of a run: it asks before it quits. */
+.hud-quit.armed {
+  width: auto;
+  padding: 0 10px;
+  font-family: var(--display);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.hud-title {
+  font-family: var(--display);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.hud-score {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+  min-width: 64px;
+}
+
+.hud-score b {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--cyan);
+}
+
+.no-score .hud-score {
+  display: none;
+}
+
+.hud-combo {
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--muted);
+  min-width: 30px;
+}
+
+.hud-combo.hot {
+  color: var(--gold);
+  text-shadow: 0 0 10px rgba(255, 209, 102, 0.7);
+}
+
+.hud-prompt {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.hud-prompt > span {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.call {
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--orange);
+  text-shadow: var(--glow-orange);
+}
+
+/* The beat before a prompt. */
+.call.wait {
+  color: var(--muted);
+  text-shadow: none;
+}
+
+/* A note just called: it lands a little large and settles. */
+.call.pop {
+  animation: call-pop 0.3s ease-out;
+}
+
+@keyframes call-pop {
+  0% {
+    transform: scale(1.5);
+    filter: brightness(1.8);
+  }
+  100% {
+    transform: none;
+    filter: none;
+  }
+}
+
+.call-sub {
+  font-size: 13px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chips {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 1px 9px;
+  border: 1px solid var(--hair-dim);
+  border-radius: var(--radius);
+  color: var(--muted);
+}
+
+.chip b {
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.chip i {
+  font-style: normal;
+  font-size: 11px;
+}
+
+.chip.now {
+  color: var(--orange);
+  border-color: var(--orange);
+  box-shadow: var(--glow-orange);
+}
+
+.chip.done {
+  color: var(--cyan);
+  border-color: var(--cyan-dim);
+}
+
+.hud-clock {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.hud-action {
+  flex: none;
+}
+
+/* "Next" is the one thing to press between prompts: make it easy to hit. */
+.hud-action.btn-primary {
+  min-width: 92px;
+  font-size: 12px;
+}
+
+/* Counting down to a next that comes by itself: the button drains. */
+.hud-action.counting {
+  min-width: 128px;
+  background: linear-gradient(90deg, var(--cyan) calc(var(--left, 1) * 100%), rgba(111, 233, 255, 0.35) 0);
+}
+
+.hud-action.held {
+  box-shadow: none;
+}
+
+.stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.board {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.board-wrap {
+  position: relative;
+  min-height: 0;
+}
+
+.board-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: pointer;
+}
+
+.rail {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  height: 34px;
+  padding: 4px 6px;
+  border-top: 1px solid var(--hair-dim);
+  background: var(--panel);
+}
+
+.rail-shift {
+  width: 56px;
+  flex: none;
+  font-size: 14px;
+  color: var(--cyan);
+  background: rgba(111, 233, 255, 0.05);
+  border: 1px solid var(--cyan-dim);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.rail-track {
+  position: relative;
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--hair-dim);
+  border-radius: var(--radius);
+  touch-action: none;
+  cursor: ew-resize;
+}
+
+.rail-dot {
+  position: absolute;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: var(--board-fret-bold);
+  pointer-events: none;
+}
+
+.rail-dot.octave {
+  box-shadow: 0 -7px 0 var(--board-fret-bold), 0 7px 0 var(--board-fret-bold);
+  background: transparent;
+}
+
+.rail-thumb {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  border: 1px solid var(--cyan);
+  border-radius: 3px;
+  background: rgba(111, 233, 255, 0.14);
+  box-shadow: var(--glow-cyan);
+  pointer-events: none;
+}
+
+/* Over the fret numbers, where a banner hides nothing that is being played.
+   (At the top it sat on the high E string.) It is kept short enough to fit
+   under a note on the low E string. */
+.banners {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.banner {
+  padding: 1px 14px;
+  font-family: var(--display);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  background: rgba(3, 6, 15, 0.82);
+  border: 1px solid currentColor;
+  border-radius: var(--radius);
+  animation: banner 1.25s ease-out forwards;
+}
+
+/* A neck that scrolls has its rail under the board: stay clear of that too. */
+.stage:has(.rail:not([hidden])) .banners {
+  bottom: 34px;
+}
+
+.banner.good {
+  color: var(--good);
+}
+
+.banner.bad {
+  color: var(--danger);
+}
+
+@keyframes banner {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.92);
+  }
+  12% {
+    opacity: 1;
+    transform: none;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.panel-host {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  padding: 10px;
+  background: rgba(3, 6, 15, 0.8);
+  overflow: auto;
+}
+
+.panel {
+  width: min(100%, 520px);
+  max-height: 100%;
+  overflow: auto;
+  padding: 16px 18px;
+  text-align: center;
+  background: var(--panel);
+  border: 1px solid var(--cyan);
+  border-radius: var(--radius);
+  box-shadow: var(--glow-cyan);
+}
+
+.panel.panel-wide {
+  width: min(100%, 700px);
+}
+
+.panel-title {
+  font-size: 18px;
+  color: var(--cyan);
+  text-shadow: var(--glow-cyan);
+}
+
+.panel-lines {
+  margin: 10px 0 14px;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.panel-lines li + li {
+  margin-top: 4px;
+}
+
+/* --- the end of a run ------------------------------------------------------ */
+
+.result {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  gap: 16px;
+  align-items: start;
+  text-align: left;
+}
+
+.result-card {
+  text-align: center;
+}
+
+.result-rank {
+  font-family: var(--display);
+  font-size: 64px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.rank-S {
+  color: var(--gold);
+  text-shadow: 0 0 18px rgba(255, 209, 102, 0.8);
+}
+
+.rank-A {
+  color: var(--good);
+}
+
+.rank-B {
+  color: var(--cyan);
+}
+
+.rank-C {
+  color: var(--muted);
+}
+
+.result-words {
+  font-family: var(--display);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.result-value {
+  margin-top: 6px;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--cyan);
+  text-shadow: var(--glow-cyan);
+}
+
+.result-stats {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 2px 12px;
+  margin: 8px 0 0;
+  font-size: 13px;
+  text-align: left;
+}
+
+.result-stats dt {
+  color: var(--muted);
+}
+
+.result-stats dd {
+  margin: 0;
+  text-align: right;
+  font-size: 12px;
+}
+
+.result-new {
+  font-size: 14px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.result-side p {
+  margin: 2px 0 8px;
+  font-size: 13px;
+}
+
+.result-buttons {
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.initials {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  outline: none;
+}
+
+.slots {
+  display: flex;
+  gap: 6px;
+}
+
+.slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 46px;
+  border: 1px solid var(--hair-dim);
+  border-radius: var(--radius);
+}
+
+.slot.active {
+  border-color: var(--orange);
+  box-shadow: var(--glow-orange);
+}
+
+.slot-letter {
+  font-family: var(--display);
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--orange);
+}
+
+.slot-step {
+  width: 100%;
+  height: 28px;
+  font-size: 12px;
+  color: var(--cyan);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.table {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.table li {
+  display: grid;
+  grid-template-columns: 22px 46px 18px 1fr;
+  gap: 8px;
+  align-items: baseline;
+  padding: 1px 4px;
+}
+
+.table li.you {
+  color: var(--orange);
+  background: rgba(255, 122, 26, 0.1);
+}
+
+.table-place {
+  color: var(--muted);
+  font-size: 11px;
+  text-align: right;
+}
+
+.table-name {
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.table-rank {
+  font-family: var(--display);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.table-value {
+  text-align: right;
+}
+
+.table-empty {
+  margin: 6px 0 0;
+  font-size: 13px;
+}
+
+.tables {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.page:has(.tables) {
+  max-width: none;
+}
+
+.table-card {
+  margin-top: 0 !important;
+}
+
+/* Settings sits in two columns when the screen is wider than it is tall. */
+@media (orientation: landscape) and (min-width: 600px) {
+  .page.settings {
+    max-width: none;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    align-items: start;
+  }
+
+  .page.settings > h1 {
+    grid-column: 1 / -1;
+  }
+
+  .page.settings > section {
+    margin-top: 0;
+  }
+
+  /* The board's settings are the long ones: they take the whole first column. */
+  .page.settings > section:first-of-type {
+    grid-row: span 3;
+  }
+}
+
+/* --- portrait -------------------------------------------------------------- */
+
+.rotate {
+  display: none;
+}
+
+/* A phone held upright cannot fit the board. On a desktop a tall window is the
+   user's business, so this is for touch screens only. */
+@media (orientation: portrait) and (pointer: coarse) {
+  .game .rotate {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 24px;
+    text-align: center;
+    background: var(--bg);
+  }
+
+  .rotate b {
+    font-family: var(--display);
+    font-size: 18px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--cyan);
+  }
+
+  .rotate span {
+    color: var(--muted);
+  }
+}
+
+/* A phone on its side is short: spend less of the height on the menu's chrome. */
+@media (max-height: 460px) {
+  .topbar {
+    padding: 6px 0 5px;
+    margin-bottom: 8px;
+  }
+
+  .game-card {
+    padding: 8px 10px;
+    gap: 3px;
+  }
+
+  .game-card p {
+    font-size: 12px;
+  }
+
+  .cabinet {
+    gap: 7px;
+  }
+
+  .hud-title {
+    display: none;
+  }
+}
