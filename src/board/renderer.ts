@@ -9,7 +9,7 @@
 // bent, and where things sit comes from core/geometry.ts so that touches and
 // drawing share one mapping.
 
-import { PAD_NUT, type BoardLayout } from '../core/geometry';
+import { carriedOffsets, PAD_NUT, type BoardLayout } from '../core/geometry';
 import type { Cell } from '../core/music';
 
 export interface NoteRenderData {
@@ -57,6 +57,9 @@ export interface Deflection {
   cell: Cell;
   offsetY: number;
 }
+
+/** How close together, in pixels, a bend packs the strings it carries along. */
+const CARRY_PACK = 5;
 
 // FretFalcon's STRING_WIDTH_PRESETS, lowest string first.
 const STRING_WIDTH_PRESETS: Record<number, number[]> = {
@@ -309,6 +312,11 @@ export class Fretboard {
     // Strings, heaviest at the bottom.
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
+    // A bent string carries the strings it passes along with it, kinked at the same fret.
+    const bend = this.deflection;
+    const carried = bend
+      ? carriedOffsets(stringCount, bend.cell.string, bend.offsetY, layout.spacing, CARRY_PACK * scale)
+      : null;
     for (let s = 0; s < stringCount; s++) {
       const y = layout.y(s);
       const lit = this.glowString?.index === s;
@@ -319,8 +327,7 @@ export class Fretboard {
       ctx.shadowColor = lit ? this.glowString!.color : theme.cyan;
       ctx.shadowBlur = lit ? 14 : 5;
       ctx.moveTo(xNear, y);
-      const bent = this.deflection && this.deflection.cell.string === s ? this.deflection : null;
-      if (bent) ctx.lineTo(layout.x(bent.cell.fret - 0.5, startFret), y + bent.offsetY);
+      if (bend && carried![s]) ctx.lineTo(layout.x(bend.cell.fret - 0.5, startFret), y + carried![s]);
       ctx.lineTo(xFar, y);
       ctx.stroke();
     }
