@@ -27,6 +27,8 @@ export interface SaveData {
   hand: Hand;
   /** 0 to 1. */
   volume: number;
+  /** How notes sound: the original synth tone or an overdriven electric guitar. */
+  voice: 'synth' | 'guitar';
   accidentals: Accidentals;
   /** How many frets the games are played over: one of NECK_SIZES. */
   frets: number;
@@ -39,7 +41,7 @@ export interface SaveData {
 }
 
 export function emptySave(): SaveData {
-  return { v: SAVE_VERSION, hand: 'right', volume: 0.8, accidentals: 'mixed', frets: DEFAULT_FRETS, initials: 'AAA', scores: {}, picks: {} };
+  return { v: SAVE_VERSION, hand: 'right', volume: 0.8, voice: 'synth', accidentals: 'mixed', frets: DEFAULT_FRETS, initials: 'AAA', scores: {}, picks: {} };
 }
 
 function isObject(x: unknown): x is Record<string, unknown> {
@@ -66,6 +68,7 @@ export function migrate(raw: unknown): SaveData {
   if (!isObject(raw)) return save;
   if (raw.hand === 'left' || raw.hand === 'right') save.hand = raw.hand;
   if (typeof raw.volume === 'number' && raw.volume >= 0 && raw.volume <= 1) save.volume = raw.volume;
+  if (raw.voice === 'synth' || raw.voice === 'guitar') save.voice = raw.voice;
   if (raw.accidentals === 'mixed' || raw.accidentals === 'sharp' || raw.accidentals === 'flat') save.accidentals = raw.accidentals;
   if ((NECK_SIZES as readonly unknown[]).includes(raw.frets)) save.frets = raw.frets as number;
   save.initials = cleanInitials(raw.initials);
