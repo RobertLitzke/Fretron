@@ -50,18 +50,18 @@ const SLIP_MS = 300;
 const SLIP_CENTS = 8;
 
 /** How a miss is written: "+12 ¢", "−8 ¢". */
-function signedCents(cents: number): string {
+export function signedCents(cents: number): string {
   const rounded = Math.round(cents);
   return `${rounded > 0 ? '+' : rounded < 0 ? '−' : '±'}${Math.abs(rounded)} ¢`;
 }
 
-function gradeColor(frame: Frame, grade: Grade): string {
+export function gradeColor(frame: Frame, grade: Grade): string {
   const theme = frame.board.theme;
   return grade === 'bullseye' || grade === 'intune' ? theme.good : grade === 'acceptable' ? theme.pivot : theme.danger;
 }
 
 /** Whether a touch has landed on the note to be bent, drawn `offsetY` pixels from its place. */
-function onPuck(frame: Frame, cell: Cell, touch: BoardTouch, offsetY = 0): boolean {
+export function onPuck(frame: Frame, cell: Cell, touch: BoardTouch, offsetY = 0): boolean {
   const centre = frame.board.centre(cell);
   return Math.hypot(touch.x - centre.x, touch.y - centre.y - offsetY) <= frame.board.noteRadius * 2.6;
 }
@@ -70,7 +70,7 @@ function onPuck(frame: Frame, cell: Cell, touch: BoardTouch, offsetY = 0): boole
  * Once a bend is over, the two to compare: the prompt, and what was played.
  * Tapping the note plays the second too.
  */
-function reviewButtons(target: () => void, yours: () => void): HTMLElement {
+export function reviewButtons(target: () => void, yours: () => void): HTMLElement {
   const play = (label: string, run: () => void, kind: string) =>
     el(`button.btn.btn-small.review-play.${kind}`, { type: 'button', onclick: run }, label);
   return el('span.review', {}, play('▶ Target', target, 'target'), play('▶ Yours', yours, 'yours'));

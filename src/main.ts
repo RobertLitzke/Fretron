@@ -9,6 +9,7 @@ import { bendView, traceView } from './app/views/bend';
 import { homeView } from './app/views/home';
 import { hunterView } from './app/views/hunter';
 import { scoresView } from './app/views/scores';
+import { scaleBendView } from './app/views/scaleBend';
 import { settingsView } from './app/views/settings';
 import { sweeperView } from './app/views/sweeper';
 import { gridClearView, triadsView } from './app/views/triads';
@@ -54,6 +55,7 @@ function boot(): void {
     .add('/play/gridclear', gridClearView)
     .add('/play/bend/:tier', bendView)
     .add('/play/trace/:tier', traceView)
+    .add('/play/scalebend/:scale', scaleBendView)
     .add('/scores', scoresView)
     .add('/settings', settingsView)
     .start('/home');

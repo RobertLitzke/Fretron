@@ -34,10 +34,12 @@ export interface SaveData {
   initials: string;
   /** Score tables by modes.ts's tableKey, best first. */
   scores: Record<string, ScoreEntry[]>;
+  /** What was last chosen before a game that asks for a choice, by game: the scale for Scale Bends. */
+  picks: Record<string, string>;
 }
 
 export function emptySave(): SaveData {
-  return { v: SAVE_VERSION, hand: 'right', volume: 0.8, accidentals: 'mixed', frets: DEFAULT_FRETS, initials: 'AAA', scores: {} };
+  return { v: SAVE_VERSION, hand: 'right', volume: 0.8, accidentals: 'mixed', frets: DEFAULT_FRETS, initials: 'AAA', scores: {}, picks: {} };
 }
 
 function isObject(x: unknown): x is Record<string, unknown> {
@@ -73,6 +75,9 @@ export function migrate(raw: unknown): SaveData {
       const entries = list.map(cleanEntry).filter((e): e is ScoreEntry => e !== null);
       if (entries.length) save.scores[mode] = entries.slice(0, TABLE_SIZE);
     }
+  }
+  if (isObject(raw.picks)) {
+    for (const [game, pick] of Object.entries(raw.picks)) if (typeof pick === 'string') save.picks[game] = pick;
   }
   return save;
 }
