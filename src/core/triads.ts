@@ -249,3 +249,51 @@ export function motionOf(mean: number): Motion {
 export function motionBonus(motion: Motion): number {
   return motion === 'smooth' ? SMOOTH_BONUS : motion === 'moderate' ? MODERATE_BONUS : 0;
 }
+
+// --- targets, for the advanced game --------------------------------------------
+// A fret, a string, or one fret on one string is lit, and the chord is to be
+// played as near it as the chord allows.
+
+export interface Target {
+  /** The lit string, or null where only a fret is asked for. */
+  string: number | null;
+  /** The lit fret, or null where only a string is asked for. */
+  fret: number | null;
+}
+
+/** Points the target is worth when the chord is played as near it as it can be. */
+export const TARGET_BONUS = 500;
+/** Points off for each step, a fret or a string, further from the target than the chord needed to be. */
+export const TARGET_STEP = 250;
+
+/** A fret, a string or both, each as likely; the fret between `first` and `last`. */
+export function makeTarget(rng: Rng, strings: number, first: number, last: number): Target {
+  const kind = rng.int(3);
+  return {
+    string: kind === 1 ? null : rng.int(strings),
+    fret: kind === 0 ? null : first + rng.int(last - first + 1),
+  };
+}
+
+/** Steps from the target to the nearest note of a voicing: frets, strings, or frets and strings added. */
+export function targetDistance(target: Target, voicing: readonly Cell[]): number {
+  return Math.min(
+    ...voicing.map(
+      (c) => (target.fret === null ? 0 : Math.abs(c.fret - target.fret)) + (target.string === null ? 0 : Math.abs(c.string - target.string)),
+    ),
+  );
+}
+
+/** The nearest any of these voicings can get to the target. */
+export function closestToTarget(target: Target, voicings: readonly Voicing[]): number {
+  return voicings.length ? Math.min(...voicings.map((v) => targetDistance(target, v))) : 0;
+}
+
+/**
+ * What the target adds to a chord's points, or takes from them: the whole
+ * bonus at the nearest the chord could get, a step's worth less for each step
+ * further out, and below nothing once it has run out.
+ */
+export function targetPoints(steps: number): number {
+  return TARGET_BONUS - TARGET_STEP * Math.max(0, steps);
+}

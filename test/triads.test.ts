@@ -5,14 +5,20 @@ import {
   checkVoicing,
   chordName,
   chordTones,
+  closestToTarget,
   displacement,
   enumerateVoicings,
   keepers,
   likeliest,
   makeProgression,
+  makeTarget,
   motionBonus,
   motionOf,
   nearestVoicing,
+  TARGET_BONUS,
+  TARGET_STEP,
+  targetDistance,
+  targetPoints,
   timePoints,
   toneLabel,
   voicingKey,
@@ -215,5 +221,44 @@ describe('progressions', () => {
       if (p.keyName === 'G major') expect(p.spelling).toBe('sharp');
       expect(p.keyName.includes('♯') && p.spelling === 'flat').toBe(false);
     }
+  });
+});
+
+describe('targets', () => {
+  const shape = cells([3, 5], [4, 5], [5, 3]); // C on the top three strings, 5th fret
+
+  it('measures to the nearest note of the chord', () => {
+    expect(targetDistance({ string: null, fret: 5 }, shape)).toBe(0);
+    expect(targetDistance({ string: null, fret: 9 }, shape)).toBe(4);
+    expect(targetDistance({ string: 1, fret: null }, shape)).toBe(2);
+    expect(targetDistance({ string: 5, fret: null }, shape)).toBe(0);
+    // Both: frets and strings added, from whichever note is nearest.
+    expect(targetDistance({ string: 2, fret: 4 }, shape)).toBe(2);
+    expect(targetDistance({ string: 5, fret: 3 }, shape)).toBe(0);
+  });
+
+  it('knows how near the chord can get', () => {
+    const all = enumerateVoicings(T, C, 0, 12);
+    expect(closestToTarget({ string: null, fret: 5 }, all)).toBe(0);
+    for (let s = 0; s < 6; s++) expect(closestToTarget({ string: s, fret: null }, all)).toBe(0);
+  });
+
+  it('takes points off for each step further out than needed', () => {
+    expect(targetPoints(0)).toBe(TARGET_BONUS);
+    expect(targetPoints(1)).toBe(TARGET_BONUS - TARGET_STEP);
+    expect(targetPoints(4)).toBeLessThan(0);
+  });
+
+  it('lights a fret, a string or both, within the frets given', () => {
+    const rng = new Rng(7);
+    const kinds = new Set<string>();
+    for (let i = 0; i < 200; i++) {
+      const t = makeTarget(rng, 6, 3, 9);
+      expect(t.string !== null || t.fret !== null).toBe(true);
+      if (t.fret !== null) expect(t.fret >= 3 && t.fret <= 9).toBe(true);
+      if (t.string !== null) expect(t.string >= 0 && t.string < 6).toBe(true);
+      kinds.add(`${t.string === null}${t.fret === null}`);
+    }
+    expect(kinds.size).toBe(3);
   });
 });

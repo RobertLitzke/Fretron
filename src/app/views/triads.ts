@@ -2,41 +2,50 @@
 //
 // Progressions: a run of chord changes; each chord is built on three
 // neighbouring strings and raked. Points are for speed and for moving the hand
-// as little as possible from the last chord.
+// as little as possible from the last chord. In the Targets game a fret, a
+// string or both are lit instead, and the points are for playing near them.
 //
 // Grid clear: one chord; find every close voicing of it on the neck.
 
 import { blip, buzz, strum } from '../../audio/audio';
 import type { LineData, NoteRenderData } from '../../board/renderer';
 import { formatSeconds, modeById, rankGrid, rankTriads } from '../../core/modes';
-import { allCells, cellKey, cellMidi, pc, pcName, type Cell } from '../../core/music';
+import { allCells, cellKey, cellMidi, pc, pcName, stringName, type Cell } from '../../core/music';
 import { Rng } from '../../core/rng';
 import {
   checkVoicing,
   chordName,
   chordTones,
+  closestToTarget,
   displacement,
   enumerateVoicings,
   keepers,
   likeliest,
   makeProgression,
+  makeTarget,
   motionBonus,
   motionOf,
   SMOOTH_BONUS,
+  TARGET_BONUS,
+  TARGET_STEP,
+  targetDistance,
+  targetPoints,
   timePoints,
   toneLabel,
   TRIAD_BASE_POINTS,
   voicingKey,
   type Chord,
   type Progression,
+  type Target,
   type Voicing,
 } from '../../core/triads';
 import { el } from '../dom';
-import { makeFrame, readyPanel, waiting } from '../game/frame';
+import { makeFrame, panelOption, readyPanel, waiting } from '../game/frame';
 import { showResult } from '../game/results';
 import { TriadInput } from '../game/triadInput';
 import type { View } from '../router';
-import { freshSeed } from '../ui';
+import { updateSave } from '../store';
+import { freshSeed, segmented } from '../ui';
 
 /** A run of progressions ends once this many chords have been asked. */
 const CHORDS_PER_RUN = 12;
@@ -69,7 +78,10 @@ function outline(voicing: readonly Cell[], color: string, opacity: number, dashe
 }
 
 export const triadsView: View = (root, ctx) => {
-  const mode = modeById('triads')!;
+  const targets = ctx.params.variant === 'target';
+  const mode = modeById(targets ? 'triads-target' : 'triads')!;
+  // The menu's Play button comes back to the game last played.
+  updateSave((s) => ({ ...s, picks: { ...s.picks, triads: targets ? 'target' : 'standard' } }));
   const rng = new Rng(freshSeed());
 
   const progressions: Progression[] = [];
@@ -104,6 +116,10 @@ export const triadsView: View = (root, ctx) => {
   let kept = new Set<string>();
   /** Chords given away after too many wrong rakes. */
   let given = 0;
+  /** In the Targets game: what is lit for the chord that is up, the nearest it can be played to it, and the steps missed by so far. */
+  let target: Target | null = null;
+  let reachable = 0;
+  let missedBy = 0;
 
   const frame = makeFrame(root, ctx, mode.title, {
     onDown: (t) => {
@@ -132,7 +148,20 @@ export const triadsView: View = (root, ctx) => {
       ),
       // After a wrong rake the chord is spelled out.
       tries > 0 ? el('span.call-sub', {}, chordTones(chord()).map((t) => pcName(t, p.spelling)).join(' · ')) : null,
+      target ? el('span.call-sub', {}, targetWords(target)) : null,
     );
+  }
+
+  /** Where the target is, in words: "at fret 7", "on the G string", "on the G string at fret 7". */
+  function targetWords(t: Target): string {
+    const on = t.string === null ? '' : `on the ${stringName(tuning, t.string)} string`;
+    const at = t.fret === null ? '' : `at fret ${t.fret}`;
+    return [on, at].filter(Boolean).join(' ');
+  }
+
+  function paintTarget(): void {
+    board.setGlowString(target?.string ?? null);
+    board.setGlowFret(target?.fret ?? null);
   }
 
   function paintBoard(): void {
@@ -191,9 +220,16 @@ export const triadsView: View = (root, ctx) => {
     tries = 0;
     kept = new Set();
     answers = enumerateVoicings(tuning, chord(), 0, frame.frets);
+    if (targets) {
+      // A fret somewhere on the neck as it is shown, past the nut.
+      const { first, last } = board.windowFrets;
+      target = makeTarget(rng, tuning.open.length, Math.max(1, first), last);
+      reachable = closestToTarget(target, answers);
+      paintTarget();
+    }
     input.clear();
     input.enabled = true;
-    possible += TRIAD_BASE_POINTS + (previous ? SMOOTH_BONUS : 0);
+    possible += TRIAD_BASE_POINTS + (targets ? TARGET_BONUS : previous ? SMOOTH_BONUS : 0);
     paintPrompt();
     paintBoard();
     since = performance.now();
@@ -244,7 +280,13 @@ export const triadsView: View = (root, ctx) => {
 
     let points = timePoints(seconds);
     let words = '';
-    if (previous) {
+    if (target) {
+      // Steps further from the target than the chord had to be.
+      const off = targetDistance(target, voicing) - reachable;
+      missedBy += off;
+      points = Math.max(0, points + targetPoints(off));
+      words = off === 0 ? 'On target · ' : `${off} ${off === 1 ? 'step' : 'steps'} off · `;
+    } else if (previous) {
       const mean = displacement(previous.voicing, voicing);
       const motion = motionOf(mean);
       moved += mean;
@@ -278,6 +320,8 @@ export const triadsView: View = (root, ctx) => {
         if (pIndex < progressions.length) blip(1760, 0.07);
       }
       if (pIndex >= progressions.length) return finish();
+      target = null;
+      paintTarget();
       shown = [];
       toneRings = [];
       input.selected = [];
@@ -296,6 +340,8 @@ export const triadsView: View = (root, ctx) => {
   function finish(): void {
     board.setNotes([]);
     board.setLines([]);
+    target = null;
+    paintTarget();
     frame.setPrompt();
     showResult(
       frame,
@@ -305,7 +351,7 @@ export const triadsView: View = (root, ctx) => {
         value: score,
         rank: rankTriads(score, possible),
         stats: [
-          ['Voice leading', moves ? `${(moved / moves).toFixed(1)} frets` : '—'],
+          targets ? ['Off target', `${(missedBy / Math.max(1, total - given)).toFixed(1)} steps`] : ['Voice leading', moves ? `${(moved / moves).toFixed(1)} frets` : '—'],
           ['Speed rating', `${(decided / total).toFixed(1)} s`],
           ['Wrong rakes', String(wrong)],
           ['Answers shown', String(given)],
@@ -322,13 +368,29 @@ export const triadsView: View = (root, ctx) => {
     `${mode.title} · ${mode.variant}`,
     [
       'Build each chord on three neighbouring strings: tap a fret on each, or beside the nut for an open string. Then drag anywhere on the board to play it.',
-      'Points for speed, and a bonus for staying close to the chord before. There is no time limit.',
+      targets
+        ? `Each chord lights a fret, a string, or both. Play it as near as the chord allows: every fret or string further out costs ${TARGET_STEP} points. Points for speed too; there is no time limit.`
+        : 'Points for speed, and a bonus for staying close to the chord before. There is no time limit.',
       `A wrong rake keeps the notes that were right and spells the chord. The ${RAKES_BEFORE_ANSWER}th shows the answer, for no points.`,
     ],
     () => {
       frame.setPrompt(...waiting(`${progressions[0].keyName} · 1 / ${total}`));
       frame.beat(present);
     },
+    panelOption(
+      'Game',
+      segmented<string>(
+        [
+          { value: 'triads', label: 'Progressions' },
+          { value: 'triads-target', label: 'Targets' },
+        ],
+        mode.id,
+        (id) => {
+          // Each is its own game, with its own score table: build it afresh.
+          ctx.replace(modeById(id)!.route);
+        },
+      ),
+    ),
   );
 
   return frame.teardown;

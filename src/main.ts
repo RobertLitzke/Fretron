@@ -53,6 +53,7 @@ function boot(): void {
     .add('/play/hunter/:variant', hunterView)
     .add('/play/sweeper/:variant', sweeperView)
     .add('/play/triads', triadsView)
+    .add('/play/triads/:variant', triadsView)
     .add('/play/gridclear', gridClearView)
     .add('/play/bend/:tier', bendView)
     .add('/play/trace/:tier', traceView)
