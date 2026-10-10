@@ -15,6 +15,7 @@ import {
   MAX_BEND_CENTS,
   positionTravel,
   scoreGrade,
+  comboMultiplier,
   semitoneTravel,
   traceError,
   type Contour,
@@ -86,10 +87,13 @@ describe('a single bend', () => {
 
   it('multiplies good bends by the streak, pays acceptable ones flat, and drops the streak on a miss', () => {
     expect(scoreGrade('bullseye', 1)).toEqual({ points: 1000, combo: 2 });
-    expect(scoreGrade('intune', 3)).toEqual({ points: 2250, combo: 4 });
+    expect(scoreGrade('intune', 3)).toEqual({ points: 900, combo: 4 });
+    expect(scoreGrade('bullseye', 8).points).toBe(1700);
     expect(scoreGrade('acceptable', 4)).toEqual({ points: 350, combo: 4 });
     expect(scoreGrade('off', 6)).toEqual({ points: 0, combo: 1 });
     expect(scoreGrade('bullseye', 8).combo).toBe(8);
+    expect(comboMultiplier(1)).toBe(1);
+    expect(comboMultiplier(3)).toBe(1.2);
   });
 
   it('asks only for the bends its tier allows, on the neck where bends are played', () => {

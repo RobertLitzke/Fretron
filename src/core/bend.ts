@@ -129,11 +129,21 @@ export function gradeBend(errorCents: number): Grade {
 
 const GRADE_BASE: Record<Grade, number> = { bullseye: 1000, intune: 750, acceptable: 350, off: 0 };
 export const MAX_COMBO = 8;
+/**
+ * What each step of the streak adds to the multiplier. Small, so that a bend
+ * is worth about what a chord is in Triads: at most 1,000 × 1.7.
+ */
+export const COMBO_STEP = 0.1;
 
 export interface Scored {
   points: number;
-  /** The multiplier to carry into the next prompt. */
+  /** The streak to carry into the next prompt, from 1 to MAX_COMBO. */
   combo: number;
+}
+
+/** The multiplier a streak gives: ×1 to ×1.7. */
+export function comboMultiplier(combo: number): number {
+  return Math.round((1 + COMBO_STEP * (combo - 1)) * 10) / 10;
 }
 
 /**
@@ -143,7 +153,7 @@ export interface Scored {
 export function scoreGrade(grade: Grade, combo: number): Scored {
   if (grade === 'off') return { points: 0, combo: 1 };
   if (grade === 'acceptable') return { points: GRADE_BASE.acceptable, combo };
-  return { points: GRADE_BASE[grade] * combo, combo: Math.min(MAX_COMBO, combo + 1) };
+  return { points: Math.round(GRADE_BASE[grade] * comboMultiplier(combo)), combo: Math.min(MAX_COMBO, combo + 1) };
 }
 
 // --- a bend over time --------------------------------------------------------

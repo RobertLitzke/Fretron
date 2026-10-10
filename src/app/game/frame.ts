@@ -204,7 +204,7 @@ export function makeFrame(root: HTMLElement, ctx: ViewContext, title: string, ha
     setCombo(value) {
       combo.hidden = value === null;
       if (value !== null) {
-        combo.textContent = `×${value}`;
+        combo.textContent = `×${Number.isInteger(value) ? value : value.toFixed(1)}`;
         combo.classList.toggle('hot', value > 1);
       }
     },

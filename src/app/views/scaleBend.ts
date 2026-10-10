@@ -6,7 +6,7 @@
 import { BendVoice, blip, pluck } from '../../audio/audio';
 import type { BoardTouch } from '../../board/board';
 import type { NoteRenderData } from '../../board/renderer';
-import { BEND_PROMPTS, bendLabel, centsFromDrag, dragForCents, GRADE_WORDS, gradeBend, scoreGrade, type Grade } from '../../core/bend';
+import { BEND_PROMPTS, bendLabel, centsFromDrag, dragForCents, GRADE_WORDS, gradeBend, scoreGrade, comboMultiplier, type Grade } from '../../core/bend';
 import { modeById, rankBend, scaleWords } from '../../core/modes';
 import { cellMidi, pc, pcName, sameCell, stringName, type Cell } from '../../core/music';
 import { Rng } from '../../core/rng';
@@ -256,7 +256,7 @@ export const scaleBendView: View = (root, ctx) => {
     frame.setAction(null);
     frame.setPrompt(...promptLine, reviewButtons(hearTarget, hearYours));
     frame.setScore(score);
-    frame.setCombo(combo);
+    frame.setCombo(comboMultiplier(combo));
     frame.banner(scored.points ? `${GRADE_WORDS[grade]} · +${scored.points}` : GRADE_WORDS[grade], grade === 'off' ? 'bad' : 'good');
     board.invalidate();
     frame.offerNext(next);
