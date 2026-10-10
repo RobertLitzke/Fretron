@@ -270,13 +270,38 @@ body.in-tour #app {
   white-space: nowrap;
 }
 
-.tour-title small {
-  margin-left: 8px;
+.tour-years {
+  display: flex;
+  align-items: center;
+  gap: 2px;
   font-family: var(--font);
-  font-size: 14px;
+  font-size: 16px;
   font-style: italic;
-  color: var(--text);
-  text-shadow: none;
+  white-space: nowrap;
+}
+
+.tour-years b {
+  min-width: 34px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.tour-year-step {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--mustard);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.tour-year-step:disabled {
+  color: var(--hair-dim);
+  opacity: 0.4;
+  cursor: default;
 }
 
 .tour-total {

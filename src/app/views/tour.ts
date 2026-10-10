@@ -2,13 +2,13 @@
 // leg picked, with its sleeve. A stop plays the ordinary game under /tour.
 
 import { unlock } from '../../audio/audio';
-import { formatValue, tableKey } from '../../core/modes';
+import { formatValue } from '../../core/modes';
 import {
   currentLeg,
   legBooked,
   legGold,
   legSoldOut,
-  LEGS,
+  legStars,
   MAX_STARS,
   nextBooking,
   starsFor,
@@ -19,6 +19,7 @@ import {
 import { el } from '../dom';
 import type { View } from '../router';
 import { getSave, updateSave } from '../store';
+import { currentTour, openYears } from '../tour/current';
 import { sleeveSvg } from '../tour/sleeves';
 
 const SHAPES = ['round', 'pennant', 'oval', 'shield', 'round', 'pennant'] as const;
@@ -46,24 +47,34 @@ function sleeve(leg: Leg, booked: boolean): HTMLElement {
 export const tourView: View = (root) => {
   const render = () => {
     const save = getSave();
-    const ranks = save.tour;
-    const stars = totalStars(ranks);
-    const next = nextBooking(ranks);
-    const now = currentLeg(ranks);
-    const picked = Number(save.picks.tour);
-    const legIndex = Number.isInteger(picked) && picked >= 0 && picked < LEGS.length ? picked : now;
-    const leg = LEGS[legIndex];
-    const booked = legBooked(leg, ranks);
+    const { year, legs } = currentTour(save);
+    const years = openYears(save);
+    const record = save.tours[year] ?? {};
+    const stars = totalStars(legs, record);
+    const next = nextBooking(legs, stars);
+    const now = currentLeg(legs, stars);
+    const legKey = `tour${year}`;
+    const picked = Number(save.picks[legKey]);
+    const legIndex = Number.isInteger(picked) && picked >= 0 && picked < legs.length ? picked : now;
+    const leg = legs[legIndex];
+    const booked = legBooked(leg, stars);
 
     const pick = (i: number) => {
-      updateSave((s) => ({ ...s, picks: { ...s.picks, tour: String(i) } }));
+      updateSave((s) => ({ ...s, picks: { ...s.picks, [legKey]: String(i) } }));
       render();
     };
+    const toYear = (y: number) => {
+      updateSave((s) => ({ ...s, picks: { ...s.picks, tourYear: String(y) } }));
+      render();
+    };
+    const yearAt = years.indexOf(year);
+    const earlier = years[yearAt - 1];
+    const later = years[yearAt + 1];
 
-    const stickers = LEGS.map((l, i) => {
-      const isBooked = legBooked(l, ranks);
+    const stickers = legs.map((l, i) => {
+      const isBooked = legBooked(l, stars);
       const [x, y, turn] = PLACES[i];
-      const legStarsNow = l.stops.reduce((sum, s) => sum + starsFor(ranks[s.mode]), 0);
+      const legStarsNow = legStars(l, record);
       const classes = [`sticker`, SHAPES[i], isBooked ? (i === now ? 'here' : 'filled') : 'locked', i === legIndex ? 'picked' : '']
         .filter(Boolean)
         .join('.');
@@ -82,21 +93,21 @@ export const tourView: View = (root) => {
             isBooked ? el('span.got', {}, `★ ${legStarsNow} / 9`) : null,
           ),
         ),
-        legGold(l, ranks) ? el('span.stamp.gold', {}, 'GOLD') : legSoldOut(l, ranks) ? el('span.stamp', {}, 'SOLD OUT') : null,
+        legGold(l, record) ? el('span.stamp.gold', {}, 'GOLD') : legSoldOut(l, record) ? el('span.stamp', {}, 'SOLD OUT') : null,
       );
     });
 
     // The first stop short of three stars is the one offered.
     const stopIndex = Math.max(
       0,
-      leg.stops.findIndex((s) => starsFor(ranks[s.mode]) < 3),
+      leg.stops.findIndex((s) => starsFor(record[s.mode]?.rank) < 3),
     );
     let chosen = stopIndex;
     const playButton = el('a.tour-play') as HTMLAnchorElement;
     const rows = leg.stops.map((stop, i) => {
       const mode = stopMode(stop);
-      const best = save.scores[tableKey(mode, save.frets)]?.[0];
-      const rank = ranks[stop.mode];
+      const best = record[stop.mode];
+      const rank = best?.rank;
       return el(
         'button.song',
         { type: 'button', disabled: !booked, onclick: () => choose(i) },
@@ -105,7 +116,7 @@ export const tourView: View = (root) => {
           'span.t',
           {},
           stop.city,
-          el('i', {}, `${mode.title} · ${mode.variant} · `, rank ? `best ${rank}${best ? `, ${formatValue(mode, best.value)}` : ''}` : 'not played yet'),
+          el('i', {}, `${mode.title} · ${mode.variant} · `, rank ? `best ${rank}${best?.value !== undefined ? `, ${formatValue(mode, best.value)}` : ''}` : 'not played yet'),
         ),
         starRow(starsFor(rank)),
       );
@@ -128,8 +139,15 @@ export const tourView: View = (root) => {
         'header.tour-top',
         {},
         el('a.tour-back', { href: '#/home', 'aria-label': 'Back to the games' }, '←'),
-        el('span.tour-title', {}, 'Fretron World Tour', el('small', {}, "'77")),
-        el('span.tour-total', {}, el('b', {}, '★'), ` ${stars}`, el('i', {}, ` / ${MAX_STARS}${next ? ` · next leg at ${next.booking}` : ' · the whole tour'}`)),
+        el('span.tour-title', {}, 'Fretron World Tour'),
+        el(
+          'span.tour-years',
+          {},
+          el('button.tour-year-step', { type: 'button', disabled: earlier === undefined, 'aria-label': 'Earlier tour', onclick: () => toYear(earlier) }, '‹'),
+          el('b', {}, `'${year}`),
+          el('button.tour-year-step', { type: 'button', disabled: later === undefined, 'aria-label': 'Later tour', onclick: () => toYear(later) }, '›'),
+        ),
+        el('span.tour-total', {}, el('b', {}, '★'), ` ${stars}`, el('i', {}, ` / ${MAX_STARS}${next ? ` · next leg at ${next.booking}` : later ? ` · the '${later} tour is booked` : ' · the whole tour'}`)),
       ),
       el(
         'div.tour-body',

@@ -4,11 +4,12 @@
 import { fanfare } from '../../audio/audio';
 import { formatValue, RANK_WORDS, tableKey, type Mode, type Rank } from '../../core/modes';
 import { DEFAULT_FRETS } from '../../core/music';
-import { placeFor, withScore, withTourRank, type ScoreEntry } from '../../core/storage';
-import { legBooked, LEGS, starsFor, stopFor, totalStars } from '../../core/tour';
+import { placeFor, withScore, withTourRun, type ScoreEntry } from '../../core/storage';
+import { LAST_YEAR, legBooked, starsFor, stopFor, totalStars } from '../../core/tour';
 import { el } from '../dom';
 import type { ViewContext } from '../router';
 import { getSave, updateSave } from '../store';
+import { currentTour } from '../tour/current';
 import { onTour } from '../tour/route';
 import { starRow } from '../views/tour';
 import { replay, type Frame } from './frame';
@@ -97,22 +98,29 @@ function initialsEntry(initial: string, done: (name: string) => void): HTMLEleme
   return node;
 }
 
-/** On tour: keep the rank if it is the stop's best, and say what it earned. */
+/** On tour: keep what the run beat of the stop's bests, and say what it earned. */
 function tourEarned(result: RunResult): HTMLElement | null {
-  const at = stopFor(result.mode.id);
+  const { year, legs } = currentTour(getSave());
+  const at = stopFor(legs, result.mode.id);
   if (!onTour() || !at) return null;
-  const before = getSave().tour;
-  const after = updateSave((s) => withTourRank(s, result.mode.id, result.rank)).tour;
-  const gained = totalStars(after) - totalStars(before);
-  const booked = LEGS.filter((leg) => !legBooked(leg, before) && legBooked(leg, after));
-  const stars = starsFor(after[result.mode.id]);
+  const before = getSave().tours[year] ?? {};
+  const after = updateSave((s) => withTourRun(s, year, result.mode.id, result.rank, result.value, result.mode.better)).tours[year];
+  const starsBefore = totalStars(legs, before);
+  const starsAfter = totalStars(legs, after);
+  const booked = legs.filter((leg) => !legBooked(leg, starsBefore) && legBooked(leg, starsAfter));
+  const tourDone = !legBooked(legs.at(-1)!, starsBefore) && legBooked(legs.at(-1)!, starsAfter);
+  const stars = starsFor(after[result.mode.id].rank);
+  const was = before[result.mode.id]?.value;
+  const newBest = was !== undefined && after[result.mode.id].value !== was;
   return el(
     'div.tour-earned',
     {},
     el('div', {}, at.stop.city),
     starRow(stars),
-    el('div', {}, gained > 0 ? `+${gained} ★` : stars === 3 ? 'Sold out' : 'No new stars: play it again'),
+    el('div', {}, starsAfter > starsBefore ? `+${starsAfter - starsBefore} ★` : stars === 3 ? 'Sold out' : 'No new stars: play it again'),
+    newBest ? el('b', {}, `New best on the '${year} tour`) : null,
     booked.map((leg) => el('b', {}, `${leg.name} booked!`)),
+    tourDone && year < LAST_YEAR ? el('b', {}, `The '${year + 1} tour is booked!`) : null,
   );
 }
 
