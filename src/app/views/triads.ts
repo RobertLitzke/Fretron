@@ -9,7 +9,7 @@
 import { blip, buzz, strum } from '../../audio/audio';
 import type { LineData, NoteRenderData } from '../../board/renderer';
 import { formatSeconds, modeById, rankGrid, rankTriads } from '../../core/modes';
-import { cellKey, cellMidi, pc, pcName, type Cell } from '../../core/music';
+import { allCells, cellKey, cellMidi, pc, pcName, type Cell } from '../../core/music';
 import { Rng } from '../../core/rng';
 import {
   checkVoicing,
@@ -94,6 +94,8 @@ export const triadsView: View = (root, ctx) => {
   /** The last chord played in this progression, and its labels. */
   let previous: { voicing: Voicing; labels: string[] } | null = null;
   let shown: NoteRenderData[] = [];
+  /** Once a chord is played: its notes everywhere else on the neck, as rings. */
+  let toneRings: NoteRenderData[] = [];
   /** Every way to play the chord that is up. */
   let answers: Voicing[] = [];
   /** Wrong rakes at the chord that is up. */
@@ -134,7 +136,7 @@ export const triadsView: View = (root, ctx) => {
   }
 
   function paintBoard(): void {
-    const notes: NoteRenderData[] = [...shown];
+    const notes: NoteRenderData[] = [...toneRings, ...shown];
     const lines: LineData[] = [];
     if (previous && shown.length === 0) {
       // Where the hand was: the place to move from.
@@ -155,9 +157,37 @@ export const triadsView: View = (root, ctx) => {
     board.setLines(lines);
   }
 
+  /**
+   * Every other place on the neck the chord's notes can be played, hollow and
+   * named by chord tone, so the shape is seen among the rest of the chord.
+   */
+  function chordRings(voicing: Voicing): NoteRenderData[] {
+    const played = new Set(voicing.map(cellKey));
+    const theme = board.theme;
+    const out: NoteRenderData[] = [];
+    for (const c of allCells(tuning, 0, frame.frets)) {
+      const tone = played.has(cellKey(c)) ? null : toneLabel(chord(), pc(cellMidi(tuning, c)));
+      if (!tone) continue;
+      const color = tone === 'R' ? theme.pivot : theme.cyan;
+      out.push({
+        fret: c.fret,
+        stringIndex: c.string,
+        displayLabel: toneText(tone),
+        fillColor: 'transparent',
+        strokeColor: color,
+        strokeWidth: tone === 'R' ? 2.5 : 1.5,
+        labelColor: color,
+        opacity: 0.6,
+        radiusScale: 0.8,
+      });
+    }
+    return out;
+  }
+
   function present(): void {
     asked++;
     shown = [];
+    toneRings = [];
     tries = 0;
     kept = new Set();
     answers = enumerateVoicings(tuning, chord(), 0, frame.frets);
@@ -231,6 +261,7 @@ export const triadsView: View = (root, ctx) => {
   /** Leave the chord on the board, each note marked as the root or its distance from it, and wait for the player. */
   function settle(voicing: Voicing, labels: string[]): void {
     shown = playedNotes(voicing, labels);
+    toneRings = chordRings(voicing);
     input.selected = [];
     kept = new Set();
     paintBoard();
@@ -248,6 +279,7 @@ export const triadsView: View = (root, ctx) => {
       }
       if (pIndex >= progressions.length) return finish();
       shown = [];
+      toneRings = [];
       input.selected = [];
       paintBoard();
       frame.setClock('');
