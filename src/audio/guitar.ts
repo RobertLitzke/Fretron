@@ -1,12 +1,10 @@
-// The guitar voice: an electric guitar through a low-gain overdrive into a
-// clean amp.
+// The guitar voice: an electric guitar through a warm amp with a little gain.
 //
 // The string is a physical model (stringProcessor.ts), so its tone changes as
-// it rings the way a real one does. Single notes go through the overdrive,
-// which works as a Klon Centaur does: the clean signal is kept and a clipped,
-// mid-heavy copy is blended under it, so the note stays clear and only gets
-// some hair. Chords skip the overdrive, where clipping would smear them. Both
-// then go through a speaker cabinet and a small room.
+// it rings the way a real one does. Single notes go through a gentle clipper
+// in one path (a clean copy blended back in beside it combs against it and
+// sounds metallic); chords skip it, where clipping would smear them. Both then
+// go through a humbucker's soft top, a speaker cabinet and a small room.
 
 import { STRING_PROCESSOR } from './stringProcessor';
 
@@ -72,46 +70,38 @@ export interface Amp {
 
 /** The overdrive and amp, ending at `out`. */
 export function buildAmp(c: BaseAudioContext, out: AudioNode): Amp {
-  // A humbucker under a cable: no resonant peak to speak of.
-  const drive = biquad(c, 'lowpass', 4500, 0.6);
-  const clean = biquad(c, 'lowpass', 4500, 0.6);
+  // A humbucker under a cable: no resonant peak to speak of, little past 4 kHz.
+  const drive = biquad(c, 'lowpass', 3800, 0.6);
+  const clean = biquad(c, 'lowpass', 3800, 0.6);
   const amp = c.createGain();
 
-  // The overdrive. Its clean half carries the note...
-  const dry = c.createGain();
-  dry.gain.value = 0.75;
-  drive.connect(dry).connect(amp);
-  // ...and the clipped half, with the lows kept out and the mids pushed up
-  // before the clipper, adds grit under it. The gain knob a little before noon.
-  const tight = biquad(c, 'highpass', 180, 0.6);
-  const mids = biquad(c, 'peaking', 1000, 0.7, 5);
+  // Low gain: enough to round the peaks and thicken the note, not to fizz.
+  // Low strings into a clipper turn to mud, so the bottom is kept out of it.
+  const tight = biquad(c, 'highpass', 90, 0.5);
   const push = c.createGain();
-  push.gain.value = 3;
+  push.gain.value = 1.7;
   const shaper = c.createWaveShaper();
-  shaper.curve = driveCurve(1.8, 0.04);
+  shaper.curve = driveCurve(1.3, 0.1);
   shaper.oversample = '4x';
-  const smooth = biquad(c, 'lowpass', 3800, 0.6);
-  const dirt = c.createGain();
-  dirt.gain.value = 0.32;
-  drive.connect(tight).connect(mids).connect(push).connect(shaper).connect(smooth).connect(dirt).connect(amp);
-  // Chords are several strings at once: a little lower, to sit level with a single note.
+  drive.connect(tight).connect(push).connect(shaper).connect(amp);
+  // Without the clipper a chord is quieter than a driven note: bring it up level.
   const chord = c.createGain();
-  chord.gain.value = 0.8;
+  chord.gain.value = 1.3;
   clean.connect(chord).connect(amp);
 
-  // The cabinet: some thump, a little treble for clarity, and a steep slope
-  // past 5 kHz to take off any fizz.
-  const thump = biquad(c, 'lowshelf', 160, 0, 2);
-  const treble = biquad(c, 'highshelf', 2500, 0, 1);
-  const cab1 = biquad(c, 'lowpass', 5000, 0.6);
-  const cab2 = biquad(c, 'lowpass', 5600, 0.55);
+  // The cabinet: some thump, a falling top, and a steep slope to take off the
+  // fizz the clipper makes above 4 kHz.
+  const thump = biquad(c, 'lowshelf', 180, 0, 3);
+  const top = biquad(c, 'highshelf', 2400, 0, -3);
+  const cab1 = biquad(c, 'lowpass', 4200, 0.55);
+  const cab2 = biquad(c, 'lowpass', 4800, 0.55);
   const level = c.createGain();
-  level.gain.value = 0.6;
-  amp.connect(thump).connect(treble).connect(cab1).connect(cab2).connect(level).connect(out);
+  level.gain.value = 0.42;
+  amp.connect(thump).connect(top).connect(cab1).connect(cab2).connect(level).connect(out);
   const room = c.createConvolver();
   room.buffer = roomImpulse(c);
   const wet = c.createGain();
-  wet.gain.value = 0.16;
+  wet.gain.value = 0.18;
   level.connect(room).connect(wet).connect(out);
   return { drive, clean };
 }
