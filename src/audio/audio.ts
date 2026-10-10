@@ -4,15 +4,29 @@
 // The string tone is FretFalcon's (ts/sounds/note_sounds.ts, getGuitarWave): a
 // strong fundamental with harmonics falling away. Here it is given a pluck's
 // envelope and a filter that closes as the note dies.
+//
+// The other voice, "guitar", is an electric guitar through a warm amp; it is
+// guitar.ts. The arcade noises are the same for both.
 
 import { contourDuration, type Contour } from '../core/bend';
 import { midiToHz } from '../core/music';
+import { buildAmp, loadString, strikeGuitar, type Amp, type StringNodes } from './guitar';
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
 let wave: PeriodicWave | null = null;
 let noise: AudioBuffer | null = null;
 let volume = 0.8;
+let amp: Amp | null = null;
+let stringReady: Promise<void> = Promise.resolve();
+let stringLoaded = false;
+
+export type Voice = 'synth' | 'guitar';
+let voice: Voice = 'synth';
+
+export function setVoice(v: Voice): void {
+  voice = v;
+}
 
 /** Loudness of the whole app at full volume. */
 const HEADROOM = 0.55;
@@ -34,6 +48,11 @@ function context(): AudioContext {
     noise = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.25), ctx.sampleRate);
     const data = noise.getChannelData(0);
     for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    amp = buildAmp(ctx, master);
+    stringReady = loadString(ctx).then(
+      () => void (stringLoaded = true),
+      () => undefined,
+    );
   }
   return ctx;
 }
@@ -53,10 +72,10 @@ export function now(): number {
   return context().currentTime;
 }
 
-interface StringNodes {
-  osc: OscillatorNode;
-  gain: GainNode;
-  filter: BiquadFilterNode;
+/** Settles once the guitar voice's string has loaded (or failed to). */
+export function voiceReady(): Promise<void> {
+  context();
+  return stringReady;
 }
 
 /**
@@ -65,7 +84,14 @@ interface StringNodes {
  * settles at that level with the filter left further open, so that a bend can
  * be found by ear.
  */
-function strike(midi: number, when: number, level: number, ring: number, hold = 0): StringNodes {
+function strike(midi: number, when: number, level: number, ring: number, hold = 0, clean = false): StringNodes {
+  if (voice === 'guitar' && stringLoaded) {
+    return strikeGuitar(context(), clean ? amp!.clean : amp!.drive, midiToHz(midi), when, level, ring, hold);
+  }
+  return strikeSynth(midi, when, level, ring, hold);
+}
+
+function strikeSynth(midi: number, when: number, level: number, ring: number, hold: number): StringNodes {
   const c = context();
   const osc = c.createOscillator();
   osc.setPeriodicWave(wave!);
@@ -81,7 +107,7 @@ function strike(midi: number, when: number, level: number, ring: number, hold = 
   gain.gain.setTargetAtTime(hold, when + 0.004, ring);
   osc.connect(filter).connect(gain).connect(master!);
   osc.start(when);
-  return { osc, gain, filter };
+  return { detune: osc.detune, gain, stop: (at) => osc.stop(at) };
 }
 
 export interface PluckOptions {
@@ -91,19 +117,20 @@ export interface PluckOptions {
   level?: number;
   /** How long the note rings: the time for it to fall to about a third. */
   ring?: number;
+  /** Part of a chord: the guitar voice plays it without overdrive. */
+  chord?: boolean;
 }
 
 export function pluck(midi: number, options: PluckOptions = {}): void {
   const c = context();
   const when = c.currentTime + (options.delay ?? 0);
   const ring = options.ring ?? 0.45;
-  const { osc } = strike(midi, when, options.level ?? 0.5, ring);
-  osc.stop(when + ring * 7);
+  strike(midi, when, options.level ?? 0.5, ring, 0, options.chord).stop(when + ring * 7);
 }
 
-/** Several strings struck one after another, low to high. */
+/** Several strings struck one after another, low to high: a chord. */
 export function strum(midis: readonly number[], gap = 0.035, options: PluckOptions = {}): void {
-  midis.forEach((m, i) => pluck(m, { ...options, delay: (options.delay ?? 0) + i * gap }));
+  midis.forEach((m, i) => pluck(m, { ...options, chord: true, delay: (options.delay ?? 0) + i * gap }));
 }
 
 /** The level a held string settles at. */
@@ -121,7 +148,7 @@ export class BendVoice {
 
   setCents(cents: number): void {
     if (!this.nodes) return;
-    this.nodes.osc.detune.setTargetAtTime(cents, context().currentTime, 0.008);
+    this.nodes.detune.setTargetAtTime(cents, context().currentTime, 0.008);
   }
 
   /** A bullseye's reward: the note swells into a vibrato before it fades. */
@@ -129,19 +156,19 @@ export class BendVoice {
     if (!this.nodes) return;
     const c = context();
     const t = c.currentTime;
-    const { osc, gain } = this.nodes;
+    const { detune, gain, stop } = this.nodes;
     const lfo = c.createOscillator();
     lfo.frequency.value = 5.6;
     const depth = c.createGain();
     depth.gain.setValueAtTime(0, t);
     depth.gain.linearRampToValueAtTime(16, t + 0.25);
-    lfo.connect(depth).connect(osc.detune);
+    lfo.connect(depth).connect(detune);
     lfo.start(t);
     lfo.stop(t + 1.3);
     gain.gain.cancelScheduledValues(t);
-    gain.gain.setTargetAtTime(0.42, t, 0.08);
+    gain.gain.setTargetAtTime(gain.gain.value * 1.4, t, 0.08);
     gain.gain.setTargetAtTime(0, t + 0.7, 0.18);
-    osc.stop(t + 1.5);
+    stop(t + 1.5);
     this.nodes = null;
   }
 
@@ -150,7 +177,7 @@ export class BendVoice {
     const t = context().currentTime;
     this.nodes.gain.gain.cancelScheduledValues(t);
     this.nodes.gain.gain.setTargetAtTime(0, t, fade / 3);
-    this.nodes.osc.stop(t + fade * 2 + 0.05);
+    this.nodes.stop(t + fade * 2 + 0.05);
     this.nodes = null;
   }
 
@@ -165,11 +192,11 @@ export function playContour(midi: number, contour: Contour): () => void {
   const c = context();
   const when = c.currentTime + 0.05;
   const nodes = strike(midi, when, 0.5, 0.5, HELD);
-  nodes.osc.detune.setValueAtTime(contour.points[0].cents, when);
-  for (const p of contour.points.slice(1)) nodes.osc.detune.linearRampToValueAtTime(p.cents, when + p.t);
+  nodes.detune.setValueAtTime(contour.points[0].cents, when);
+  for (const p of contour.points.slice(1)) nodes.detune.linearRampToValueAtTime(p.cents, when + p.t);
   const end = when + contourDuration(contour);
   nodes.gain.gain.setTargetAtTime(0, end, 0.08);
-  nodes.osc.stop(end + 0.5);
+  nodes.stop(end + 0.5);
   let cut = false;
   return () => {
     if (cut) return;
@@ -178,7 +205,7 @@ export function playContour(midi: number, contour: Contour): () => void {
     if (t >= end) return;
     nodes.gain.gain.cancelScheduledValues(t);
     nodes.gain.gain.setTargetAtTime(0, t, 0.02);
-    nodes.osc.stop(t + 0.15);
+    nodes.stop(t + 0.15);
   };
 }
 
@@ -246,5 +273,5 @@ export function blip(hz = 1320, length = 0.05, level = 0.18): void {
 
 /** A run finished. */
 export function fanfare(): void {
-  [52, 59, 64, 68, 71, 76].forEach((m, i) => pluck(m, { delay: i * 0.07, level: 0.4, ring: 0.5 }));
+  [52, 59, 64, 68, 71, 76].forEach((m, i) => pluck(m, { delay: i * 0.07, level: 0.4, ring: 0.5, chord: true }));
 }
