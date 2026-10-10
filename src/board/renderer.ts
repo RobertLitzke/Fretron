@@ -148,6 +148,7 @@ export class Fretboard {
   private lines: LineData[] = [];
   private flashes: FlashData[] = [];
   private dead: ReadonlySet<string> = new Set();
+  private tinted: { cells: ReadonlySet<string>; color: string } | null = null;
   private deflection: Deflection | null = null;
   private glowString: { index: number; color: string } | null = null;
   private glowFret: { fret: number; color: string } | null = null;
@@ -165,6 +166,8 @@ export class Fretboard {
   setFlashes(flashes: FlashData[]): void { this.flashes = flashes; }
   /** Cells that are out of play, as "string:fret" keys. */
   setDead(dead: ReadonlySet<string>): void { this.dead = dead; }
+  /** Dead cells washed lightly with a colour, to set them apart from the rest. */
+  setTinted(tinted: { cells: ReadonlySet<string>; color: string } | null): void { this.tinted = tinted; }
   setDeflection(deflection: Deflection | null): void { this.deflection = deflection; }
   setGlowString(glow: { index: number; color: string } | null): void { this.glowString = glow; }
   /** A fret lit from string to string, and its number with it. */
@@ -362,6 +365,16 @@ export class Fretboard {
         ctx.roundRect(left + 0.5, layout.y(s) - half + 0.5, Math.abs(xb - xa) - 5, half * 2 - 1, 4);
         ctx.fill();
         ctx.stroke();
+        if (this.tinted?.cells.has(`${s}:${fret}`)) {
+          ctx.save();
+          ctx.fillStyle = this.tinted.color;
+          ctx.strokeStyle = this.tinted.color;
+          ctx.globalAlpha = 0.2;
+          ctx.fill();
+          ctx.globalAlpha = 0.55;
+          ctx.stroke();
+          ctx.restore();
+        }
       }
     }
     ctx.restore();

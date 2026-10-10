@@ -266,6 +266,11 @@ export class Board {
     this.dirty = true;
   }
 
+  setTinted(cells: ReadonlySet<string>, color = this.theme.good): void {
+    this.fretboard.setTinted(cells.size ? { cells, color } : null);
+    this.dirty = true;
+  }
+
   setDeflection(deflection: Deflection | null): void {
     this.fretboard.setDeflection(deflection);
     this.dirty = true;
