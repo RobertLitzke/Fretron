@@ -39,7 +39,7 @@ the top if anything on a page is wider than the screen.
 | Speed Hunter, advanced | A note name is called with a string or a fret to find it on; only there will do | the same |
 | Fret Sweeper, by note | A note is called; tap every fret that plays it, then the next note is called, until the neck is clear | time with a note up, +3 s for a wrong tap |
 | Fret Sweeper, random | A note is called; tap one fret that plays it, and a new note is called, until the neck is clear | the same |
-| Triads, progressions | Tap three frets on neighbouring strings, then drag across them to play the chord | about 12 chords; points for speed and for staying close to the last chord; none for a chord that had to be shown |
+| Triads, progressions | Tap three frets on neighbouring strings, then drag anywhere on the board to play the chord | about 12 chords; points for speed and for staying close to the last chord; none for a chord that had to be shown |
 | Triads, grid clear | Find every close voicing of one chord on the neck | total time, +3 s for a wrong rake |
 | Bend by Ear | Hear a target pitch, push the string until your note matches, let go | 10 bends; points by how many cents off |
 | Bend Trace | Hear and see a bend that changes over time, then play it back from memory | 10 bends; points by the mean distance from the prompt |
