@@ -12,16 +12,26 @@ The game screens above are the real app with the skin applied, not drawings. Com
 
 ## The tour
 
-Six legs of three stops. That uses all 18 existing modes once, ordered so each leg adds something a little harder than the last.
+18 stops, each of the existing modes once. The order cycles through the three kinds of exercise (notes, then triads, then bends) in runs of one or two. Each time it comes back round, that kind is a step harder. The tour then cuts that order into six legs of three.
+
+| Round | Notes | Triads | Bends |
+|---|---|---|---|
+| 1 | Speed Hunter · By name, Fret Sweeper · By note | Progressions | Bend by Ear · Standard, Scale Bends · Blues |
+| 2 | Speed Hunter · By ear | Compact | Bend Trace · Standard, Scale Bends · Major |
+| 3 | Fret Sweeper · Random | Targets | Bend by Ear · Advanced, Scale Bends · Minor |
+| 4 | Speed Hunter · Advanced | Grid clear | Bend Trace · Advanced |
+| Encore | | | Bend by Ear · Virtuoso, Bend Trace · Virtuoso |
 
 | Leg | Sticker | Stop 1 | Stop 2 | Stop 3 |
 |---|---|---|---|---|
 | 1 | Hometown, basement bar | Speed Hunter · By name | Fret Sweeper · By note | Triads · Progressions |
-| 2 | London, club circuit | Speed Hunter · By ear | Bend by Ear · Standard | Triads · Compact |
-| 3 | Detroit, ballroom tour | Fret Sweeper · Random | Bend Trace · Standard | Scale Bends · Blues |
-| 4 | Europe, theatres | Triads · Targets | Bend by Ear · Advanced | Scale Bends · Minor |
-| 5 | Arenas | Speed Hunter · Advanced | Triads · Grid clear | Bend Trace · Advanced |
-| 6 | Tokyo, stadium | Scale Bends · Major | Bend by Ear · Virtuoso | Bend Trace · Virtuoso |
+| 2 | London, club circuit | Bend by Ear · Standard | Scale Bends · Blues | Speed Hunter · By ear |
+| 3 | Detroit, ballroom tour | Triads · Compact | Bend Trace · Standard | Scale Bends · Major |
+| 4 | Europe, theatres | Fret Sweeper · Random | Triads · Targets | Bend by Ear · Advanced |
+| 5 | Arenas | Scale Bends · Minor | Speed Hunter · Advanced | Triads · Grid clear |
+| 6 | Tokyo, stadium | Bend Trace · Advanced | Bend by Ear · Virtuoso | Bend Trace · Virtuoso |
+
+There are 9 bend modes and only 4 triad modes, so bends come up most often, and the last leg is all bends: the two Virtuoso modes are the headline encore. Inside a leg, the stops can be played in any order.
 
 ## Stars, booking and replay
 
