@@ -4,6 +4,11 @@
 // The string tone is FretFalcon's (ts/sounds/note_sounds.ts, getGuitarWave): a
 // strong fundamental with harmonics falling away. Here it is given a pluck's
 // envelope and a filter that closes as the note dies.
+//
+// The other voice, "guitar", is meant to sound like an electric guitar through a
+// warm amp: a plucked string's spectrum with a pick's click, into a soft clipper
+// (light overdrive), a humbucker's dark top and a speaker cabinet, with a little
+// room around it. The arcade noises are the same for both.
 
 import { contourDuration, type Contour } from '../core/bend';
 import { midiToHz } from '../core/music';
@@ -13,6 +18,15 @@ let master: GainNode | null = null;
 let wave: PeriodicWave | null = null;
 let noise: AudioBuffer | null = null;
 let volume = 0.8;
+let amp: AudioNode | null = null;
+let stringWave: PeriodicWave | null = null;
+
+export type Voice = 'synth' | 'guitar';
+let voice: Voice = 'synth';
+
+export function setVoice(v: Voice): void {
+  voice = v;
+}
 
 /** Loudness of the whole app at full volume. */
 const HEADROOM = 0.55;
@@ -34,8 +48,109 @@ function context(): AudioContext {
     noise = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.25), ctx.sampleRate);
     const data = noise.getChannelData(0);
     for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    stringWave = pluckedWave(ctx);
+    amp = buildAmp(ctx, master);
   }
   return ctx;
+}
+
+/**
+ * A string plucked a fifth of the way along: every harmonic that has a node
+ * near the pick is missing, and the rest fall away more slowly than the synth's.
+ */
+function pluckedWave(c: BaseAudioContext): PeriodicWave {
+  const n = 40;
+  const imag = new Float32Array(n);
+  for (let k = 1; k < n; k++) imag[k] = Math.abs(Math.sin(k * Math.PI * 0.19)) / Math.pow(k, 1.05);
+  return c.createPeriodicWave(new Float32Array(n), imag);
+}
+
+/** A soft clipper that leans one way, as a valve does: the even harmonics make it warm. */
+function driveCurve(amount: number): Float32Array {
+  const n = 2048;
+  const curve = new Float32Array(n);
+  const norm = Math.tanh(amount);
+  for (let i = 0; i < n; i++) {
+    const x = (i / (n - 1)) * 2 - 1;
+    const y = x + 0.18 * x * x;
+    curve[i] = Math.tanh(amount * y) / norm - 0.18 * Math.tanh(amount * 0.18) / norm;
+  }
+  return curve;
+}
+
+/** A short, dark room: decaying noise, a little wider in the lows than the highs. */
+function roomImpulse(c: BaseAudioContext): AudioBuffer {
+  const length = Math.floor(c.sampleRate * 0.9);
+  const buffer = c.createBuffer(2, length, c.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const data = buffer.getChannelData(ch);
+    let lp = 0;
+    for (let i = 0; i < length; i++) {
+      const t = i / c.sampleRate;
+      lp += 0.25 * (Math.random() * 2 - 1 - lp);
+      data[i] = lp * Math.exp(-t / 0.22) * (t < 0.012 ? 0 : 1);
+    }
+  }
+  return buffer;
+}
+
+/**
+ * The guitar voice's signal path, shared by every string so that a chord
+ * distorts as one: pickup, overdrive, cabinet, room. Returns its input.
+ */
+function buildAmp(c: BaseAudioContext, out: AudioNode): AudioNode {
+  const input = c.createGain();
+  input.gain.value = 1;
+  // A humbucker: full in the low mids, a soft peak and then little above it.
+  const pickup = c.createBiquadFilter();
+  pickup.type = 'lowpass';
+  pickup.frequency.value = 2700;
+  pickup.Q.value = 1.6;
+  // Keep the lows out of the clipper so it does not turn to mud.
+  const tight = c.createBiquadFilter();
+  tight.type = 'highpass';
+  tight.frequency.value = 110;
+  tight.Q.value = 0.6;
+  const drive = c.createGain();
+  drive.gain.value = 3.2;
+  const shaper = c.createWaveShaper();
+  shaper.curve = driveCurve(1.6) as Float32Array<ArrayBuffer>;
+  shaper.oversample = '4x';
+  // A 12-inch speaker in a closed box: a bump in the low end, a dip in the
+  // low mids, and nothing much past 5 kHz.
+  const body = c.createBiquadFilter();
+  body.type = 'peaking';
+  body.frequency.value = 140;
+  body.Q.value = 0.9;
+  body.gain.value = 3;
+  const scoop = c.createBiquadFilter();
+  scoop.type = 'peaking';
+  scoop.frequency.value = 420;
+  scoop.Q.value = 1.2;
+  scoop.gain.value = -3;
+  const presence = c.createBiquadFilter();
+  presence.type = 'peaking';
+  presence.frequency.value = 1900;
+  presence.Q.value = 1.4;
+  presence.gain.value = 2.5;
+  const cab1 = c.createBiquadFilter();
+  cab1.type = 'lowpass';
+  cab1.frequency.value = 4200;
+  cab1.Q.value = 0.9;
+  const cab2 = c.createBiquadFilter();
+  cab2.type = 'lowpass';
+  cab2.frequency.value = 6000;
+  cab2.Q.value = 0.6;
+  const level = c.createGain();
+  level.gain.value = 0.4;
+  input.connect(pickup).connect(tight).connect(drive).connect(shaper);
+  shaper.connect(body).connect(scoop).connect(presence).connect(cab1).connect(cab2).connect(level).connect(out);
+  const room = c.createConvolver();
+  room.buffer = roomImpulse(c);
+  const wet = c.createGain();
+  wet.gain.value = 0.16;
+  level.connect(room).connect(wet).connect(out);
+  return input;
 }
 
 /** Browsers keep audio shut until a tap. Call this from one. */
@@ -66,6 +181,10 @@ interface StringNodes {
  * be found by ear.
  */
 function strike(midi: number, when: number, level: number, ring: number, hold = 0): StringNodes {
+  return voice === 'guitar' ? strikeGuitar(midi, when, level, ring, hold) : strikeSynth(midi, when, level, ring, hold);
+}
+
+function strikeSynth(midi: number, when: number, level: number, ring: number, hold: number): StringNodes {
   const c = context();
   const osc = c.createOscillator();
   osc.setPeriodicWave(wave!);
@@ -81,6 +200,46 @@ function strike(midi: number, when: number, level: number, ring: number, hold = 
   gain.gain.setTargetAtTime(hold, when + 0.004, ring);
   osc.connect(filter).connect(gain).connect(master!);
   osc.start(when);
+  return { osc, gain, filter };
+}
+
+/**
+ * The guitar voice's string. The pitch starts a touch sharp and settles, as a
+ * string does when the pick lets it go; the brightness falls away faster than
+ * the note; and the pick itself clicks.
+ */
+function strikeGuitar(midi: number, when: number, level: number, ring: number, hold: number): StringNodes {
+  const c = context();
+  const hz = midiToHz(midi);
+  const osc = c.createOscillator();
+  osc.setPeriodicWave(stringWave!);
+  osc.frequency.setValueAtTime(hz * 1.006, when);
+  osc.frequency.setTargetAtTime(hz, when, 0.025);
+  const filter = c.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.Q.value = 0.7;
+  filter.frequency.setValueAtTime(Math.min(9000, hz * 30), when);
+  filter.frequency.setTargetAtTime(Math.min(hold > 0 ? 3800 : 2600, hz * 10), when, hold > 0 ? 0.5 : 0.3);
+  const gain = c.createGain();
+  gain.gain.setValueAtTime(0, when);
+  gain.gain.linearRampToValueAtTime(level, when + 0.002);
+  // The clipper evens out the fall, so it can be a little slower than the synth's.
+  gain.gain.setTargetAtTime(hold, when + 0.002, ring * 1.3);
+  osc.connect(filter).connect(gain).connect(amp!);
+  osc.start(when);
+
+  const click = c.createBufferSource();
+  click.buffer = noise;
+  const band = c.createBiquadFilter();
+  band.type = 'bandpass';
+  band.frequency.value = 2400;
+  band.Q.value = 0.8;
+  const clickGain = c.createGain();
+  clickGain.gain.setValueAtTime(level * 0.35, when);
+  clickGain.gain.exponentialRampToValueAtTime(0.0001, when + 0.012);
+  click.connect(band).connect(clickGain).connect(amp!);
+  click.start(when);
+  click.stop(when + 0.02);
   return { osc, gain, filter };
 }
 

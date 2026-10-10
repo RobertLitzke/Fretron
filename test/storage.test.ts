@@ -10,15 +10,16 @@ describe('the save', () => {
   });
 
   it('survives a round trip', () => {
-    let save: SaveData = { ...emptySave(), hand: 'left', volume: 0.3, accidentals: 'flat', frets: 15 };
+    let save: SaveData = { ...emptySave(), hand: 'left', volume: 0.3, voice: 'guitar', accidentals: 'flat', frets: 15 };
     save = withScore(save, 'sweeper', entry(201.4, 'ROB'), 'low');
     expect(migrate(JSON.parse(JSON.stringify(save)))).toEqual(save);
   });
 
   it('repairs what it cannot read', () => {
-    const save = migrate({ hand: 'both', volume: 9, accidentals: 3, frets: 13, initials: 'q', scores: { sweeper: [{ value: 'fast' }, { name: 'ab', value: 90, rank: 'Z' }], bad: 'x' } });
+    const save = migrate({ hand: 'both', volume: 9, voice: 'banjo', accidentals: 3, frets: 13, initials: 'q', scores: { sweeper: [{ value: 'fast' }, { name: 'ab', value: 90, rank: 'Z' }], bad: 'x' } });
     expect(save.hand).toBe('right');
     expect(save.volume).toBe(0.8);
+    expect(save.voice).toBe('synth');
     expect(save.accidentals).toBe('mixed');
     expect(save.frets).toBe(12);
     expect(save.initials).toBe('QAA');

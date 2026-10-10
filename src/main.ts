@@ -1,6 +1,6 @@
 import './app/styles/app.css';
 import { registerSW } from 'virtual:pwa-register';
-import { setVolume } from './audio/audio';
+import { setVoice, setVolume } from './audio/audio';
 import { el } from './app/dom';
 import { Router } from './app/router';
 import { getSave } from './app/store';
@@ -39,6 +39,7 @@ function boot(): void {
     outlet,
   );
   setVolume(getSave().volume);
+  setVoice(getSave().voice);
 
   const markHere = () => {
     const here = location.hash.replace(/^#/, '');

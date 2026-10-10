@@ -1,4 +1,4 @@
-import { pluck, setVolume, unlock } from '../../audio/audio';
+import { pluck, setVoice, setVolume, strum, unlock, type Voice } from '../../audio/audio';
 import type { Hand } from '../../core/geometry';
 import { NECK_SIZES } from '../../core/music';
 import type { Accidentals } from '../../core/notes';
@@ -98,6 +98,25 @@ export const settingsView: View = (root) => {
           {},
           el('h2', {}, 'Sound and screen'),
           el('label.row', {}, el('span', {}, 'Volume'), volume),
+          el(
+            'div.row',
+            {},
+            el('span', {}, 'Voice'),
+            segmented<Voice>(
+              [
+                { value: 'synth', label: 'Synth' },
+                { value: 'guitar', label: 'Guitar' },
+              ],
+              save.voice,
+              (voice) => {
+                updateSave((s) => ({ ...s, voice }));
+                setVoice(voice);
+                unlock();
+                strum([55, 59, 62]);
+              },
+            ),
+          ),
+          el('p.note', {}, 'Synth is the original tone. Guitar is an electric with a little overdrive.'),
           canFullscreen() ? el('div.row', {}, el('button.btn', { type: 'button', onclick: toggleFullscreen }, 'Full screen on / off')) : null,
         ),
         el(
