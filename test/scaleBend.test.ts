@@ -25,7 +25,8 @@ describe('scale bends', () => {
         expect(degreeOf(SCALES[id], p.root, p.from)).not.toBeNull();
         expect(degreeOf(SCALES[id], p.root, p.to)).not.toBeNull();
         expect(p.to - p.from).toBe(p.semis);
-        if (p.semis >= 2 && p.cell.string < 5) expect(p.target.string).toBe(p.cell.string + 1);
+        const wraps = p.semis > 2 || p.cell.fret + p.semis > 12;
+        if (wraps && p.cell.string < 5) expect(p.target.string).toBe(p.cell.string + 1);
         else expect(p.target).toEqual({ string: p.cell.string, fret: p.cell.fret + p.semis });
         expect(cellMidi(T, p.target)).toBe(p.to);
         expect(p.target.fret).toBeLessThanOrEqual(12);
@@ -42,14 +43,20 @@ describe('scale bends', () => {
     expect(high).toBeGreaterThan(700);
   });
 
-  it('shows the target of a whole step or more on the next string up', () => {
-    // A on the B string, bent a whole step: B, on the high E string at fret 7.
-    expect(targetCell(T, { string: 4, fret: 10 }, 2)).toEqual({ string: 5, fret: 7 });
-    // The G to B strings are a third apart: D bent a step and a half to F, at fret 6.
-    expect(targetCell(T, { string: 3, fret: 7 }, 3)).toEqual({ string: 4, fret: 6 });
-    // A half step, or the top string, stays on its own string.
-    expect(targetCell(T, { string: 4, fret: 10 }, 1)).toEqual({ string: 4, fret: 11 });
-    expect(targetCell(T, { string: 5, fret: 10 }, 2)).toEqual({ string: 5, fret: 12 });
+  it('shows the target on the same string up to a whole step, and on the next string up beyond that or past the neck', () => {
+    // Half and whole steps that fit stay on their own string.
+    expect(targetCell(T, { string: 4, fret: 8 }, 1, 12)).toEqual({ string: 4, fret: 9 });
+    expect(targetCell(T, { string: 4, fret: 8 }, 2, 12)).toEqual({ string: 4, fret: 10 });
+    // A on the B string at fret 10, bent a whole step on a 12-fret neck: fret 12 still fits.
+    expect(targetCell(T, { string: 4, fret: 10 }, 2, 12)).toEqual({ string: 4, fret: 12 });
+    // At fret 11 it would be off the neck: B, on the high E string at fret 8.
+    expect(targetCell(T, { string: 4, fret: 11 }, 2, 12)).toEqual({ string: 5, fret: 8 });
+    // On a longer neck it fits again.
+    expect(targetCell(T, { string: 4, fret: 11 }, 2, 15)).toEqual({ string: 4, fret: 13 });
+    // A step and a half goes up a string: D on the G string to F on the B string (a third apart), fret 6.
+    expect(targetCell(T, { string: 3, fret: 7 }, 3, 12)).toEqual({ string: 4, fret: 6 });
+    // The top string has none above it.
+    expect(targetCell(T, { string: 5, fret: 8 }, 3, 12)).toEqual({ string: 5, fret: 11 });
   });
 
   it('draws only scale notes', () => {
