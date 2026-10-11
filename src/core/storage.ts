@@ -6,7 +6,7 @@ import type { Hand } from './geometry';
 import type { Rank } from './modes';
 import { DEFAULT_FRETS, NECK_SIZES } from './music';
 import type { Accidentals } from './notes';
-import { betterRank } from './tour';
+import { betterRank, FIRST_TOUR, type TourBest } from './tour';
 
 export const SAVE_VERSION = 1;
 
@@ -39,12 +39,12 @@ export interface SaveData {
   scores: Record<string, ScoreEntry[]>;
   /** What was last chosen before a game that asks for a choice, by game: the scale for Scale Bends. */
   picks: Record<string, string>;
-  /** World Tour: the best rank of a run played on tour, by mode id. */
-  tour: Record<string, Rank>;
+  /** World Tour: by tour year, then by mode id, the best of the runs played on that tour. */
+  tours: Record<string, Record<string, TourBest>>;
 }
 
 export function emptySave(): SaveData {
-  return { v: SAVE_VERSION, hand: 'right', volume: 0.8, voice: 'synth', accidentals: 'mixed', frets: DEFAULT_FRETS, initials: 'AAA', scores: {}, picks: {}, tour: {} };
+  return { v: SAVE_VERSION, hand: 'right', volume: 0.8, voice: 'synth', accidentals: 'mixed', frets: DEFAULT_FRETS, initials: 'AAA', scores: {}, picks: {}, tours: {} };
 }
 
 function isObject(x: unknown): x is Record<string, unknown> {
@@ -85,8 +85,21 @@ export function migrate(raw: unknown): SaveData {
   if (isObject(raw.picks)) {
     for (const [game, pick] of Object.entries(raw.picks)) if (typeof pick === 'string') save.picks[game] = pick;
   }
-  if (isObject(raw.tour)) {
-    for (const [mode, rank] of Object.entries(raw.tour)) if (isRank(rank)) save.tour[mode] = rank;
+  if (isObject(raw.tours)) {
+    for (const [year, record] of Object.entries(raw.tours)) {
+      if (!isObject(record)) continue;
+      const kept: Record<string, TourBest> = {};
+      for (const [mode, best] of Object.entries(record)) {
+        if (!isObject(best) || !isRank(best.rank)) continue;
+        kept[mode] = typeof best.value === 'number' && Number.isFinite(best.value) ? { rank: best.rank, value: best.value } : { rank: best.rank };
+      }
+      if (Object.keys(kept).length) save.tours[year] = kept;
+    }
+  } else if (isObject(raw.tour)) {
+    // The first tour kept only ranks, under `tour`.
+    const kept: Record<string, TourBest> = {};
+    for (const [mode, rank] of Object.entries(raw.tour)) if (isRank(rank)) kept[mode] = { rank };
+    if (Object.keys(kept).length) save.tours[FIRST_TOUR] = kept;
   }
   return save;
 }
@@ -95,10 +108,16 @@ function isRank(x: unknown): x is Rank {
   return x === 'S' || x === 'A' || x === 'B' || x === 'C';
 }
 
-/** Keep a tour run's rank where it beats the stop's best. */
-export function withTourRank(save: SaveData, mode: string, rank: Rank): SaveData {
-  const best = betterRank(save.tour[mode], rank);
-  return best === save.tour[mode] ? save : { ...save, tour: { ...save.tour, [mode]: best } };
+/** Keep what a run on a tour beat of that stop's bests: the rank and the score each on its own. */
+export function withTourRun(save: SaveData, year: number, mode: string, rank: Rank, value: number, better: 'high' | 'low'): SaveData {
+  const record = save.tours[year] ?? {};
+  const was = record[mode];
+  const next: TourBest = {
+    rank: betterRank(was?.rank, rank),
+    value: was?.value === undefined || beats(value, was.value, better) ? value : was.value,
+  };
+  if (was && next.rank === was.rank && next.value === was.value) return save;
+  return { ...save, tours: { ...save.tours, [year]: { ...record, [mode]: next } } };
 }
 
 function beats(a: number, b: number, better: 'high' | 'low'): boolean {

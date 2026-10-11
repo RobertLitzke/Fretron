@@ -2,27 +2,31 @@
 // leg picked, with its sleeve. A stop plays the ordinary game under /tour.
 
 import { unlock } from '../../audio/audio';
-import { formatValue, tableKey } from '../../core/modes';
+import { formatValue } from '../../core/modes';
 import {
   currentLeg,
   legBooked,
   legGold,
   legSoldOut,
-  LEGS,
+  legStars,
   MAX_STARS,
   nextBooking,
   starsFor,
   stopMode,
   totalStars,
+  tourFor,
   type Leg,
 } from '../../core/tour';
 import { el } from '../dom';
 import type { View } from '../router';
 import { getSave, updateSave } from '../store';
+import { applyLook, currentTour, openTours } from '../tour/current';
 import { sleeveSvg } from '../tour/sleeves';
+import { GENRES } from '../../core/looks';
+
+const GENRE_WORDS: Record<string, string> = Object.fromEntries(GENRES.map((g) => [g.id, g.words]));
 
 const SHAPES = ['round', 'pennant', 'oval', 'shield', 'round', 'pennant'] as const;
-const COLOURS = ['#2e6b68', '#7d2a25', '#c8502a', '#6f7a2b', '#5a3a5a', '#b0302a'];
 /** Where each sticker sits on the map, in percent: a zigzag along the road. */
 const PLACES: readonly (readonly [number, number, number])[] = [
   [13, 70, -8],
@@ -46,30 +50,43 @@ function sleeve(leg: Leg, booked: boolean): HTMLElement {
 export const tourView: View = (root) => {
   const render = () => {
     const save = getSave();
-    const ranks = save.tour;
-    const stars = totalStars(ranks);
-    const next = nextBooking(ranks);
-    const now = currentLeg(ranks);
-    const picked = Number(save.picks.tour);
-    const legIndex = Number.isInteger(picked) && picked >= 0 && picked < LEGS.length ? picked : now;
-    const leg = LEGS[legIndex];
-    const booked = legBooked(leg, ranks);
+    const tour = currentTour(save);
+    const { id, year, legs } = tour;
+    const ids = openTours(save);
+    const record = save.tours[id] ?? {};
+    const stars = totalStars(legs, record);
+    const next = nextBooking(legs, stars);
+    const now = currentLeg(legs, stars);
+    const legKey = `tour${id}`;
+    const picked = Number(save.picks[legKey]);
+    const legIndex = Number.isInteger(picked) && picked >= 0 && picked < legs.length ? picked : now;
+    const leg = legs[legIndex];
+    const booked = legBooked(leg, stars);
 
     const pick = (i: number) => {
-      updateSave((s) => ({ ...s, picks: { ...s.picks, tour: String(i) } }));
+      updateSave((s) => ({ ...s, picks: { ...s.picks, [legKey]: String(i) } }));
       render();
     };
+    const toTour = (to: number) => {
+      updateSave((s) => ({ ...s, picks: { ...s.picks, tour: String(to) } }));
+      // The look changes with the tour.
+      applyLook(tour.id === to ? tour : tourFor(to));
+      render();
+    };
+    const at = ids.indexOf(id);
+    const earlier = ids[at - 1];
+    const later = ids[at + 1];
 
-    const stickers = LEGS.map((l, i) => {
-      const isBooked = legBooked(l, ranks);
+    const stickers = legs.map((l, i) => {
+      const isBooked = legBooked(l, stars);
       const [x, y, turn] = PLACES[i];
-      const legStarsNow = l.stops.reduce((sum, s) => sum + starsFor(ranks[s.mode]), 0);
+      const legStarsNow = legStars(l, record);
       const classes = [`sticker`, SHAPES[i], isBooked ? (i === now ? 'here' : 'filled') : 'locked', i === legIndex ? 'picked' : '']
         .filter(Boolean)
         .join('.');
       return el(
         `button.${classes}`,
-        { type: 'button', style: `left:${x}%;top:${y}%;--c:${COLOURS[i]};--r:${turn}deg`, onclick: () => pick(i) },
+        { type: 'button', style: `left:${x}%;top:${y}%;--c:var(--c${i + 1});--r:${turn}deg`, onclick: () => pick(i) },
         el(
           'span.face',
           {},
@@ -79,24 +96,24 @@ export const tourView: View = (root) => {
             el('span.leg', {}, `Leg ${i + 1}`),
             el('span.name', {}, l.name),
             el('span.sub', {}, isBooked ? l.venue : `★ ${l.booking} to book`),
-            isBooked ? el('span.got', {}, `★ ${legStarsNow} / 9`) : null,
+            isBooked ? el('span.got', {}, `★ ${legStarsNow} / ${3 * l.stops.length}`) : null,
           ),
         ),
-        legGold(l, ranks) ? el('span.stamp.gold', {}, 'GOLD') : legSoldOut(l, ranks) ? el('span.stamp', {}, 'SOLD OUT') : null,
+        legGold(l, record) ? el('span.stamp.gold', {}, 'GOLD') : legSoldOut(l, record) ? el('span.stamp', {}, 'SOLD OUT') : null,
       );
     });
 
     // The first stop short of three stars is the one offered.
     const stopIndex = Math.max(
       0,
-      leg.stops.findIndex((s) => starsFor(ranks[s.mode]) < 3),
+      leg.stops.findIndex((s) => starsFor(record[s.mode]?.rank) < 3),
     );
     let chosen = stopIndex;
     const playButton = el('a.tour-play') as HTMLAnchorElement;
     const rows = leg.stops.map((stop, i) => {
       const mode = stopMode(stop);
-      const best = save.scores[tableKey(mode, save.frets)]?.[0];
-      const rank = ranks[stop.mode];
+      const best = record[stop.mode];
+      const rank = best?.rank;
       return el(
         'button.song',
         { type: 'button', disabled: !booked, onclick: () => choose(i) },
@@ -105,7 +122,7 @@ export const tourView: View = (root) => {
           'span.t',
           {},
           stop.city,
-          el('i', {}, `${mode.title} · ${mode.variant} · `, rank ? `best ${rank}${best ? `, ${formatValue(mode, best.value)}` : ''}` : 'not played yet'),
+          el('i', {}, `${mode.title} · ${mode.variant} · `, rank ? (best?.value !== undefined ? `best ${formatValue(mode, best.value)}` : 'played') : 'not played yet'),
         ),
         starRow(starsFor(rank)),
       );
@@ -128,13 +145,20 @@ export const tourView: View = (root) => {
         'header.tour-top',
         {},
         el('a.tour-back', { href: '#/home', 'aria-label': 'Back to the games' }, '←'),
-        el('span.tour-title', {}, 'Fretron World Tour', el('small', {}, "'77")),
-        el('span.tour-total', {}, el('b', {}, '★'), ` ${stars}`, el('i', {}, ` / ${MAX_STARS}${next ? ` · next leg at ${next.booking}` : ' · the whole tour'}`)),
+        el('span.tour-title', {}, `Fretron ${tour.title}`),
+        el(
+          'span.tour-years',
+          {},
+          el('button.tour-year-step', { type: 'button', disabled: earlier === undefined, 'aria-label': 'Earlier tour', onclick: () => toTour(earlier) }, '‹'),
+          el('b', {}, `'${year}`, el('i', {}, GENRE_WORDS[tour.look.genre])),
+          el('button.tour-year-step', { type: 'button', disabled: later === undefined, 'aria-label': 'Later tour', onclick: () => toTour(later) }, '›'),
+        ),
+        el('span.tour-total', {}, el('b', {}, '★'), ` ${stars}`, el('i', {}, ` / ${MAX_STARS}${next ? ` · next leg at ${next.booking}` : later ? ' · your next tour is booked' : ' · the whole tour'}`)),
       ),
       el(
         'div.tour-body',
         {},
-        el('div.tour-map', {}, road(), stickers),
+        el('div.tour-map', {}, road(), stickers, el('span.tour-postmark', {}, el('b', {}, `'${year}`))),
         el(
           'div.setlist',
           {},

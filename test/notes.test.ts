@@ -41,16 +41,6 @@ describe('Speed Hunter', () => {
     }
   });
 
-  it('asks by ear for one fret on one string, and sounds that very pitch', () => {
-    const rng = new Rng(4);
-    for (let i = 0; i < 100; i++) {
-      const p = makeHuntPrompt(rng, T, 'ear', 1, 7, 'sharp', null);
-      expect(p.answers.length).toBe(1);
-      expect(p.string).toBe(p.answers[0].string);
-      expect(p.midi).toBe(cellMidi(T, p.answers[0]));
-    }
-  });
-
   it('in the advanced game pins the note to a string or to a fret, and asks for both kinds', () => {
     const rng = new Rng(9);
     let byString = 0;
@@ -82,8 +72,8 @@ describe('Speed Hunter', () => {
     const rng = new Rng(2);
     const seen = new Set<number>();
     for (let i = 0; i < 300; i++) {
-      const p = makeHuntPrompt(rng, T, 'ear', 0, 12, 'sharp', null);
-      seen.add(p.answers[0].fret);
+      const p = makeHuntPrompt(rng, T, 'advanced', 0, 12, 'sharp', null);
+      for (const a of p.answers) seen.add(a.fret);
     }
     expect(seen.has(0)).toBe(true);
     // E by name: both E strings open, and at fret 12, among the rest.

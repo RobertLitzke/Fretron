@@ -42,7 +42,7 @@ import {
   type TraceSample,
 } from '../../core/bend';
 import type { BoardLayout } from '../../core/geometry';
-import { asTier, modeById, rankBend, rankTrace, tierWords } from '../../core/modes';
+import { asTier, bendTargets, modeById, rankBend, rankTrace, tierWords } from '../../core/modes';
 import { pc, pcName, stringName, type Cell } from '../../core/music';
 import { Rng } from '../../core/rng';
 import { el } from '../dom';
@@ -317,6 +317,7 @@ export const bendView: View = (root, ctx) => {
         mode,
         value: score,
         rank: rankBend(mean),
+        targets: bendTargets(),
         stats: [
           ['Pitch accuracy', `${mean.toFixed(1)} ¢ off`],
           ['Speed rating', `${(secondsTotal / BEND_PROMPTS).toFixed(1)} s`],
@@ -338,6 +339,7 @@ export const bendView: View = (root, ctx) => {
       'Afterwards, tap the note to hear where you let go, and compare it with the target.',
       `${BEND_PROMPTS} bends. Within 5 cents is a bullseye.`,
     ],
+    bendTargets(),
     () => {
       blip();
       next();
@@ -693,6 +695,7 @@ export const traceView: View = (root, ctx) => {
         mode,
         value: score,
         rank: rankTrace(mean),
+        targets: bendTargets(true),
         stats: [
           ['Pitch accuracy', `${mean.toFixed(1)} ¢ off`],
           ['Best trace', `${best.toFixed(1)} ¢ off`],
@@ -713,6 +716,7 @@ export const traceView: View = (root, ctx) => {
       'Lost it? Tap anywhere else with another finger to mute the bend and call it off, then hear it again and start over.',
       `${BEND_PROMPTS} bends, scored on how far your pitch was from the prompt along the way. Both lines are shown afterwards: tap the note to hear yours again.`,
     ],
+    bendTargets(true),
     () => {
       blip();
       next();

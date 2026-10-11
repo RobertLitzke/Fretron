@@ -35,7 +35,6 @@ the top if anything on a page is wider than the screen.
 | Game | What you do | A run is |
 |---|---|---|
 | Speed Hunter, by name | A note name is called; tap any fret that plays it | 20 notes; total time, +3 s for a wrong fret |
-| Speed Hunter, by ear | A pitch sounds and a string lights up; tap the fret on that string | the same |
 | Speed Hunter, advanced | A note name is called with a string or a fret to find it on; only there will do | the same |
 | Fret Sweeper, by note | A note is called; tap every fret that plays it, then the next note is called, until the neck is clear | time with a note up, +3 s for a wrong tap |
 | Fret Sweeper, random | A note is called; tap one fret that plays it, and a new note is called, until the neck is clear | the same |
@@ -50,17 +49,33 @@ that add wider bends. Scale Bends asks for a scale on the panel before
 the run: blues (minor pentatonic with the ♭5, which the 4 can be bent over to
 the 5), major or natural minor, in a new key every bend. Each scale keeps its
 own score table, and the menu's Play button returns to the last one chosen.
-Only the root, the note being bent and the target are named on the board. Every game ends on a rank (S, A, B, C), a card of numbers, and a local
-top ten with three-letter initials.
+Only the root, the note being bent and the target are named on the board.
 
-**World Tour** (the Tour tab) strings the same games into a 1970s rock tour:
-six legs of three cities, each stop one game played exactly as it is from the
+Every game ends on zero to three stars with a title (Garage Band, Gigging
+Musician, Session Pro, Master), a card of numbers, and a local top ten with
+three-letter initials. The ready panel says what each star takes, and the
+result card what the next one does.
+
+**World Tour** (the Tour tab) strings the same games into rock tours: five
+legs of three cities and a two-city encore, each stop one game played exactly as it is from the
 menu. The order goes round notes, triads and bends, one or two of each, a step
-harder each time round. A stop's best rank on tour earns stars (S 3, A 2, B 1),
-and stars book the next leg. Runs on tour go on the usual score tables. The
-tour wears its own skin: `<html data-skin="tour">`, set by the router on the
-`/tour` routes, re-points the design tokens (`src/app/styles/tour.css`),
-including the board's, which the canvas reads as it is built.
+harder each time round. A stop's best run on a tour earns its stars,
+stars book the next leg, and booking a tour's last leg opens the next tour.
+Each tour keeps its own best stars and score for every stop, apart from
+the usual score tables, which tour runs also go on.
+
+The first tour is fixed: a 1970s hard rock World Tour. The other twelve are
+drawn from their number (`src/core/tour.ts`): the same climb in a shuffled
+order, on a continent of its own with its own cities, in a genre (hard rock,
+heavy metal, British beat, psychedelic, punk, glam) and an era ('60s, '70s,
+'80s) from `src/core/looks.ts`. The three layers of look stack: the genre sets
+colours, type, the guitar's wood and the leg's album sleeves; the era sets
+textures, the band under the bars and whether the board glows; the continent
+tints the map, draws the road and stamps the postmark. The router puts the
+tour's `data-genre`, `data-era` and `data-continent` on `<html>` beside
+`data-skin="tour"` on the `/tour` routes; `src/app/styles/looks.css` holds the
+layers and `tour.css` turns them into the app's tokens, the board's included,
+which the canvas reads as it is built.
 
 The note and triad games take the open strings too: tap on the nut, or in the
 ring beside it that carries the string's name. Bends need a fretted note.
@@ -80,9 +95,8 @@ spells the chord in the top row. The fifth wrong rake shows the answer, for no
 points. A chord that has been played or shown stays up with each note marked R,
 3 or 5.
 
-A wrong tap in Fret Sweeper names the fret that was hit. In Speed Hunter by ear
-the pitch can be heard again. In the middle of a run the quit button asks
-before it quits.
+A wrong tap in Fret Sweeper names the fret that was hit. In the middle of a run the quit button
+asks before it quits.
 
 ## Settings
 
@@ -165,6 +179,6 @@ cannot disagree with its own touch targets.
 ## Not built
 
 Spoken note callouts, other tunings, a limited-time arcade variant, global
-leaderboards, a combined rank across games. Ranks, bend travel and the trace
+leaderboards, a combined rating across games. Star bars, bend travel and the trace
 scoring bands are first guesses: nothing here has been played on a real phone
 or listened to yet.

@@ -4,6 +4,7 @@ import { el } from './app/dom';
 import { Router } from './app/router';
 import { getSave } from './app/store';
 import { canFullscreen, toggleFullscreen } from './app/ui';
+import { applyLook, clearLook, currentTour } from './app/tour/current';
 import { inTour, tourRewrite } from './app/tour/route';
 import { watchForUpdates } from './app/update';
 import { bendView, traceView } from './app/views/bend';
@@ -55,8 +56,8 @@ function boot(): void {
   const router = new Router(outlet, {
     rewrite: tourRewrite,
     before: (path) => {
-      if (inTour(path)) document.documentElement.dataset.skin = 'tour';
-      else delete document.documentElement.dataset.skin;
+      if (inTour(path)) applyLook(currentTour(getSave()));
+      else clearLook();
       document.body.classList.toggle('in-tour', path === '/tour');
     },
   });
