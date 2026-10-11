@@ -12,6 +12,7 @@ import {
   legSoldOut,
   longestRun,
   MAX_RUN,
+  LEG_SIZES,
   MAX_STARS,
   nextBooking,
   starsFor,
@@ -32,6 +33,7 @@ describe('the tours', () => {
       const ids = modesOf(year);
       expect(ids.slice().sort()).toEqual(MODES.map((m) => m.id).sort());
       for (const id of ids) expect(modeById(id)).toBeDefined();
+      expect(tourFor(year).legs.map((l) => l.stops.length)).toEqual(LEG_SIZES);
     }
   });
 
@@ -101,7 +103,7 @@ describe('the tours', () => {
     expect(currentLeg(CLASSIC, stars)).toBe(1);
     expect(legSoldOut(CLASSIC[0], record)).toBe(false);
     expect(legSoldOut(CLASSIC[0], { ...record, triads: { rank: 'B' } })).toBe(true);
-    expect(stopFor(CLASSIC, 'gridclear')?.stop.city).toBe('Los Angeles');
+    expect(stopFor(CLASSIC, 'gridclear')?.stop.city).toBe('Philadelphia');
   });
 
   it('open a tour once the last leg of the one before is booked', () => {

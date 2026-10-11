@@ -15,11 +15,11 @@ export function promptName(rng: Rng, pitchClass: number, accidentals: Accidental
 // --- Speed Hunter (design document 4.2) ---------------------------------------
 
 /**
- * By name: any fret that plays the called note. By ear: a pitch and a string.
+ * By name: any fret that plays the called note.
  * Advanced: a name and either a string or a fret, so that only that one place
  * (or its octave on the same string, or its twin on the other E string) will do.
  */
-export type HuntVariant = 'name' | 'ear' | 'advanced';
+export type HuntVariant = 'name' | 'advanced';
 
 export const HUNT_PROMPTS = 20;
 /**
@@ -32,11 +32,11 @@ export const HUNT_PROMPTS_PER_WINDOW = 5;
 
 export interface HuntPrompt {
   pitchClass: number;
-  /** What to show: a note name. In the ear game it is shown only afterwards. */
+  /** What to show: a note name. */
   name: string;
   /** The pitch to sound. */
   midi: number;
-  /** The string the note is to be found on, where the prompt names one: always by ear, sometimes in the advanced game. */
+  /** The string the note is to be found on, where the advanced game names one. */
   string: number | null;
   /** The fret it is to be found at, where the advanced game names that instead. */
   fret: number | null;
@@ -57,13 +57,9 @@ export function makeHuntPrompt(
   const cells = allCells(tuning, first, last);
   for (;;) {
     const cell = rng.pick(cells);
-    const midi = cellMidi(tuning, cell);
-    const pitchClass = pc(midi);
+    const pitchClass = pc(cellMidi(tuning, cell));
     if (previous && previous.pitchClass === pitchClass) continue;
     const name = promptName(rng, pitchClass, accidentals);
-    if (variant === 'ear') {
-      return { pitchClass, name, midi, string: cell.string, fret: null, answers: [cell] };
-    }
     const everywhere = cells.filter((c) => pc(cellMidi(tuning, c)) === pitchClass);
     // Sound the name in the middle of the guitar's range, not at one of the answers.
     const sounded = 52 + ((pitchClass - 4 + 12) % 12);

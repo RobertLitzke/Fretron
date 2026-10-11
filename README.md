@@ -35,7 +35,6 @@ the top if anything on a page is wider than the screen.
 | Game | What you do | A run is |
 |---|---|---|
 | Speed Hunter, by name | A note name is called; tap any fret that plays it | 20 notes; total time, +3 s for a wrong fret |
-| Speed Hunter, by ear | A pitch sounds and a string lights up; tap the fret on that string | the same |
 | Speed Hunter, advanced | A note name is called with a string or a fret to find it on; only there will do | the same |
 | Fret Sweeper, by note | A note is called; tap every fret that plays it, then the next note is called, until the neck is clear | time with a note up, +3 s for a wrong tap |
 | Fret Sweeper, random | A note is called; tap one fret that plays it, and a new note is called, until the neck is clear | the same |
@@ -53,8 +52,8 @@ own score table, and the menu's Play button returns to the last one chosen.
 Only the root, the note being bent and the target are named on the board. Every game ends on a rank (S, A, B, C), a card of numbers, and a local
 top ten with three-letter initials.
 
-**World Tour** (the Tour tab) strings the same games into rock tours: six
-legs of three cities, each stop one game played exactly as it is from the
+**World Tour** (the Tour tab) strings the same games into rock tours: five
+legs of three cities and a two-city encore, each stop one game played exactly as it is from the
 menu. The order goes round notes, triads and bends, one or two of each, a step
 harder each time round. A stop's best rank on a tour earns stars (S 3, A 2,
 B 1), stars book the next leg, and booking a tour's last leg opens the next
@@ -92,9 +91,8 @@ spells the chord in the top row. The fifth wrong rake shows the answer, for no
 points. A chord that has been played or shown stays up with each note marked R,
 3 or 5.
 
-A wrong tap in Fret Sweeper names the fret that was hit. In Speed Hunter by ear
-the pitch can be heard again. In the middle of a run the quit button asks
-before it quits.
+A wrong tap in Fret Sweeper names the fret that was hit. In the middle of a run the quit button
+asks before it quits.
 
 ## Settings
 

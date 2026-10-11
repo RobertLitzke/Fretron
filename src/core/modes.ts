@@ -34,7 +34,6 @@ const SCALE_WORDS: Record<ScaleId, string> = { blues: 'Blues', major: 'Major', m
 
 export const MODES: readonly Mode[] = [
   { id: 'hunter-name', title: 'Speed Hunter', variant: 'By name', route: '/play/hunter/name', better: 'low', unit: 'seconds' },
-  { id: 'hunter-ear', title: 'Speed Hunter', variant: 'By ear', route: '/play/hunter/ear', better: 'low', unit: 'seconds' },
   { id: 'hunter-advanced', title: 'Speed Hunter', variant: 'Advanced', route: '/play/hunter/advanced', better: 'low', unit: 'seconds' },
   { id: 'sweeper', title: 'Fret Sweeper', variant: 'By note', route: '/play/sweeper/note', better: 'low', unit: 'seconds' },
   { id: 'sweeper-random', title: 'Fret Sweeper', variant: 'Random', route: '/play/sweeper/random', better: 'low', unit: 'seconds' },

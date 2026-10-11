@@ -96,7 +96,7 @@ export const tourView: View = (root) => {
             el('span.leg', {}, `Leg ${i + 1}`),
             el('span.name', {}, l.name),
             el('span.sub', {}, isBooked ? l.venue : `★ ${l.booking} to book`),
-            isBooked ? el('span.got', {}, `★ ${legStarsNow} / 9`) : null,
+            isBooked ? el('span.got', {}, `★ ${legStarsNow} / ${3 * l.stops.length}`) : null,
           ),
         ),
         legGold(l, record) ? el('span.stamp.gold', {}, 'GOLD') : legSoldOut(l, record) ? el('span.stamp', {}, 'SOLD OUT') : null,

@@ -61,7 +61,7 @@ export type TourRecord = Readonly<Record<string, TourBest>>;
 
 // The order cycles notes, triads, bends, one or two of each at a time, and
 // each time round a kind comes back a step harder. There are more bend modes
-// than anything else, so the last leg is all bends: the encore.
+// than anything else, so the last leg is two bends: the encore.
 /** The first tour, in a fixed order. */
 export const CLASSIC: readonly Leg[] = [
   {
@@ -83,14 +83,14 @@ export const CLASSIC: readonly Leg[] = [
     stops: [
       { city: 'London', mode: 'bend-standard' },
       { city: 'Manchester', mode: 'scalebend-blues' },
-      { city: 'Glasgow', mode: 'hunter-ear' },
+      { city: 'Glasgow', mode: 'sweeper-random' },
     ],
   },
   {
     name: 'Motor City',
     venue: 'ballroom tour',
     sleeve: 'prism',
-    booking: 10,
+    booking: 9,
     stops: [
       { city: 'Detroit', mode: 'triads-compact' },
       { city: 'Cleveland', mode: 'trace-standard' },
@@ -101,39 +101,39 @@ export const CLASSIC: readonly Leg[] = [
     name: 'Europe',
     venue: 'theatres',
     sleeve: 'airship',
-    booking: 18,
+    booking: 17,
     stops: [
-      { city: 'Amsterdam', mode: 'sweeper-random' },
-      { city: 'Paris', mode: 'triads-target' },
-      { city: 'Berlin', mode: 'bend-advanced' },
+      { city: 'Amsterdam', mode: 'triads-target' },
+      { city: 'Paris', mode: 'bend-advanced' },
+      { city: 'Berlin', mode: 'scalebend-minor' },
     ],
   },
   {
     name: 'America',
     venue: 'arenas',
     sleeve: 'lantern',
-    booking: 27,
+    booking: 25,
     stops: [
-      { city: 'New York', mode: 'scalebend-minor' },
-      { city: 'Philadelphia', mode: 'hunter-advanced' },
-      { city: 'Los Angeles', mode: 'gridclear' },
+      { city: 'New York', mode: 'hunter-advanced' },
+      { city: 'Philadelphia', mode: 'gridclear' },
+      { city: 'Los Angeles', mode: 'trace-advanced' },
     ],
   },
   {
     name: 'Japan',
     venue: 'stadium encore',
     sleeve: 'sun',
-    booking: 36,
+    booking: 34,
     stops: [
-      { city: 'Nagoya', mode: 'trace-advanced' },
       { city: 'Osaka', mode: 'bend-virtuoso' },
       { city: 'Tokyo', mode: 'trace-virtuoso' },
     ],
   },
 ];
 
-export const STOPS_PER_LEG = 3;
-export const MAX_STARS = 3 * CLASSIC.length * STOPS_PER_LEG;
+/** How many stops each leg has, on every tour. */
+export const LEG_SIZES = CLASSIC.map((leg) => leg.stops.length);
+export const MAX_STARS = 3 * LEG_SIZES.reduce((a, b) => a + b, 0);
 export const FIRST_TOUR = 1;
 export const LAST_TOUR = 13;
 
@@ -148,14 +148,13 @@ export function kindOf(mode: string): Kind {
 /** The climb every tour keeps: each round has some of each kind, a step harder than the last. */
 const ROUNDS: readonly Record<Kind, readonly string[]>[] = [
   { notes: ['hunter-name', 'sweeper'], triads: ['triads'], bends: ['bend-standard', 'scalebend-blues'] },
-  { notes: ['hunter-ear'], triads: ['triads-compact'], bends: ['trace-standard', 'scalebend-major'] },
-  { notes: ['sweeper-random'], triads: ['triads-target'], bends: ['bend-advanced', 'scalebend-minor'] },
+  { notes: ['sweeper-random'], triads: ['triads-compact'], bends: ['trace-standard', 'scalebend-major'] },
+  { notes: [], triads: ['triads-target'], bends: ['bend-advanced', 'scalebend-minor'] },
   { notes: ['hunter-advanced'], triads: ['gridclear'], bends: ['trace-advanced'] },
 ];
 const ENCORE = ['bend-virtuoso', 'trace-virtuoso'];
 /** Pairs close enough in difficulty to trade rounds. */
 const TRADES: readonly [number, Kind, number][] = [
-  [1, 'notes', 0],
   [1, 'triads', 0],
   [1, 'bends', 1],
 ];
@@ -172,7 +171,7 @@ export function longestRun(modes: readonly string[]): number {
   return best;
 }
 
-/** The 18 stops' modes in order, shuffled within the climb. */
+/** Every stop's mode in order, shuffled within the climb. */
 function order(rng: Rng): string[] {
   for (;;) {
     const rounds = ROUNDS.map((r) => ({ notes: r.notes.slice(), triads: r.triads.slice(), bends: r.bends.slice() }));
@@ -213,12 +212,13 @@ function drawn(id: number): Tour {
     look: { continent: continent.id, genre: genre.id, era: era.id },
     legs: regions.map((region, i) => {
       const cities = rng.shuffle(region.cities);
+      const from = LEG_SIZES.slice(0, i).reduce((a, b) => a + b, 0);
       return {
         name: region.name,
         venue: VENUES[i],
         sleeve: sleeves[i],
         booking: BOOKINGS[i],
-        stops: modes.slice(i * STOPS_PER_LEG, (i + 1) * STOPS_PER_LEG).map((mode, k) => ({ city: cities[k], mode })),
+        stops: modes.slice(from, from + LEG_SIZES[i]).map((mode, k) => ({ city: cities[k], mode })),
       };
     }),
   };
