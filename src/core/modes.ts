@@ -38,18 +38,18 @@ export const MODES: readonly Mode[] = [
   { id: 'hunter-advanced', title: 'Speed Hunter', variant: 'Advanced', route: '/play/hunter/advanced', better: 'low', unit: 'seconds' },
   { id: 'sweeper', title: 'Fret Sweeper', variant: 'By note', route: '/play/sweeper/note', better: 'low', unit: 'seconds' },
   { id: 'sweeper-random', title: 'Fret Sweeper', variant: 'Random', route: '/play/sweeper/random', better: 'low', unit: 'seconds' },
-  { id: 'triads', title: 'Triads', variant: 'Progressions', route: '/play/triads', better: 'high', unit: 'points' },
-  { id: 'triads-target', title: 'Triads', variant: 'Targets', route: '/play/triads/target', better: 'high', unit: 'points' },
-  { id: 'triads-compact', title: 'Triads', variant: 'Compact', route: '/play/triads/compact', better: 'high', unit: 'points' },
+  { id: 'triads', title: 'Triads', variant: 'Progressions', route: '/play/triads', better: 'high', unit: 'points', table: 'triads.2' },
+  { id: 'triads-target', title: 'Triads', variant: 'Targets', route: '/play/triads/target', better: 'high', unit: 'points', table: 'triads-target.2' },
+  { id: 'triads-compact', title: 'Triads', variant: 'Compact', route: '/play/triads/compact', better: 'high', unit: 'points', table: 'triads-compact.2' },
   { id: 'gridclear', title: 'Triads', variant: 'Grid clear', route: '/play/gridclear', better: 'low', unit: 'seconds' },
   ...BEND_TIERS.map(
-    (tier): Mode => ({ id: `bend-${tier}`, title: 'Bend by Ear', variant: TIER_WORDS[tier], route: `/play/bend/${tier}`, better: 'high', unit: 'points', table: `bend-${tier}.2` }),
+    (tier): Mode => ({ id: `bend-${tier}`, title: 'Bend by Ear', variant: TIER_WORDS[tier], route: `/play/bend/${tier}`, better: 'high', unit: 'points', table: `bend-${tier}.3` }),
   ),
   ...BEND_TIERS.map(
-    (tier): Mode => ({ id: `trace-${tier}`, title: 'Bend Trace', variant: TIER_WORDS[tier], route: `/play/trace/${tier}`, better: 'high', unit: 'points', table: `trace-${tier}.2` }),
+    (tier): Mode => ({ id: `trace-${tier}`, title: 'Bend Trace', variant: TIER_WORDS[tier], route: `/play/trace/${tier}`, better: 'high', unit: 'points', table: `trace-${tier}.4` }),
   ),
   ...SCALE_IDS.map(
-    (scale): Mode => ({ id: `scalebend-${scale}`, title: 'Scale Bends', variant: SCALE_WORDS[scale], route: `/play/scalebend/${scale}`, better: 'high', unit: 'points', table: `scalebend-${scale}.2` }),
+    (scale): Mode => ({ id: `scalebend-${scale}`, title: 'Scale Bends', variant: SCALE_WORDS[scale], route: `/play/scalebend/${scale}`, better: 'high', unit: 'points', table: `scalebend-${scale}.3` }),
   ),
 ];
 
@@ -116,9 +116,13 @@ export function rankSweepRandom(seconds: number, cells: number): Rank {
   return byAtMost(seconds / cells, 1.2, 2.0, 3.4);
 }
 
-/** By the share of the points on offer. */
+/**
+ * By the share of the points on offer: what instant chords with no wrong rake,
+ * each at the streak's full multiplier, would have won. A perfect run, at two
+ * seconds a chord, takes about 80% of it.
+ */
 export function rankTriads(points: number, possible: number): Rank {
-  return byAtLeast(possible > 0 ? points / possible : 0, 0.7, 0.5, 0.3);
+  return byAtLeast(possible > 0 ? points / possible : 0, 0.65, 0.42, 0.22);
 }
 
 /** By seconds per voicing found, penalties included. */

@@ -11,6 +11,7 @@ import { modeById, rankBend, scaleWords } from '../../core/modes';
 import { cellMidi, pc, pcName, sameCell, stringName, type Cell } from '../../core/music';
 import { Rng } from '../../core/rng';
 import { asScale, degreeOf, makeScaleBendPrompt, SCALE_IDS, SCALES, scaleCells, type ScaleBendPrompt, type ScaleId } from '../../core/scaleBend';
+import { NO_STREAK } from '../../core/streak';
 import { el } from '../dom';
 import { BendFx } from '../game/bendFx';
 import { makeFrame, panelOption, readyPanel, waiting } from '../game/frame';
@@ -18,7 +19,7 @@ import { showResult } from '../game/results';
 import type { View } from '../router';
 import { updateSave } from '../store';
 import { freshSeed, segmented } from '../ui';
-import { bendStreak, bentTo, gradeColor, onPuck, popGrade, reviewButtons, signedCents } from './bend';
+import { bendStreak, bentTo, gradeColor, onPuck, popGrade, reviewButtons, signedCents, STREAK_LINE } from './bend';
 
 const SLIP_MS = 300;
 const SLIP_CENTS = 8;
@@ -38,7 +39,7 @@ export const scaleBendView: View = (root, ctx) => {
 
   let asked = 0;
   let score = 0;
-  let combo = 1;
+  let streak = NO_STREAK;
   let missTotal = 0;
   let secondsTotal = 0;
   let prompt: ScaleBendPrompt | null = null;
@@ -243,11 +244,11 @@ export const scaleBendView: View = (root, ctx) => {
     }
     const error = cents - prompt.semis * 100;
     const grade = gradeBend(error);
-    const scored = scoreGrade(grade, combo);
+    const scored = scoreGrade(grade, streak);
     if (grade === 'bullseye') voice.bloom();
     else voice.release();
     score += scored.points;
-    combo = scored.combo;
+    streak = scored.streak;
     missTotal += Math.abs(error);
     secondsTotal += (touch.time - aimSince) / 1000;
     shown = { direction: offsetY < 0 ? -1 : 1, error, grade, cents };
@@ -256,7 +257,7 @@ export const scaleBendView: View = (root, ctx) => {
     frame.setAction(null);
     frame.setPrompt(...promptLine, reviewButtons(hearTarget, hearYours));
     frame.setScore(score);
-    bendStreak(frame, combo);
+    bendStreak(frame, streak);
     popGrade(frame, grade, scored.points, bentTo(frame, prompt.cell, offsetY));
     frame.banner(GRADE_WORDS[grade], grade === 'off' ? 'bad' : 'good');
     board.invalidate();
@@ -286,7 +287,7 @@ export const scaleBendView: View = (root, ctx) => {
     );
   }
 
-  bendStreak(frame, 1);
+  bendStreak(frame, NO_STREAK);
   frame.setPrompt(el('span.caps', {}, scaleWords(scaleId)));
   readyPanel(
     frame,
@@ -297,6 +298,7 @@ export const scaleBendView: View = (root, ctx) => {
       'Mid-bend, tap anywhere else with another finger to mute the bend and call it off; tap the green note to hear the target again too.',
       'Afterwards, tap the orange note to hear where you let go, and the green one to hear the target.',
       `${BEND_PROMPTS} bends, scored as in Bend by Ear. Within 5 cents is a bullseye.`,
+      STREAK_LINE,
     ],
     () => {
       blip();

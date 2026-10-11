@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  BEND_PROMPTS,
   BEND_TIERS,
   bendLabel,
   centsFromDrag,
@@ -15,7 +16,6 @@ import {
   MAX_BEND_CENTS,
   positionTravel,
   scoreGrade,
-  comboMultiplier,
   semitoneTravel,
   traceError,
   type Contour,
@@ -23,6 +23,7 @@ import {
 } from '../src/core/bend';
 import { centsOff, midiToHz, STANDARD_TUNING as T } from '../src/core/music';
 import { Rng } from '../src/core/rng';
+import { NO_STREAK } from '../src/core/streak';
 
 describe('a single bend', () => {
   it('writes bends in whole steps', () => {
@@ -85,15 +86,23 @@ describe('a single bend', () => {
     expect(gradeBend(-31)).toBe('off');
   });
 
-  it('multiplies good bends by the streak, pays acceptable ones flat, and drops the streak on a miss', () => {
-    expect(scoreGrade('bullseye', 1)).toEqual({ points: 1000, combo: 2 });
-    expect(scoreGrade('intune', 3)).toEqual({ points: 900, combo: 4 });
-    expect(scoreGrade('bullseye', 8).points).toBe(1700);
-    expect(scoreGrade('acceptable', 4)).toEqual({ points: 350, combo: 4 });
-    expect(scoreGrade('off', 6)).toEqual({ points: 0, combo: 1 });
-    expect(scoreGrade('bullseye', 8).combo).toBe(8);
-    expect(comboMultiplier(1)).toBe(1);
-    expect(comboMultiplier(3)).toBe(1.2);
+  it('scores a bend at the multiplier it found, then steps it a quarter for green, a tenth for tan, and drops it on a miss', () => {
+    expect(scoreGrade('bullseye', NO_STREAK)).toEqual({ points: 4700, streak: { run: 1, mult: 1.25 } });
+    expect(scoreGrade('intune', { run: 2, mult: 1.5 })).toEqual({ points: 5250, streak: { run: 3, mult: 1.75 } });
+    expect(scoreGrade('acceptable', { run: 2, mult: 1.5 })).toEqual({ points: 2400, streak: { run: 3, mult: 1.6 } });
+    expect(scoreGrade('off', { run: 5, mult: 2.25 })).toEqual({ points: 0, streak: NO_STREAK });
+  });
+
+  it('comes to about 100,000 for a run of bullseyes', () => {
+    let streak = NO_STREAK;
+    let total = 0;
+    for (let i = 0; i < BEND_PROMPTS; i++) {
+      const s = scoreGrade('bullseye', streak);
+      total += s.points;
+      streak = s.streak;
+    }
+    expect(total).toBeGreaterThan(95_000);
+    expect(total).toBeLessThan(105_000);
   });
 
   it('asks only for the bends its tier allows, on the neck where bends are played', () => {

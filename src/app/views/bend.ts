@@ -32,8 +32,6 @@ import {
   makeBendPrompt,
   makeTracePrompt,
   scoreGrade,
-  comboMultiplier,
-  MAX_COMBO,
   traceError,
   type BendPrompt,
   type Contour,
@@ -45,6 +43,7 @@ import type { BoardLayout } from '../../core/geometry';
 import { asTier, modeById, rankBend, rankTrace, tierWords } from '../../core/modes';
 import { pc, pcName, stringName, type Cell } from '../../core/music';
 import { Rng } from '../../core/rng';
+import { formatMultiplier, GREEN_STEP, NO_STREAK, OK_STEP, type Streak } from '../../core/streak';
 import { el } from '../dom';
 import { BendFx } from '../game/bendFx';
 import { makeFrame, readyPanel, waiting, type Frame } from '../game/frame';
@@ -84,9 +83,12 @@ export function reviewButtons(target: () => void, yours: () => void): HTMLElemen
 }
 
 /** Draw the note being bent, pulled `offsetY` pixels across the neck, and its string with it. */
-/** The streak meter in the bend games: the steps of the streak, and the multiplier they give. */
-export function bendStreak(frame: Frame, combo: number): void {
-  frame.setStreak(combo - 1, `×${comboMultiplier(combo).toFixed(1)}`, MAX_COMBO - 1);
+/** How the streak works in the bend games, for their ready panels. */
+export const STREAK_LINE = `Each green bend adds ×${GREEN_STEP} to the multiplier and each tan one ×${OK_STEP}, after it is scored. An off bend puts it back to ×1.`;
+
+/** The streak meter in the bend games: the bends in a row, and the multiplier they give. */
+export function bendStreak(frame: Frame, streak: Streak): void {
+  frame.setStreak(streak.run, formatMultiplier(streak.mult), BEND_PROMPTS - 1);
 }
 
 /** The points a bend won, floated up from the note; a bullseye's in gold. An off bend wins none, and its broken streak says so. */
@@ -125,7 +127,7 @@ export const bendView: View = (root, ctx) => {
 
   let asked = 0;
   let score = 0;
-  let combo = 1;
+  let streak = NO_STREAK;
   let missTotal = 0;
   let secondsTotal = 0;
   let prompt: BendPrompt | null = null;
@@ -284,11 +286,11 @@ export const bendView: View = (root, ctx) => {
     }
     const error = cents - prompt.semis * 100;
     const grade = gradeBend(error);
-    const scored = scoreGrade(grade, combo);
+    const scored = scoreGrade(grade, streak);
     if (grade === 'bullseye') voice.bloom();
     else voice.release();
     score += scored.points;
-    combo = scored.combo;
+    streak = scored.streak;
     missTotal += Math.abs(error);
     secondsTotal += (touch.time - aimSince) / 1000;
     shown = { direction: offsetY < 0 ? -1 : offsetY > 0 ? 1 : -1, error, grade, cents };
@@ -297,7 +299,7 @@ export const bendView: View = (root, ctx) => {
     frame.setAction(null);
     frame.setPrompt(...promptLine, reviewButtons(hearTarget, hearYours));
     frame.setScore(score);
-    bendStreak(frame, combo);
+    bendStreak(frame, streak);
     popGrade(frame, grade, scored.points, bentTo(frame, prompt.cell, offsetY));
     frame.banner(GRADE_WORDS[grade], grade === 'off' ? 'bad' : 'good');
     board.invalidate();
@@ -326,7 +328,7 @@ export const bendView: View = (root, ctx) => {
     );
   }
 
-  bendStreak(frame, 1);
+  bendStreak(frame, NO_STREAK);
   frame.setPrompt(el('span.caps', {}, tierWords(tier)));
   readyPanel(
     frame,
@@ -337,6 +339,7 @@ export const bendView: View = (root, ctx) => {
       'To hear the target again mid-bend, tap anywhere else with another finger: the bend is muted and called off, and you can try it again.',
       'Afterwards, tap the note to hear where you let go, and compare it with the target.',
       `${BEND_PROMPTS} bends. Within 5 cents is a bullseye.`,
+      STREAK_LINE,
     ],
     () => {
       blip();
@@ -364,7 +367,7 @@ export const traceView: View = (root, ctx) => {
 
   let asked = 0;
   let score = 0;
-  let combo = 1;
+  let streak = NO_STREAK;
   let missTotal = 0;
   let best = Infinity;
   let prompt: TracePrompt | null = null;
@@ -644,9 +647,9 @@ export const traceView: View = (root, ctx) => {
     voice.release();
     const mean = traceError(prompt.contour, samples);
     const grade = gradeTrace(mean);
-    const scored = scoreGrade(grade, combo);
+    const scored = scoreGrade(grade, streak);
     score += scored.points;
-    combo = scored.combo;
+    streak = scored.streak;
     missTotal += mean;
     best = Math.min(best, mean);
     shown = { mean, grade };
@@ -662,7 +665,7 @@ export const traceView: View = (root, ctx) => {
       ),
     );
     frame.setScore(score);
-    bendStreak(frame, combo);
+    bendStreak(frame, streak);
     popGrade(frame, grade, scored.points, [prompt.cell]);
     frame.banner(GRADE_WORDS[grade], grade === 'off' ? 'bad' : 'good');
     paintPuck(frame, prompt.cell, name(prompt.from), 0, false);
@@ -702,7 +705,7 @@ export const traceView: View = (root, ctx) => {
     );
   }
 
-  bendStreak(frame, 1);
+  bendStreak(frame, NO_STREAK);
   frame.setPrompt(el('span.caps', {}, tierWords(tier)));
   readyPanel(
     frame,
@@ -712,6 +715,7 @@ export const traceView: View = (root, ctx) => {
       'Then hold the lit note and play it back. The clock starts when you touch, and the line disappears: play it from memory.',
       'Lost it? Tap anywhere else with another finger to mute the bend and call it off, then hear it again and start over.',
       `${BEND_PROMPTS} bends, scored on how far your pitch was from the prompt along the way. Both lines are shown afterwards: tap the note to hear yours again.`,
+      STREAK_LINE,
     ],
     () => {
       blip();

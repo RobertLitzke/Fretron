@@ -80,8 +80,8 @@ describe('modes', () => {
     expect(tableKey(sweeper, 12)).toBe('sweeper');
     expect(tableKey(sweeper, 22)).toBe('sweeper@22');
     // Bend tables were started afresh when their points were rescaled.
-    expect(tableKey(modeById('bend-standard')!, 12)).toBe('bend-standard.2');
-    expect(tableKey(modeById('bend-standard')!, 22)).toBe('bend-standard.2@22');
+    expect(tableKey(modeById('bend-standard')!, 12)).toBe('bend-standard.3');
+    expect(tableKey(modeById('bend-standard')!, 22)).toBe('bend-standard.3@22');
   });
 
   it('writes a time as minutes, seconds and tenths', () => {

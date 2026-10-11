@@ -13,6 +13,7 @@ import type { LineData, NoteRenderData } from '../../board/renderer';
 import { formatSeconds, modeById, rankGrid, rankTriads } from '../../core/modes';
 import { allCells, cellKey, cellMidi, pc, pcName, stringName, type Cell } from '../../core/music';
 import { Rng } from '../../core/rng';
+import { formatMultiplier, GREEN_STEP, NO_STREAK, stepStreak, topMultiplier } from '../../core/streak';
 import {
   checkVoicing,
   chordName,
@@ -24,7 +25,7 @@ import {
   enumerateVoicings,
   keepers,
   likeliest,
-  makeProgression,
+  makeRun,
   makeTarget,
   motionBonus,
   motionOf,
@@ -40,7 +41,6 @@ import {
   TRIAD_BASE_POINTS,
   voicingKey,
   type Chord,
-  type Progression,
   type Target,
   type Voicing,
 } from '../../core/triads';
@@ -91,13 +91,8 @@ export const triadsView: View = (root, ctx) => {
   updateSave((s) => ({ ...s, picks: { ...s.picks, triads: variant } }));
   const rng = new Rng(freshSeed());
 
-  const progressions: Progression[] = [];
-  for (let n = 0; n < CHORDS_PER_RUN; ) {
-    const p = makeProgression(rng);
-    progressions.push(p);
-    n += p.chords.length;
-  }
-  const total = progressions.reduce((n, p) => n + p.chords.length, 0);
+  const progressions = makeRun(rng, CHORDS_PER_RUN);
+  const total = CHORDS_PER_RUN;
 
   let pIndex = 0;
   let cIndex = 0;
@@ -108,8 +103,8 @@ export const triadsView: View = (root, ctx) => {
   let moved = 0;
   let moves = 0;
   let decided = 0;
-  /** Chords played in a row with no wrong rake. */
-  let streak = 0;
+  /** Chords played in a row, and the multiplier they give: a chord with no wrong rake steps it up a quarter, one found after wrong rakes a tenth. */
+  let streak = NO_STREAK;
   /** performance.now() when the chord was put up, or 0 between chords. */
   let since = 0;
   /** The last chord played in this progression, and its labels. */
@@ -185,14 +180,14 @@ export const triadsView: View = (root, ctx) => {
    * The last chord of a progression is in: in the Compact game, score how
    * tightly the whole of it was held, against the tightest it could have been.
    */
-  function closeProgression(): { points: number; words: string } {
+  function closeProgression(mult = 1): { points: number; words: string } {
     const p = progressions[pIndex];
     if (!compact || cIndex !== p.chords.length - 1) return { points: 0, words: '' };
     const spread = spreadOf(held);
     const tightest = tightestSpread(p.chords.map((c) => enumerateVoicings(tuning, c, 0, frame.frets)));
     const extra = Math.max(0, spread - tightest);
     wider += extra;
-    const points = compactPoints(extra, p.chords.length);
+    const points = Math.round(compactPoints(extra, p.chords.length) * mult);
     const words = extra === 0 ? `As tight as it gets · ${spread} frets` : `${spread} frets, ${tightest} possible`;
     return { points, words: `${words} · +${points}` };
   }
@@ -274,10 +269,15 @@ export const triadsView: View = (root, ctx) => {
     }
     input.clear();
     input.enabled = true;
-    possible += TRIAD_BASE_POINTS + (targets ? TARGET_BONUS : compact ? COMPACT_BONUS : previous ? SMOOTH_BONUS : 0);
+    // What a run with no wrong rake would have won here, at the multiplier it would have reached.
+    possible += (TRIAD_BASE_POINTS + (targets ? TARGET_BONUS : compact ? COMPACT_BONUS : previous ? SMOOTH_BONUS : 0)) * topMultiplier(asked);
     paintPrompt();
     paintBoard();
     since = performance.now();
+  }
+
+  function showStreak(): void {
+    frame.setStreak(streak.run, formatMultiplier(streak.mult), CHORDS_PER_RUN - 1);
   }
 
   /** The chord is over, played or given away: stop its clock. */
@@ -294,8 +294,8 @@ export const triadsView: View = (root, ctx) => {
   function miss(cells: Cell[], reason: string): void {
     wrong++;
     tries++;
-    streak = 0;
-    frame.setStreak(streak);
+    streak = NO_STREAK;
+    showStreak();
     buzz();
     if (tries >= RAKES_BEFORE_ANSWER) return giveAnswer(cells);
     kept = new Set(keepers(cells, answers, previous?.voicing ?? null).map(cellKey));
@@ -347,10 +347,13 @@ export const triadsView: View = (root, ctx) => {
       points += motionBonus(motion);
       words = motion === 'smooth' ? 'Smooth voice leading · ' : motion === 'leap' ? 'Neck leap · ' : '';
     }
-    const close = closeProgression();
+    // Scored at the multiplier the chord found, which only then moves.
+    points = Math.round(points * streak.mult);
+    const close = closeProgression(streak.mult);
     score += points + close.points;
     frame.setScore(score);
-    frame.setStreak(++streak);
+    streak = stepStreak(streak, tries === 0 ? 'green' : 'ok');
+    showStreak();
     frame.pop(`+${points.toLocaleString('en-US')}`, voicing, 'good');
     // The progression's bonus comes up after, in gold, so the two are read apart.
     if (close.points) frame.later(320, () => frame.pop(`+${close.points.toLocaleString('en-US')}`, voicing, 'gold'));
@@ -440,6 +443,7 @@ export const triadsView: View = (root, ctx) => {
           ? `Points for speed, and at the end of each progression a bonus for holding all its chords across as few frets as they can be: ${COMPACT_BONUS} a chord at the tightest, less for every fret wider. Open strings do not count. There is no time limit.`
           : 'Points for speed, and a bonus for staying close to the chord before. There is no time limit.',
       `A wrong rake keeps the notes that were right and spells the chord. The ${RAKES_BEFORE_ANSWER}th shows the answer, for no points.`,
+      `A chord with no wrong rake adds ×${GREEN_STEP} to the multiplier, after it is scored; one found after a wrong rake starts it again from ×1.`,
     ],
     () => {
       frame.setPrompt(...waiting(`${progressions[0].keyName} · 1 / ${total}`));

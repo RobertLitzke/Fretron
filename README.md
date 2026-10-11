@@ -134,7 +134,7 @@ cannot disagree with its own touch targets.
   Open strings are played, beside the nut; the document's 132 frets become 138
   places on a 22-fret neck, and 78 on the default one.
 - **Timing:** no time limits. Speed Hunter is scored on total time, not on
-  points that run out at two seconds. Triad time points halve every four
+  points that run out at two seconds. Triad time points are half gone at six
   seconds and never reach zero.
 - **Pacing:** the player moves on between prompts in the triad and bend games.
   Speed Hunter counts two seconds and moves on unless held; Fret Sweeper moves
@@ -148,9 +148,17 @@ cannot disagree with its own touch targets.
   toward fret 12) and by a random 10% either way per prompt, so a bend cannot be
   learned as a distance. The relation between distance and pitch is linear.
 - **Bend Trace** and **Scale Bends** are new: neither is in the document.
-- **Bend streaks** add ×0.1 a step, up to ×1.7, not ×1 a step up to ×8, so a
-  bend is worth about what a triad chord is and the point games share a scale.
-  The bend score tables were started afresh when this changed.
+- **Points:** the point games share one scale. A perfect run comes to about
+  100,000, a very good one 77–90k, a good one about 50k, a beginner's about
+  30k and a first try about 10k. `npx vite-node tools/scoring-sim.ts` plays
+  simulated runs at each level to check it. The score tables were started
+  afresh when the scale changed.
+- **Streaks** multiply points in the bend and triad games. Each answer is
+  scored at the multiplier it found, and then moves it: a green bend or a chord
+  with no wrong rake adds ×0.25, a tan (acceptable) bend ×0.1, and an off bend
+  or a wrong rake puts it back to ×1.
+- **Triad runs** are exactly 12 chords, so every run has the same points on
+  offer.
 - **Mis-taps** add 3 seconds; they do not freeze the clock.
 - **Fret Sweeper, random** is new: the document has only the note-at-a-time
   sweep.
@@ -159,7 +167,7 @@ cannot disagree with its own touch targets.
 - **Grid clear:** a found shape is dimmed but its frets stay in play, because
   shapes on neighbouring string sets share frets.
 - **Triads:** major, minor and diminished, close-voiced, on all four sets of
-  three neighbouring strings. The speed score is not multiplied by a streak.
+  three neighbouring strings.
 - **Leaderboards** are local only.
 
 ## Not built
