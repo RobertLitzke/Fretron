@@ -16,7 +16,8 @@
 // mutes it and calls it off: it is not scored, and the same bend is asked
 // again, so the target can be heard once more first.
 
-import { BendVoice, blip, playContour, pluck } from '../../audio/audio';
+import { BendVoice, blip, heardAt, now, playContour, pluck, unlock } from '../../audio/audio';
+import { BAR, Metronome } from '../../audio/beat';
 import type { BoardTouch } from '../../board/board';
 import {
   BEND_PROMPTS,
@@ -25,6 +26,7 @@ import {
   contourAt,
   contourDuration,
   contourPeak,
+  contourWords,
   dragForCents,
   GRADE_WORDS,
   gradeBend,
@@ -35,6 +37,7 @@ import {
   comboMultiplier,
   MAX_COMBO,
   traceError,
+  TRACE_BPM,
   type BendPrompt,
   type Contour,
   type Grade,
@@ -42,15 +45,17 @@ import {
   type TraceSample,
 } from '../../core/bend';
 import type { BoardLayout } from '../../core/geometry';
-import { asTier, modeById, rankBend, rankTrace, tierWords } from '../../core/modes';
-import { pc, pcName, stringName, type Cell } from '../../core/music';
+import { asTier, modeById, rankBend, rankTrace, tierWords, type Mode } from '../../core/modes';
+import { pc, pcName, stringName, type Cell, type Tuning } from '../../core/music';
 import { Rng } from '../../core/rng';
 import { el } from '../dom';
 import { BendFx } from '../game/bendFx';
-import { makeFrame, readyPanel, waiting, type Frame } from '../game/frame';
+import { BEAT_STYLES, type BeatStyle } from '../../core/storage';
+import { makeFrame, panelOption, readyPanel, waiting, type Frame } from '../game/frame';
 import { showResult } from '../game/results';
-import type { View } from '../router';
-import { freshSeed } from '../ui';
+import type { View, ViewContext } from '../router';
+import { getSave, updateSave } from '../store';
+import { freshSeed, segmented } from '../ui';
 
 /** A touch shorter than this that barely moved is a slip, not a bend. */
 const SLIP_MS = 300;
@@ -355,12 +360,43 @@ export const bendView: View = (root, ctx) => {
 /** How much of the board's width the graph takes, on whichever side the note is not. */
 const GRAPH_WIDTH = 0.44;
 
+/** A game of traces: Bend Trace's tiers, and the song phrases (song.ts). */
+export interface TraceGame {
+  mode: Mode;
+  /** The tier, or the song: under the title on the ready panel. */
+  subtitle: string;
+  bpm: number;
+  prompts: number;
+  /** The `index`th prompt of the run, from 0, on this board's neck. */
+  makePrompt(index: number, tuning: Tuning, frets: number): TracePrompt;
+  /** What the prompt is called, above its bends: a phrase's name. */
+  caption?(index: number): string | null;
+  lines: readonly string[];
+}
+
 export const traceView: View = (root, ctx) => {
   const tier = asTier(ctx.params.tier);
-  const mode = modeById(`trace-${tier}`)!;
   const rng = new Rng(freshSeed());
+  return traceGame(root, ctx, {
+    mode: modeById(`trace-${tier}`)!,
+    subtitle: tierWords(tier),
+    bpm: TRACE_BPM[tier],
+    prompts: BEND_PROMPTS,
+    makePrompt: (_, tuning, frets) => makeTracePrompt(rng, tuning, tier, frets),
+    lines: [
+      'Hear a bend that moves in time with the beat, and see its shape, with a line on each beat. Some are pushed at once, some leaned into; a pre-bend starts bent, so push as you touch.',
+      'Then hold the lit note on a beat and play it back from memory: the line disappears. Tap with another finger to call it off and hear it again.',
+      `${BEND_PROMPTS} bends, scored on how far your pitch was from the prompt along the way. Tap the note afterwards to hear yours.`,
+    ],
+  });
+};
+
+export function traceGame(root: HTMLElement, ctx: ViewContext, game: TraceGame): () => void {
+  const { mode, bpm } = game;
   const voice = new BendVoice();
   const fx = new BendFx();
+  let metro = new Metronome(getSave().beat);
+  const beatMs = 60_000 / bpm;
 
   let asked = 0;
   let score = 0;
@@ -369,7 +405,7 @@ export const traceView: View = (root, ctx) => {
   let best = Infinity;
   let prompt: TracePrompt | null = null;
   let phase: 'idle' | 'listen' | 'ready' | 'playing' | 'shown' = 'idle';
-  /** performance.now() when the prompt, or the playing back of it, began. */
+  /** performance.now() when the prompt, or the playing back of it, began: its first beat as heard. */
   let listenSince = 0;
   let playSince = 0;
   let cutPrompt: (() => void) | null = null;
@@ -430,6 +466,20 @@ export const traceView: View = (root, ctx) => {
     const tx = (t: number) => left + padL + (Math.min(duration, Math.max(0, t)) / duration) * (width - padL - padR);
     const cy = (c: number) => top + height - padB - (Math.min(ceiling, Math.max(0, c)) / ceiling) * (height - padT - padB);
 
+    // A line for each beat, a little brighter on each bar.
+    if (contour.beat) {
+      for (let k = 1; k * contour.beat < duration - 1e-6; k++) {
+        const x = Math.round(tx(k * contour.beat)) + 0.5;
+        g.strokeStyle = theme.fretBold;
+        g.globalAlpha = k % BAR === 0 ? 0.8 : 0.35;
+        g.beginPath();
+        g.moveTo(x, top + padT - 4);
+        g.lineTo(x, top + height - padB);
+        g.stroke();
+      }
+      g.globalAlpha = 1;
+    }
+
     // A line for each half step, named the way a bend is written.
     g.font = `600 11px Orbitron, sans-serif`;
     g.textAlign = 'right';
@@ -462,12 +512,14 @@ export const traceView: View = (root, ctx) => {
       g.shadowBlur = 0;
     }
 
+    const nowMs = performance.now();
+
     // What was played, once it is over.
     if (shown && samples.length) {
       g.strokeStyle = theme.cyan;
       g.lineWidth = 2;
       g.beginPath();
-      g.moveTo(tx(0), cy(0));
+      g.moveTo(tx(0), cy(samples[0].cents));
       for (const s of samples) g.lineTo(tx(s.t), cy(s.cents));
       g.lineTo(tx(duration), cy(samples[samples.length - 1].cents));
       g.stroke();
@@ -479,10 +531,31 @@ export const traceView: View = (root, ctx) => {
       g.font = `600 11px Orbitron, sans-serif`;
       g.textAlign = 'left';
       g.fillStyle = theme.muted;
-      g.fillText(phase === 'playing' ? 'PLAY' : phase === 'listen' ? 'LISTEN' : 'YOUR TURN: HOLD THE NOTE', left + padL, top + 12);
+      const counting = phase === 'listen' && nowMs < listenSince;
+      const words =
+        phase === 'playing' ? 'PLAY' : counting ? 'COUNT IN' : phase === 'listen' ? 'LISTEN' : metro.running ? 'YOUR TURN: HOLD THE NOTE ON A BEAT' : 'YOUR TURN: HOLD THE NOTE';
+      g.fillText(words, left + padL, top + 12);
     }
 
-    const nowMs = performance.now();
+    // The beat, as a light that flashes on each one and counts the bar.
+    if (metro.running && !shown) {
+      const { index, at } = metro.nearest(nowMs);
+      const since = nowMs - at;
+      const lit = since >= 0 ? Math.max(0, 1 - since / (beatMs * 0.6)) : 0;
+      const x = left + width - padR - 8;
+      const y = top + 12;
+      g.globalAlpha = 0.3 + 0.7 * lit;
+      g.fillStyle = (((index % BAR) + BAR) % BAR) === 0 ? theme.orange : theme.cyan;
+      g.beginPath();
+      g.arc(x, y, 4 + 2 * lit, 0, 2 * Math.PI);
+      g.fill();
+      g.globalAlpha = 1;
+      g.font = `600 11px Orbitron, sans-serif`;
+      g.textAlign = 'right';
+      g.fillStyle = theme.muted;
+      g.fillText(String((((index % BAR) + BAR) % BAR) + 1), x - 10, y);
+    }
+
     const playhead =
       phase === 'listen'
         ? (nowMs - listenSince) / 1000
@@ -509,15 +582,22 @@ export const traceView: View = (root, ctx) => {
     g.restore();
   }
 
+  /** Play the prompt: with the beat on, after a bar's count-in, and the beat runs on for the player. */
   function listen(): void {
     if (!prompt || phase === 'shown') return;
     cancel();
     cutPrompt?.();
-    cutPrompt = playContour(prompt.from, prompt.contour);
-    listenSince = performance.now() + 50;
+    let at = now() + 0.05;
+    if (metro.on) {
+      const zero = now() + 0.1;
+      metro.start(bpm, zero);
+      at = zero + (BAR * 60) / bpm;
+    }
+    cutPrompt = playContour(prompt.from, prompt.contour, at);
+    listenSince = heardAt(at);
     phase = 'listen';
     const mine = prompt;
-    frame.later(contourDuration(prompt.contour) * 1000 + 120, () => {
+    frame.later(listenSince - performance.now() + contourDuration(prompt.contour) * 1000 + 120, () => {
       if (prompt === mine && phase === 'listen') phase = 'ready';
       board.invalidate();
     });
@@ -541,8 +621,9 @@ export const traceView: View = (root, ctx) => {
   function hearAgain(line: 'target' | 'yours'): void {
     if (!prompt || phase !== 'shown') return;
     cutPrompt?.();
-    cutPrompt = playContour(prompt.from, line === 'target' ? prompt.contour : playedContour());
-    review = { line, since: performance.now() + 50 };
+    const at = now() + 0.05;
+    cutPrompt = playContour(prompt.from, line === 'target' ? prompt.contour : playedContour(), at);
+    review = { line, since: heardAt(at) };
   }
 
   /** What was played, as a contour to play back: held to the end of the prompt's time, as it was scored. */
@@ -556,8 +637,9 @@ export const traceView: View = (root, ctx) => {
 
   /** Clear the board, take a beat, then put up the next bend. */
   function next(): void {
-    if (asked >= BEND_PROMPTS) return finish();
+    if (asked >= game.prompts) return finish();
     cutPrompt?.();
+    metro.stop();
     fx.clear();
     shown = null;
     review = null;
@@ -565,7 +647,7 @@ export const traceView: View = (root, ctx) => {
     phase = 'idle';
     board.setNotes([]);
     board.setDeflection(null);
-    frame.setPrompt(...waiting(`${asked + 1} / ${BEND_PROMPTS}`));
+    frame.setPrompt(...waiting(`${asked + 1} / ${game.prompts}`));
     frame.beat(() => void present());
   }
 
@@ -573,14 +655,15 @@ export const traceView: View = (root, ctx) => {
     samples = [];
     offsetY = 0;
     cents = 0;
-    prompt = makeTracePrompt(rng, tuning, tier, frame.frets);
+    prompt = game.makePrompt(asked, tuning, frame.frets);
     // For tools/devkit.js, which plays a prompt back to check the scoring.
     if (import.meta.env.DEV) (window as unknown as { __prompt?: TracePrompt }).__prompt = prompt;
+    const caption = game.caption?.(asked) ?? null;
     asked++;
     paintPuck(frame, prompt.cell, name(prompt.from), 0, false);
     promptLine = [
-      el('span.caps', {}, `${asked} / ${BEND_PROMPTS}`),
-      el('b.call.pop', {}, `Trace ${prompt.contour.stops.map((s) => (s === 0 ? 'release' : bendLabel(s))).join(' → ')}`),
+      el('span.caps', {}, caption ? `${asked} / ${game.prompts} · ${caption}` : `${asked} / ${game.prompts}`),
+      el('b.call.pop', {}, `Trace ${contourWords(prompt.contour)}`),
       el('span.call-sub', {}, `from ${name(prompt.from)} · fret ${prompt.cell.fret}, ${stringName(tuning, prompt.cell.string)} string`),
     ];
     frame.setPrompt(...promptLine);
@@ -605,7 +688,8 @@ export const traceView: View = (root, ctx) => {
     phase = 'playing';
     finger = touch.id;
     downY = touch.y;
-    playSince = touch.time;
+    // With the beat running, the bend starts on the beat nearest the touch.
+    playSince = metro.running ? metro.nearest(touch.time).at : touch.time;
     offsetY = 0;
     cents = 0;
     peak = 0;
@@ -621,7 +705,10 @@ export const traceView: View = (root, ctx) => {
     peak = Math.max(peak, cents);
     offsetY = Math.sign(drag) * dragForCents(cents, semitonePx());
     voice.setCents(cents);
-    samples.push({ t: (touch.time - playSince) / 1000, cents });
+    // Pushed a moment before the beat: that is the start of the bend.
+    const t = Math.max(0, (touch.time - playSince) / 1000);
+    if (t === 0) samples[0] = { t: 0, cents };
+    else samples.push({ t, cents });
     paintPuck(frame, prompt.cell, name(prompt.from), offsetY, true);
   }
 
@@ -635,13 +722,14 @@ export const traceView: View = (root, ctx) => {
       return;
     }
     // Letting go early leaves the rest of the prompt unplayed: an unbent string.
-    if (seconds < contourDuration(prompt.contour)) samples.push({ t: seconds, cents: 0 });
+    if (seconds < contourDuration(prompt.contour)) samples.push({ t: Math.max(0, seconds), cents: 0 });
     settle();
   }
 
   function settle(): void {
     if (!prompt) return;
     voice.release();
+    metro.stop();
     const mean = traceError(prompt.contour, samples);
     const grade = gradeTrace(mean);
     const scored = scoreGrade(grade, combo);
@@ -675,17 +763,18 @@ export const traceView: View = (root, ctx) => {
       review = null;
       board.invalidate();
     }
-    if (phase === 'listen' || phase === 'playing' || review) board.invalidate();
+    if (phase === 'listen' || phase === 'playing' || review || metro.running) board.invalidate();
     // The prompt's time is up: the bend is over whether or not the finger has lifted.
     if (phase === 'playing' && prompt && (nowMs - playSince) / 1000 >= contourDuration(prompt.contour)) settle();
   });
 
   function finish(): void {
     prompt = null;
+    metro.stop();
     board.setNotes([]);
     board.setDeflection(null);
     frame.setPrompt();
-    const mean = missTotal / BEND_PROMPTS;
+    const mean = missTotal / game.prompts;
     showResult(
       frame,
       ctx,
@@ -703,25 +792,41 @@ export const traceView: View = (root, ctx) => {
   }
 
   bendStreak(frame, 1);
-  frame.setPrompt(el('span.caps', {}, tierWords(tier)));
+  frame.setPrompt(el('span.caps', {}, game.subtitle));
   readyPanel(
     frame,
-    `${mode.title} · ${tierWords(tier)}`,
-    [
-      'You hear a bend that moves: up a half step, on to a whole step, and so on. The graph shows its shape and timing.',
-      'Then hold the lit note and play it back. The clock starts when you touch, and the line disappears: play it from memory.',
-      'Lost it? Tap anywhere else with another finger to mute the bend and call it off, then hear it again and start over.',
-      `${BEND_PROMPTS} bends, scored on how far your pitch was from the prompt along the way. Both lines are shown afterwards: tap the note to hear yours again.`,
-    ],
+    `${mode.title} · ${game.subtitle}`,
+    game.lines,
     () => {
       blip();
       next();
     },
+    panelOption(
+      'Beat',
+      segmented<BeatStyle>(
+        BEAT_STYLES.map((style) => ({ value: style, label: BEAT_WORDS[style] })),
+        getSave().beat,
+        (beat) => {
+          updateSave((s) => ({ ...s, beat }));
+          metro.stop();
+          metro = new Metronome(beat);
+          // A bar of it, to hear what was picked.
+          unlock();
+          metro.start(bpm, now() + 0.05);
+          frame.later(BAR * beatMs - 50, () => {
+            if (phase === 'idle') metro.stop();
+          });
+        },
+      ),
+    ),
   );
 
   return () => {
     cutPrompt?.();
+    metro.stop();
     voice.stop();
     frame.teardown();
   };
-};
+}
+
+const BEAT_WORDS: Record<BeatStyle, string> = { off: 'Off', click: 'Click', kit: 'Drums' };
