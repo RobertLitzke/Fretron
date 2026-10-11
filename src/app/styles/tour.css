@@ -119,6 +119,10 @@
   color: var(--text);
 }
 
+[data-skin='tour'] .hud-clock {
+  --digit: 0.8em;
+}
+
 [data-skin='tour'] .hud-combo.hot {
   text-shadow: 2px 2px 0 var(--rust);
 }

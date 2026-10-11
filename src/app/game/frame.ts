@@ -91,6 +91,7 @@ export function makeFrame(root: HTMLElement, ctx: ViewContext, title: string, ha
   let streakWas = 0;
   const prompt = el('div.hud-prompt');
   const clock = el('span.hud-clock.num');
+  let clockText = '';
   const action = el('button.btn.btn-small.hud-action', { type: 'button', hidden: true }) as HTMLButtonElement;
   const banners = el('div.banners');
   const floats = el('div.floats');
@@ -266,7 +267,12 @@ export function makeFrame(root: HTMLElement, ctx: ViewContext, title: string, ha
       prompt.replaceChildren(el('span', {}, ...children));
     },
     setClock(text) {
-      clock.textContent = text;
+      // Neither display face has even-width figures, so each digit gets a cell
+      // of its own: the clock keeps its size as it counts and the bar holds still.
+      clock.classList.add('timed');
+      if (text === clockText) return;
+      clockText = text;
+      clock.replaceChildren(...[...text].map((ch) => (/\d/.test(ch) ? el('i.clock-digit', {}, ch) : ch)));
     },
     setAction,
     offerNext(run, auto = 0) {

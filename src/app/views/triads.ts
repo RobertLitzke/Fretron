@@ -425,6 +425,8 @@ export const triadsView: View = (root, ctx) => {
     );
   }
 
+  // Each chord is timed: keep the clock's room in the bar from the start.
+  frame.setClock('');
   frame.setPrompt(el('span.caps', {}, mode.variant));
   board.centreOn(7, true);
   readyPanel(
@@ -563,6 +565,7 @@ export const gridClearView: View = (root, ctx) => {
   }
 
   frame.root.classList.add('no-score');
+  frame.setClock(formatSeconds(0));
   frame.setPrompt(el('span.caps', {}, mode.variant));
   board.centreOn(7, true);
   readyPanel(
