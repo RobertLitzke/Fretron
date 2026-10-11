@@ -10,7 +10,7 @@
 
 import { blip, buzz, strum } from '../../audio/audio';
 import type { LineData, NoteRenderData } from '../../board/renderer';
-import { formatSeconds, modeById, rankGrid, rankTriads } from '../../core/modes';
+import { formatSeconds, gridTargets, modeById, rankGrid, rankTriads, triadTargets } from '../../core/modes';
 import { allCells, cellKey, cellMidi, pc, pcName, stringName, type Cell } from '../../core/music';
 import { Rng } from '../../core/rng';
 import {
@@ -410,6 +410,7 @@ export const triadsView: View = (root, ctx) => {
         mode,
         value: score,
         rank: rankTriads(score, possible),
+        targets: triadTargets(possible),
         stats: [
           targets
             ? ['Off target', `${(missedBy / Math.max(1, total - given)).toFixed(1)} steps`]
@@ -439,6 +440,7 @@ export const triadsView: View = (root, ctx) => {
           : 'Points for speed, and a bonus for staying close to the chord before. There is no time limit.',
       `A wrong rake keeps the notes that were right and spells the chord. The ${RAKES_BEFORE_ANSWER}th shows the answer, for no points.`,
     ],
+    triadTargets(),
     () => {
       frame.setPrompt(...waiting(`${progressions[0].keyName} · 1 / ${total}`));
       frame.beat(present);
@@ -552,6 +554,7 @@ export const gridClearView: View = (root, ctx) => {
         mode,
         value: total,
         rank: rankGrid(total, all.length),
+        targets: gridTargets(all.length),
         stats: [
           ['Chord', name],
           ['Voicings', String(all.length)],
@@ -573,6 +576,7 @@ export const gridClearView: View = (root, ctx) => {
       'Tap one fret on each string, or beside the nut for an open string, then drag anywhere on the board to play it.',
       `A wrong rake adds ${GRID_PENALTY} seconds.`,
     ],
+    gridTargets(all.length),
     () => {
       frame.setPrompt(el('b.call.wait', {}, '· · ·'));
       frame.beat(() => {

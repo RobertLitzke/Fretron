@@ -4,7 +4,7 @@
 
 import { blip, pluck, thud } from '../../audio/audio';
 import type { BoardTouch } from '../../board/board';
-import { formatSeconds, modeById, rankSweep, rankSweepRandom } from '../../core/modes';
+import { formatSeconds, modeById, rankSweep, rankSweepRandom, sweepTargets } from '../../core/modes';
 import { cellKey, cellMidi, pc, pcName, type Cell } from '../../core/music';
 import { promptName, Sweep, SWEEP_PENALTY, type SweepKind } from '../../core/notes';
 import { Rng } from '../../core/rng';
@@ -138,6 +138,7 @@ export const sweeperView: View = (root, ctx) => {
         mode,
         value: total,
         rank: (kind === 'random' ? rankSweepRandom : rankSweep)(total, sweep.total),
+        targets: sweepTargets(sweep.total, kind === 'random'),
         stats: [
           ['Frets cleared', String(sweep.total)],
           ['Speed rating', `${(total / sweep.total).toFixed(2)} s a fret`],
@@ -167,6 +168,7 @@ export const sweeperView: View = (root, ctx) => {
           'Every tap brings a new note, until the neck is clear. The places left for each note get fewer as you go.',
           `The clock runs while a note is up. A wrong tap adds ${SWEEP_PENALTY} seconds.`,
         ],
+    sweepTargets(sweep.total, kind === 'random'),
     () => {
       frame.setPrompt(el('b.call.wait', {}, '· · ·'), progress());
       frame.beat(call);

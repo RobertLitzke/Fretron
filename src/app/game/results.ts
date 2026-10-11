@@ -2,7 +2,7 @@
 // and the table.
 
 import { fanfare } from '../../audio/audio';
-import { formatValue, RANK_WORDS, tableKey, type Mode, type Rank } from '../../core/modes';
+import { formatValue, RANK_WORDS, tableKey, type Mode, type Rank, type Targets } from '../../core/modes';
 import { DEFAULT_FRETS } from '../../core/music';
 import { placeFor, withScore, withTourRun, type ScoreEntry } from '../../core/storage';
 import { LAST_TOUR, legBooked, starsFor, stopFor, totalStars } from '../../core/tour';
@@ -13,6 +13,7 @@ import { currentTour } from '../tour/current';
 import { onTour } from '../tour/route';
 import { starRow } from '../views/tour';
 import { replay, type Frame } from './frame';
+import { nextTarget } from './targets';
 
 export interface RunResult {
   mode: Mode;
@@ -21,6 +22,8 @@ export interface RunResult {
   rank: Rank;
   /** Label and value pairs for the card. */
   stats: readonly (readonly [string, string])[];
+  /** What each rank took on this run. */
+  targets: Targets;
 }
 
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789';
@@ -117,7 +120,7 @@ function tourEarned(result: RunResult): HTMLElement | null {
     {},
     el('div', {}, at.stop.city),
     starRow(stars),
-    el('div', {}, starsAfter > starsBefore ? `+${starsAfter - starsBefore} ★` : stars === 3 ? 'Sold out' : 'No new stars: play it again'),
+    el('div', {}, starsAfter > starsBefore ? `+${starsAfter - starsBefore} ★` : stars === 3 ? 'Sold out' : 'No new stars'),
     newBest ? el('b', {}, `New best on the '${year} tour`) : null,
     booked.map((leg) => el('b', {}, `${leg.name} booked!`)),
     tourDone && id < LAST_TOUR ? el('b', {}, 'Your next tour is booked!') : null,
@@ -165,6 +168,7 @@ export function showResult(frame: Frame, ctx: ViewContext, result: RunResult, ag
           {},
           result.stats.map(([label, text]) => [el('dt', {}, label), el('dd.num', {}, text)]),
         ),
+        nextTarget(result.targets, rank),
         earned,
       ),
       side,

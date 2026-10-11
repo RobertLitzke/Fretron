@@ -1098,6 +1098,49 @@ input[type='range'] {
   margin: 0 0 14px;
 }
 
+/* What each rank takes, on one line where it fits. */
+.targets {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 2px 14px;
+  margin: 0 0 14px;
+  font-size: 13px;
+}
+
+.target-lead {
+  color: var(--muted);
+}
+
+.target {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.target-rank {
+  font-family: var(--display);
+}
+
+.target-stars {
+  letter-spacing: 1px;
+  white-space: nowrap;
+  color: var(--gold);
+}
+
+.target-stars em {
+  font-style: normal;
+  color: color-mix(in srgb, var(--muted) 35%, transparent);
+}
+
+.target-next {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
 /* --- the end of a run ------------------------------------------------------ */
 
 .result {
@@ -1376,5 +1419,33 @@ input[type='range'] {
 
   .hud-title {
     display: none;
+  }
+
+  /* Room for the rank's targets, with the buttons still on the screen. */
+  .panel {
+    padding: 10px 16px;
+  }
+
+  .panel-lines li + li {
+    margin-top: 2px;
+  }
+
+  .panel-lines {
+    margin: 8px 0 10px;
+    font-size: 13px;
+  }
+
+  .targets,
+  .panel-option {
+    margin-bottom: 10px;
+  }
+
+  .result-rank {
+    font-size: 48px;
+  }
+
+  .result-value {
+    margin-top: 2px;
+    font-size: 22px;
   }
 }
