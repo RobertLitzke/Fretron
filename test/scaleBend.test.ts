@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { cellMidi, pc, STANDARD_TUNING as T } from '../src/core/music';
+import { cellMidi, NECK_SIZES, pc, STANDARD_TUNING as T } from '../src/core/music';
 import { Rng } from '../src/core/rng';
-import { degreeOf, makeScaleBendPrompt, SCALE_IDS, SCALES, scaleBends, scaleCells, targetCell } from '../src/core/scaleBend';
+import { degreeOf, EDGE_FRETS, makeScaleBendPrompt, scaleBendOptions, SCALE_IDS, SCALES, scaleBends, scaleCells, targetCell } from '../src/core/scaleBend';
 
 describe('scale bends', () => {
   it('offers the blues bends, the 4 to the 5 over the blue note among them', () => {
@@ -63,5 +63,36 @@ describe('scale bends', () => {
     const cells = scaleCells(T, SCALES.minor, 9, 3, 9);
     expect(cells.length).toBeGreaterThan(0);
     expect(cells.every((c) => [9, 11, 0, 2, 4, 5, 7].includes(pc(cellMidi(T, c))))).toBe(true);
+  });
+
+  it('keeps every bend on the board, on every neck, in every key and scale', () => {
+    for (const frets of NECK_SIZES) {
+      for (const id of SCALE_IDS) {
+        for (let root = 0; root < 12; root++) {
+          const options = scaleBendOptions(T, SCALES[id], root, frets);
+          expect(options.length).toBeGreaterThan(0);
+          for (const o of options) {
+            expect(o.cell.fret).toBeGreaterThanOrEqual(1);
+            expect(o.cell.fret).toBeLessThanOrEqual(frets - EDGE_FRETS);
+            expect(o.target.fret).toBeGreaterThanOrEqual(1);
+            expect(o.target.fret).toBeLessThanOrEqual(frets);
+            expect(cellMidi(T, o.target)).toBe(cellMidi(T, o.cell) + o.semis);
+          }
+        }
+      }
+    }
+  });
+
+  it('never deals a bend off the board', () => {
+    for (const frets of NECK_SIZES) {
+      for (const id of SCALE_IDS) {
+        const rng = new Rng(frets * 31 + id.length);
+        for (let i = 0; i < 500; i++) {
+          const p = makeScaleBendPrompt(rng, T, id, frets);
+          expect(p.cell.fret).toBeLessThanOrEqual(frets - EDGE_FRETS);
+          expect(p.target.fret).toBeLessThanOrEqual(frets);
+        }
+      }
+    }
   });
 });

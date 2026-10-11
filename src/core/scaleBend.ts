@@ -64,6 +64,12 @@ const SEMIS_WEIGHT: Record<number, number> = { 1: 2, 2: 3, 3: 1 };
 
 const FIRST_FRET = 5;
 const LAST_FRET = 17;
+/**
+ * Frets kept clear at the body end of the neck for the note being bent: the
+ * held, bent note is drawn larger and glows, and at the very edge of the board
+ * it has no room.
+ */
+export const EDGE_FRETS = 1;
 
 export interface ScaleBendPrompt extends BendPrompt {
   scale: ScaleId;
@@ -94,30 +100,46 @@ export function targetCell(tuning: Tuning, cell: Cell, semis: number, frets: num
   return same;
 }
 
+export interface ScaleBendOption {
+  cell: Cell;
+  semis: number;
+  target: Cell;
+  weight: number;
+}
+
 /**
- * A key, then a scale note to bend from on the upper frets, mostly on the
- * three high strings and only there for a step and a half, with its target
- * fretted on the neck.
+ * Every bend a key offers on a neck of `frets` frets, and how likely each is:
+ * mostly on the three high strings, and only there for a step and a half.
+ * The note being bent keeps EDGE_FRETS clear of the end of the neck, and its
+ * target is on the neck too.
  */
-export function makeScaleBendPrompt(rng: Rng, tuning: Tuning, scaleId: ScaleId, frets: number): ScaleBendPrompt {
-  const scale = SCALES[scaleId];
-  const root = rng.int(12);
+export function scaleBendOptions(tuning: Tuning, scale: Scale, root: number, frets: number): ScaleBendOption[] {
   const bends = scaleBends(scale);
   const top = tuning.open.length - 1;
-  const options: { cell: Cell; semis: number; weight: number }[] = [];
+  const last = Math.min(LAST_FRET, frets - EDGE_FRETS);
+  const options: ScaleBendOption[] = [];
   for (let string = 0; string <= top; string++) {
     const fromTop = top - string;
-    for (let fret = FIRST_FRET; fret <= LAST_FRET; fret++) {
+    for (let fret = FIRST_FRET; fret <= last; fret++) {
       const at = pc(tuning.open[string] + fret - root);
       for (const [from, to] of bends) {
         const semis = to - from;
-        if (from !== at || targetCell(tuning, { string, fret }, semis, frets).fret > frets) continue;
+        if (from !== at) continue;
+        const target = targetCell(tuning, { string, fret }, semis, frets);
+        if (target.fret < 1 || target.fret > frets) continue;
         const stringWeight = semis >= 3 ? (fromTop <= 2 ? 3 : 0) : fromTop <= 2 ? 4 : fromTop === 3 ? 2 : 1;
-        if (stringWeight) options.push({ cell: { string, fret }, semis, weight: stringWeight * SEMIS_WEIGHT[semis] });
+        if (stringWeight) options.push({ cell: { string, fret }, semis, target, weight: stringWeight * SEMIS_WEIGHT[semis] });
       }
     }
   }
-  const { cell, semis } = options[rng.weighted(options.map((o) => o.weight))];
+  return options;
+}
+
+/** A key, then one of the bends it offers on this neck (scaleBendOptions). */
+export function makeScaleBendPrompt(rng: Rng, tuning: Tuning, scaleId: ScaleId, frets: number): ScaleBendPrompt {
+  const root = rng.int(12);
+  const options = scaleBendOptions(tuning, SCALES[scaleId], root, frets);
+  const { cell, semis, target } = options[rng.weighted(options.map((o) => o.weight))];
   const from = cellMidi(tuning, cell);
   return {
     cell,
@@ -127,7 +149,7 @@ export function makeScaleBendPrompt(rng: Rng, tuning: Tuning, scaleId: ScaleId, 
     to: from + semis,
     scale: scaleId,
     root,
-    target: targetCell(tuning, cell, semis, frets),
+    target,
   };
 }
 
