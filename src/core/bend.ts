@@ -6,6 +6,7 @@
 
 import { cellMidi, type Cell, type Tuning } from './music';
 import type { Rng } from './rng';
+import { cleanMultipliers, stepStreak, type Step, type Streak } from './streak';
 
 export type BendTier = 'standard' | 'advanced' | 'virtuoso';
 export const BEND_TIERS: readonly BendTier[] = ['standard', 'advanced', 'virtuoso'];
@@ -127,33 +128,31 @@ export function gradeBend(errorCents: number): Grade {
   return off <= 5 ? 'bullseye' : off <= 15 ? 'intune' : off <= 30 ? 'acceptable' : 'off';
 }
 
-const GRADE_BASE: Record<Grade, number> = { bullseye: 1000, intune: 750, acceptable: 350, off: 0 };
-export const MAX_COMBO = 8;
 /**
- * What each step of the streak adds to the multiplier. Small, so that a bend
- * is worth about what a chord is in Triads: at most 1,000 × 1.7.
+ * What each grade is worth at ×1. With the streak (core/streak.ts) a run of
+ * ten bullseyes comes to about 100,000.
  */
-export const COMBO_STEP = 0.1;
+export const GRADE_BASE: Record<Grade, number> = { bullseye: 4700, intune: 3500, acceptable: 1600, off: 0 };
+
+/** Green bends (bullseye, in tune) step the streak up a quarter, tan ones (acceptable) a tenth; an off bend breaks it. */
+export function gradeStep(grade: Grade): Step {
+  return grade === 'bullseye' || grade === 'intune' ? 'green' : grade === 'acceptable' ? 'ok' : 'miss';
+}
 
 export interface Scored {
   points: number;
-  /** The streak to carry into the next prompt, from 1 to MAX_COMBO. */
-  combo: number;
-}
-
-/** The multiplier a streak gives: ×1 to ×1.7. */
-export function comboMultiplier(combo: number): number {
-  return Math.round((1 + COMBO_STEP * (combo - 1)) * 10) / 10;
+  /** The streak to carry into the next prompt. */
+  streak: Streak;
 }
 
 /**
- * Bullseye and in-tune bends are multiplied by the streak and lengthen it; an
- * acceptable bend scores flat and keeps it; an off-pitch bend drops it to 1.
+ * A bend scores at the multiplier it found, and then moves it. A run of other
+ * than BEND_PROMPTS bends (a song's phrases) is weighted so that a perfect one
+ * still comes to the same.
  */
-export function scoreGrade(grade: Grade, combo: number): Scored {
-  if (grade === 'off') return { points: 0, combo: 1 };
-  if (grade === 'acceptable') return { points: GRADE_BASE.acceptable, combo };
-  return { points: Math.round(GRADE_BASE[grade] * comboMultiplier(combo)), combo: Math.min(MAX_COMBO, combo + 1) };
+export function scoreGrade(grade: Grade, streak: Streak, prompts = BEND_PROMPTS): Scored {
+  const weight = cleanMultipliers(BEND_PROMPTS) / cleanMultipliers(Math.max(1, prompts));
+  return { points: Math.round(GRADE_BASE[grade] * weight * streak.mult), streak: stepStreak(streak, gradeStep(grade)) };
 }
 
 // --- a bend over time --------------------------------------------------------

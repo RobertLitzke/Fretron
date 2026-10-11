@@ -14,6 +14,7 @@ import {
   keepers,
   likeliest,
   makeProgression,
+  makeRun,
   makeTarget,
   motionBonus,
   motionOf,
@@ -190,21 +191,29 @@ describe('voice leading', () => {
     expect(motionOf(2.01)).toBe('moderate');
     expect(motionOf(4)).toBe('moderate');
     expect(motionOf(4.34)).toBe('leap');
-    expect(motionBonus('smooth')).toBe(500);
-    expect(motionBonus('moderate')).toBe(200);
+    expect(motionBonus('smooth')).toBe(2000);
+    expect(motionBonus('moderate')).toBe(800);
     expect(motionBonus('leap')).toBe(0);
   });
 
   it('pays less the longer a chord takes, but never nothing: there is no time limit', () => {
-    expect(timePoints(0)).toBe(1000);
-    expect(timePoints(4)).toBe(500);
-    expect(timePoints(12)).toBe(250);
+    expect(timePoints(0)).toBe(2800);
+    expect(timePoints(6)).toBe(1400);
+    expect(timePoints(18)).toBe(700);
     expect(timePoints(60)).toBeGreaterThan(0);
     expect(timePoints(2)).toBeGreaterThan(timePoints(3));
   });
 });
 
 describe('progressions', () => {
+  it('deals runs of exactly the chords asked for', () => {
+    const rng = new Rng(5);
+    for (let i = 0; i < 300; i++) {
+      const run = makeRun(rng, 12);
+      expect(run.reduce((n, p) => n + p.chords.length, 0)).toBe(12);
+    }
+  });
+
   it('names chords in the key, and every chord can be played', () => {
     const rng = new Rng(11);
     for (let i = 0; i < 200; i++) {

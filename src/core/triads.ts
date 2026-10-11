@@ -213,8 +213,9 @@ export interface Progression {
   chords: Chord[];
 }
 
-export function makeProgression(rng: Rng): Progression {
-  const pattern = rng.pick(PATTERNS);
+/** A progression of at most `most` chords. */
+export function makeProgression(rng: Rng, most = Infinity): Progression {
+  const pattern = rng.pick(PATTERNS.filter((p) => p.steps.length <= most));
   const key = rng.int(12);
   const minor = pattern.roman[pattern.roman.length - 1] === 'i' || pattern.roman[0] === 'i';
   const spelling: Spelling = (minor ? FLAT_MINOR : FLAT_MAJOR).has(key) ? 'flat' : 'sharp';
@@ -226,15 +227,32 @@ export function makeProgression(rng: Rng): Progression {
   };
 }
 
+/**
+ * Progressions coming to exactly `chords` chords, so that every run has the
+ * same points on offer. None is left with a single chord to fill, which no
+ * progression has.
+ */
+export function makeRun(rng: Rng, chords: number): Progression[] {
+  const shortest = Math.min(...PATTERNS.map((p) => p.steps.length));
+  const run: Progression[] = [];
+  for (let left = chords; left > 0; ) {
+    let p = makeProgression(rng, left);
+    while (left - p.chords.length > 0 && left - p.chords.length < shortest) p = makeProgression(rng, left);
+    run.push(p);
+    left -= p.chords.length;
+  }
+  return run;
+}
+
 // --- scoring, after the design document's section 3.3 ---------------------------
 
-export const TRIAD_BASE_POINTS = 1000;
+export const TRIAD_BASE_POINTS = 2800;
 /** Seconds at which half the time points are left. They thin out but never reach zero: there is no time limit. */
-export const TRIAD_HALF_SECONDS = 4;
+export const TRIAD_HALF_SECONDS = 6;
 export const SMOOTH_FRETS = 2;
 export const MODERATE_FRETS = 4;
-export const SMOOTH_BONUS = 500;
-export const MODERATE_BONUS = 200;
+export const SMOOTH_BONUS = 2000;
+export const MODERATE_BONUS = 800;
 
 export function timePoints(seconds: number): number {
   return Math.round((TRIAD_BASE_POINTS * TRIAD_HALF_SECONDS) / (TRIAD_HALF_SECONDS + Math.max(0, seconds)));
@@ -262,9 +280,9 @@ export interface Target {
 }
 
 /** Points the target is worth when the chord is played as near it as it can be. */
-export const TARGET_BONUS = 500;
+export const TARGET_BONUS = 1400;
 /** Points off for each step, a fret or a string, further from the target than the chord needed to be. */
-export const TARGET_STEP = 250;
+export const TARGET_STEP = 700;
 
 /** A fret, a string or both, each as likely; the fret between `first` and `last`. */
 export function makeTarget(rng: Rng, strings: number, first: number, last: number): Target {
@@ -303,9 +321,9 @@ export function targetPoints(steps: number): number {
 // open string takes no finger, so as in a shape's reach it does not count.
 
 /** Points per chord for a progression held across as few frets as it can be. */
-export const COMPACT_BONUS = 500;
+export const COMPACT_BONUS = 1300;
 /** Points per chord off for each fret wider than that. */
-export const COMPACT_STEP = 125;
+export const COMPACT_STEP = 325;
 
 /** The frets, lowest to highest, that a run of voicings is held across: 0 if none is held at all. */
 export function spreadOf(voicings: readonly (readonly Cell[])[]): number {

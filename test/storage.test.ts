@@ -97,8 +97,8 @@ describe('modes', () => {
     expect(tableKey(sweeper, 12)).toBe('sweeper');
     expect(tableKey(sweeper, 22)).toBe('sweeper@22');
     // Bend tables were started afresh when their points were rescaled.
-    expect(tableKey(modeById('bend-standard')!, 12)).toBe('bend-standard.2');
-    expect(tableKey(modeById('bend-standard')!, 22)).toBe('bend-standard.2@22');
+    expect(tableKey(modeById('bend-standard')!, 12)).toBe('bend-standard.3');
+    expect(tableKey(modeById('bend-standard')!, 22)).toBe('bend-standard.3@22');
   });
 
   it('writes a time as minutes, seconds and tenths', () => {
@@ -145,11 +145,11 @@ describe('star targets', () => {
   });
 
   it('give triads as a share before a run and as points after it', () => {
-    expect(triadTargets().ranks[0].value).toBe('70%');
+    expect(triadTargets().ranks[0].value).toBe('65%');
     expect(triadTargets().lead).toBe('Share of the points to score');
-    expect(triadTargets(17500).ranks.map((t) => t.value)).toEqual(['12,250', '8,750', '5,250']);
-    expect(rankTriads(12250, 17500)).toBe('S');
-    expect(rankTriads(12249, 17500)).toBe('A');
+    expect(triadTargets(120000).ranks.map((t) => t.value)).toEqual(['78,000', '50,400', '26,400']);
+    expect(rankTriads(78000, 120000)).toBe('S');
+    expect(rankTriads(77999, 120000)).toBe('A');
   });
 
   it('give bends in cents', () => {

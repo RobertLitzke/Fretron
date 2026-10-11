@@ -40,15 +40,15 @@ export const MODES: readonly Mode[] = [
   { id: 'hunter-advanced', title: 'Speed Hunter', variant: 'Advanced', route: '/play/hunter/advanced', better: 'low', unit: 'seconds' },
   { id: 'sweeper', title: 'Fret Sweeper', variant: 'By note', route: '/play/sweeper/note', better: 'low', unit: 'seconds' },
   { id: 'sweeper-random', title: 'Fret Sweeper', variant: 'Random', route: '/play/sweeper/random', better: 'low', unit: 'seconds' },
-  { id: 'triads', title: 'Triads', variant: 'Progressions', route: '/play/triads', better: 'high', unit: 'points' },
-  { id: 'triads-target', title: 'Triads', variant: 'Targets', route: '/play/triads/target', better: 'high', unit: 'points' },
-  { id: 'triads-compact', title: 'Triads', variant: 'Compact', route: '/play/triads/compact', better: 'high', unit: 'points' },
+  { id: 'triads', title: 'Triads', variant: 'Progressions', route: '/play/triads', better: 'high', unit: 'points', table: 'triads.2' },
+  { id: 'triads-target', title: 'Triads', variant: 'Targets', route: '/play/triads/target', better: 'high', unit: 'points', table: 'triads-target.2' },
+  { id: 'triads-compact', title: 'Triads', variant: 'Compact', route: '/play/triads/compact', better: 'high', unit: 'points', table: 'triads-compact.2' },
   { id: 'gridclear', title: 'Triads', variant: 'Grid clear', route: '/play/gridclear', better: 'low', unit: 'seconds' },
   ...BEND_TIERS.map(
-    (tier): Mode => ({ id: `bend-${tier}`, title: 'Bend by Ear', variant: TIER_WORDS[tier], route: `/play/bend/${tier}`, better: 'high', unit: 'points', table: `bend-${tier}.2` }),
+    (tier): Mode => ({ id: `bend-${tier}`, title: 'Bend by Ear', variant: TIER_WORDS[tier], route: `/play/bend/${tier}`, better: 'high', unit: 'points', table: `bend-${tier}.3` }),
   ),
   ...BEND_TIERS.map(
-    (tier): Mode => ({ id: `trace-${tier}`, title: 'Bend Trace', variant: TIER_WORDS[tier], route: `/play/trace/${tier}`, better: 'high', unit: 'points', table: `trace-${tier}.3` }),
+    (tier): Mode => ({ id: `trace-${tier}`, title: 'Bend Trace', variant: TIER_WORDS[tier], route: `/play/trace/${tier}`, better: 'high', unit: 'points', table: `trace-${tier}.4` }),
   ),
   // Each song's own versions of the games: titled by the song, named by the game.
   ...SONGS.flatMap((song) =>
@@ -60,12 +60,13 @@ export const MODES: readonly Mode[] = [
         route: `/play/song/${song.id}/${game.kind}`,
         better: 'high',
         unit: 'points',
+        table: `song-${song.id}-${game.kind}.2`,
         offTour: true,
       }),
     ),
   ),
   ...SCALE_IDS.map(
-    (scale): Mode => ({ id: `scalebend-${scale}`, title: 'Scale Bends', variant: SCALE_WORDS[scale], route: `/play/scalebend/${scale}`, better: 'high', unit: 'points', table: `scalebend-${scale}.2` }),
+    (scale): Mode => ({ id: `scalebend-${scale}`, title: 'Scale Bends', variant: SCALE_WORDS[scale], route: `/play/scalebend/${scale}`, better: 'high', unit: 'points', table: `scalebend-${scale}.3` }),
   ),
 ];
 
@@ -131,8 +132,12 @@ export const HUNTER_ADVANCED_BARS: Bars = { s: 1.6, a: 2.6, b: 4.2, better: 'low
 export const SWEEP_BARS: Bars = { s: 1.4, a: 2.3, b: 3.6, better: 'low' };
 /** The same, where every fret is a new note to find: nearer Speed Hunter's pace. */
 export const SWEEP_RANDOM_BARS: Bars = { s: 1.2, a: 2.0, b: 3.4, better: 'low' };
-/** The share of the points on offer. */
-export const TRIAD_BARS: Bars = { s: 0.7, a: 0.5, b: 0.3, better: 'high' };
+/**
+ * The share of the points on offer: what instant chords with no wrong rake,
+ * each at the streak's full multiplier, would have won. A perfect run, at two
+ * seconds a chord, takes about 80% of it.
+ */
+export const TRIAD_BARS: Bars = { s: 0.65, a: 0.42, b: 0.22, better: 'high' };
 /** Seconds per voicing found, penalties included. */
 export const GRID_BARS: Bars = { s: 4, a: 7, b: 12, better: 'low' };
 /** The mean miss, in cents, across the run. */
