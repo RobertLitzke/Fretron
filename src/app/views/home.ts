@@ -2,14 +2,18 @@
 
 import { unlock } from '../../audio/audio';
 import { formatValue, MODES, tableKey, type Mode } from '../../core/modes';
+import { SONGS } from '../../core/songs';
 import { el } from '../dom';
 import type { View } from '../router';
 import { getSave } from '../store';
 
 interface Cabinet {
   title: string;
-  /** `pick`: the game asks for a choice before a run, kept under this name, and has one Play button for the last one chosen. */
-  games: { name: string; blurb: string; modes: Mode[]; pick?: string }[];
+  /**
+   * `pick`: the game asks for a choice before a run, kept under this name, and has one Play button for the last one chosen.
+   * `named`: its buttons always say which game they are, even when there is one.
+   */
+  games: { name: string; blurb: string; modes: Mode[]; pick?: string; named?: boolean }[];
 }
 
 function modesTitled(title: string): Mode[] {
@@ -36,9 +40,13 @@ const CABINETS: Cabinet[] = [
     games: [
       { name: 'Bend by Ear', blurb: 'Push the string to the pitch you heard. No meter.', modes: modesTitled('Bend by Ear') },
       { name: 'Bend Trace', blurb: 'Hear a bend that moves over time, and play it back from memory.', modes: modesTitled('Bend Trace') },
-      { name: 'Song Bends', blurb: 'The bends of a famous solo, phrase by phrase, over a slow beat.', modes: modesTitled('Song Bends') },
       { name: 'Scale Bends', blurb: 'Bend from one note of a scale to the next, with the shape drawn around you.', modes: modesTitled('Scale Bends'), pick: 'scalebend' },
     ],
+  },
+  {
+    // A card for each song, with a button for each game it has its own version of.
+    title: 'Songs',
+    games: SONGS.map((song) => ({ name: song.title, blurb: `Games inspired by the song: ${song.about}.`, modes: modesTitled(song.title), named: true })),
   },
 ];
 
@@ -79,7 +87,7 @@ export const homeView: View = (root) => {
                 {},
                 el('h3', {}, game.name),
                 el('p', {}, game.blurb),
-                el('div.plays', {}, modes.map((m) => playButton(m, modes.length === 1))),
+                el('div.plays', {}, modes.map((m) => playButton(m, modes.length === 1 && !game.named))),
               );
             }),
           ),

@@ -7,7 +7,7 @@ import { canFullscreen, toggleFullscreen } from './app/ui';
 import { inTour, tourRewrite } from './app/tour/route';
 import { watchForUpdates } from './app/update';
 import { bendView, traceView } from './app/views/bend';
-import { songView } from './app/views/song';
+import { songTraceView } from './app/views/song';
 import { homeView } from './app/views/home';
 import { hunterView } from './app/views/hunter';
 import { scoresView } from './app/views/scores';
@@ -72,7 +72,7 @@ function boot(): void {
       .add(`${base}/play/gridclear`, gridClearView)
       .add(`${base}/play/bend/:tier`, bendView)
       .add(`${base}/play/trace/:tier`, traceView)
-      .add(`${base}/play/song/:song`, songView)
+      .add(`${base}/play/song/:song/trace`, songTraceView)
       .add(`${base}/play/scalebend/:scale`, scaleBendView);
   }
   router
