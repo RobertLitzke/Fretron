@@ -131,7 +131,7 @@ export const hunterView: View = (root, ctx) => {
       pluck(cellMidi(tuning, cell), { level: 0.55 });
       board.flash(cell, board.theme.good);
       frame.setStreak(++streak);
-      frame.pop(`${seconds.toFixed(2)} s`, [cell], seconds < FAST_S ? 'gold' : 'good');
+      frame.pop(`${seconds.toFixed(1)} s`, [cell], seconds < FAST_S ? 'gold' : 'good');
     } else {
       penalty += HUNT_PENALTY;
       thud();
