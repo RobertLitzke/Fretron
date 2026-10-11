@@ -156,7 +156,7 @@
   text-shadow: none;
 }
 
-[data-skin='tour'] :is(.rank-S, .result-value) {
+[data-skin='tour'] :is(.result-stars.rank-S, .result-value) {
   text-shadow: 2px 2px 0 color-mix(in srgb, var(--ink) 25%, transparent);
 }
 
@@ -733,7 +733,7 @@ body.in-tour #app {
 }
 
 /* The biggest words wear the look's poster type. */
-[data-skin='tour'] :is(.tour-title, .setlist h2, .panel-title, .result-rank) {
+[data-skin='tour'] :is(.tour-title, .setlist h2, .panel-title) {
   font-family: var(--poster);
   font-weight: 400;
 }

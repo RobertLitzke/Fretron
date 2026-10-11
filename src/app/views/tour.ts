@@ -122,7 +122,7 @@ export const tourView: View = (root) => {
           'span.t',
           {},
           stop.city,
-          el('i', {}, `${mode.title} · ${mode.variant} · `, rank ? `best ${rank}${best?.value !== undefined ? `, ${formatValue(mode, best.value)}` : ''}` : 'not played yet'),
+          el('i', {}, `${mode.title} · ${mode.variant} · `, rank ? (best?.value !== undefined ? `best ${formatValue(mode, best.value)}` : 'played') : 'not played yet'),
         ),
         starRow(starsFor(rank)),
       );

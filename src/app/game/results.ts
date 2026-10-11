@@ -1,4 +1,4 @@
-// The end of a run: the rank, the numbers, initials if the run made the table,
+// The end of a run: the stars, the numbers, initials if the run made the table,
 // and the table.
 
 import { fanfare } from '../../audio/audio';
@@ -13,7 +13,7 @@ import { currentTour } from '../tour/current';
 import { onTour } from '../tour/route';
 import { starRow } from '../views/tour';
 import { replay, type Frame } from './frame';
-import { nextTarget } from './targets';
+import { nextTarget, stars } from './targets';
 
 export interface RunResult {
   mode: Mode;
@@ -44,7 +44,7 @@ export function scoreTable(mode: Mode, entries: readonly ScoreEntry[], highlight
         {},
         el('span.table-place.num', {}, String(i + 1)),
         el('span.table-name', {}, e.name),
-        el(`span.table-rank.rank-${e.rank}`, {}, e.rank),
+        stars(e.rank, '.table-stars'),
         el('span.table-value.num', {}, formatValue(mode, e.value)),
       ),
     ),
@@ -112,15 +112,15 @@ function tourEarned(result: RunResult): HTMLElement | null {
   const starsAfter = totalStars(legs, after);
   const booked = legs.filter((leg) => !legBooked(leg, starsBefore) && legBooked(leg, starsAfter));
   const tourDone = !legBooked(legs.at(-1)!, starsBefore) && legBooked(legs.at(-1)!, starsAfter);
-  const stars = starsFor(after[result.mode.id].rank);
+  const got = starsFor(after[result.mode.id].rank);
   const was = before[result.mode.id]?.value;
   const newBest = was !== undefined && after[result.mode.id].value !== was;
   return el(
     'div.tour-earned',
     {},
     el('div', {}, at.stop.city),
-    starRow(stars),
-    el('div', {}, starsAfter > starsBefore ? `+${starsAfter - starsBefore} ★` : stars === 3 ? 'Sold out' : 'No new stars'),
+    starRow(got),
+    el('div', {}, starsAfter > starsBefore ? `+${starsAfter - starsBefore} ★` : got === 3 ? 'Sold out' : 'No new stars'),
     newBest ? el('b', {}, `New best on the '${year} tour`) : null,
     booked.map((leg) => el('b', {}, `${leg.name} booked!`)),
     tourDone && id < LAST_TOUR ? el('b', {}, 'Your next tour is booked!') : null,
@@ -160,7 +160,7 @@ export function showResult(frame: Frame, ctx: ViewContext, result: RunResult, ag
       el(
         'div.result-card',
         {},
-        el(`div.result-rank.rank-${rank}`, {}, rank),
+        stars(rank, `.result-stars.rank-${rank}`),
         el('div.result-words', {}, RANK_WORDS[rank]),
         el('div.result-value.num', {}, formatValue(mode, value)),
         el(

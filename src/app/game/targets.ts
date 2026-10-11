@@ -1,26 +1,28 @@
-// What each star takes, so a player knows what to aim for: all three ranks on
-// the ready panel before a run, and on the result card the next rank up.
+// Stars, which are all a player is shown of a run's rank, and what each takes:
+// all three on the ready panel before a run, and on the result card the next
+// one up.
 
 import type { Rank, Targets } from '../../core/modes';
 import { starsFor } from '../../core/tour';
 import { el } from '../dom';
 
-function stars(rank: Rank): HTMLElement {
+/** ★★☆, the empty ones dimmed. */
+export function stars(rank: Rank | undefined, cls = ''): HTMLElement {
   const n = starsFor(rank);
-  return el('span.target-stars', { 'aria-label': `${n} stars` }, '★'.repeat(n), el('em', {}, '★'.repeat(3 - n)));
+  return el(`span.stars${cls}`, { 'aria-label': `${n} of 3 stars` }, '★'.repeat(n), el('em', {}, '★'.repeat(3 - n)));
 }
 
-/** "Finish within  S ★★★ 0:20.0  A ★★ 0:36.0  B ★ 1:04.0", wrapping where it must. */
+/** "Finish within  ★★★ 0:20.0  ★★ 0:36.0  ★ 1:04.0", wrapping where it must. */
 export function targetList(targets: Targets): HTMLElement {
   return el(
     'div.targets',
     {},
     el('span.target-lead', {}, targets.lead),
-    targets.ranks.map(({ rank, value }) => el('span.target', {}, el(`b.target-rank.rank-${rank}`, {}, rank), stars(rank), el('span.num', {}, value))),
+    targets.ranks.map(({ rank, value }) => el('span.target', {}, stars(rank), el('span.num', {}, value))),
   );
 }
 
-/** "Next ★★: finish within 0:36.0", or nothing after an S. */
+/** "Next ★★: finish within 0:36.0", or nothing after three stars. */
 export function nextTarget(targets: Targets, earned: Rank): HTMLElement | null {
   const at = targets.ranks.findIndex((t) => t.rank === earned);
   const next = at === -1 ? targets.ranks.at(-1) : targets.ranks[at - 1];

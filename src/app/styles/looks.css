@@ -176,7 +176,7 @@
 }
 
 /* Courier needs weight to read as display type. */
-:root[data-genre='punk'] :is(.tour-title, .setlist h2, .sticker .name, .panel-title, .btn, .tour-play, .result-rank, .call) {
+:root[data-genre='punk'] :is(.tour-title, .setlist h2, .sticker .name, .panel-title, .btn, .tour-play, .call) {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: -0.02em;

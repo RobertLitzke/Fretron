@@ -49,15 +49,19 @@ that add wider bends. Scale Bends asks for a scale on the panel before
 the run: blues (minor pentatonic with the ♭5, which the 4 can be bent over to
 the 5), major or natural minor, in a new key every bend. Each scale keeps its
 own score table, and the menu's Play button returns to the last one chosen.
-Only the root, the note being bent and the target are named on the board. Every game ends on a rank (S, A, B, C), a card of numbers, and a local
-top ten with three-letter initials.
+Only the root, the note being bent and the target are named on the board.
+
+Every game ends on zero to three stars with a title (Garage Band, Gigging
+Musician, Session Pro, Master), a card of numbers, and a local top ten with
+three-letter initials. The ready panel says what each star takes, and the
+result card what the next one does.
 
 **World Tour** (the Tour tab) strings the same games into rock tours: five
 legs of three cities and a two-city encore, each stop one game played exactly as it is from the
 menu. The order goes round notes, triads and bends, one or two of each, a step
-harder each time round. A stop's best rank on a tour earns stars (S 3, A 2,
-B 1), stars book the next leg, and booking a tour's last leg opens the next
-tour. Each tour keeps its own best rank and score for every stop, apart from
+harder each time round. A stop's best run on a tour earns its stars,
+stars book the next leg, and booking a tour's last leg opens the next tour.
+Each tour keeps its own best stars and score for every stop, apart from
 the usual score tables, which tour runs also go on.
 
 The first tour is fixed: a 1970s hard rock World Tour. The other twelve are
@@ -175,6 +179,6 @@ cannot disagree with its own touch targets.
 ## Not built
 
 Spoken note callouts, other tunings, a limited-time arcade variant, global
-leaderboards, a combined rank across games. Ranks, bend travel and the trace
+leaderboards, a combined rating across games. Star bars, bend travel and the trace
 scoring bands are first guesses: nothing here has been played on a real phone
 or listened to yet.
