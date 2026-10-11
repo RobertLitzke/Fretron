@@ -229,7 +229,7 @@ export interface Phrase {
 /** An "instant" move still takes this long: a flick of the finger. */
 export const INSTANT = 0.05;
 /** Vibrato's speed, in swings a second, and how long a held note waits before it starts. */
-const VIBRATO_HZ = 5.5;
+const VIBRATO_HZ = 4.5;
 const VIBRATO_DELAY = 0.25;
 
 function eased(curve: Curve, k: number): number {

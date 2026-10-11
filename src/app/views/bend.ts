@@ -661,10 +661,11 @@ export function traceGame(root: HTMLElement, ctx: ViewContext, game: TraceGame):
     const caption = game.caption?.(asked) ?? null;
     asked++;
     paintPuck(frame, prompt.cell, name(prompt.from), 0, false);
+    const where = `fret ${prompt.cell.fret}, ${stringName(tuning, prompt.cell.string)} string`;
     promptLine = [
-      el('span.caps', {}, caption ? `${asked} / ${game.prompts} · ${caption}` : `${asked} / ${game.prompts}`),
+      el('span.caps', {}, `${asked} / ${game.prompts}`),
       el('b.call.pop', {}, `Trace ${contourWords(prompt.contour)}`),
-      el('span.call-sub', {}, `from ${name(prompt.from)} · fret ${prompt.cell.fret}, ${stringName(tuning, prompt.cell.string)} string`),
+      el('span.call-sub', {}, caption ? `${caption} · ${where}` : `from ${name(prompt.from)} · ${where}`),
     ];
     frame.setPrompt(...promptLine);
     board.show([prompt.cell]);

@@ -5,10 +5,10 @@ import { betterRank, currentLeg, legBooked, legSoldOut, LEGS, MAX_STARS, nextBoo
 import { tourRewrite } from '../src/app/tour/route';
 
 describe('the tour', () => {
-  it('plays every game once', () => {
+  it('plays every game once, but the songs', () => {
     const ids = LEGS.flatMap((leg) => leg.stops.map((s) => s.mode));
     expect(new Set(ids).size).toBe(ids.length);
-    expect(ids.sort()).toEqual(MODES.map((m) => m.id).sort());
+    expect(ids.sort()).toEqual(MODES.filter((m) => !m.offTour).map((m) => m.id).sort());
     for (const id of ids) expect(modeById(id)).toBeDefined();
   });
 
