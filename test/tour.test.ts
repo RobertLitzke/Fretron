@@ -28,10 +28,10 @@ const modesOf = (year: number) => tourFor(year).legs.flatMap((leg) => leg.stops.
 const TOURS = Array.from({ length: LAST_TOUR - FIRST_TOUR + 1 }, (_, i) => FIRST_TOUR + i);
 
 describe('the tours', () => {
-  it('each play every game once', () => {
+  it('each play every game once, but the songs', () => {
     for (const year of TOURS) {
       const ids = modesOf(year);
-      expect(ids.slice().sort()).toEqual(MODES.map((m) => m.id).sort());
+      expect(ids.slice().sort()).toEqual(MODES.filter((m) => !m.offTour).map((m) => m.id).sort());
       for (const id of ids) expect(modeById(id)).toBeDefined();
       expect(tourFor(year).legs.map((l) => l.stops.length)).toEqual(LEG_SIZES);
     }

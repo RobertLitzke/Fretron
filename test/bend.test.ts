@@ -11,6 +11,14 @@ import {
   gradeTrace,
   makeBendPrompt,
   makeContour,
+  makePhrase,
+  buildContour,
+  contourWords,
+  INSTANT,
+  MAX_TRACE_BEATS,
+  MOVE_BEATS,
+  phraseBeats,
+  TRACE_BPM,
   makeTracePrompt,
   MAX_BEND_CENTS,
   positionTravel,
@@ -195,21 +203,76 @@ describe('a bend over time', () => {
     expect(gradeTrace(60)).toBe('off');
   });
 
-  it('builds contours that start unbent, run forward in time, and fit in a few seconds', () => {
+  it('builds phrases on a half-beat grid, 1 to 4 beats a move, that fit in two bars', () => {
     const rng = new Rng(9);
     for (const tier of BEND_TIERS) {
-      for (let i = 0; i < 200; i++) {
-        const c = makeContour(rng, tier);
-        expect(c.points[0]).toEqual({ t: 0, cents: 0 });
-        expect(c.points[1].cents).toBe(0);
-        for (let k = 1; k < c.points.length; k++) expect(c.points[k].t).toBeGreaterThan(c.points[k - 1].t);
-        expect(contourDuration(c)).toBeLessThan(8);
-        expect(c.stops.length).toBeGreaterThanOrEqual(2);
-        expect(contourPeak(c)).toBeLessThanOrEqual(tier === 'standard' ? 200 : tier === 'advanced' ? 300 : 400);
-        // Every stop is held long enough to be heard.
-        for (let k = 2; k + 1 < c.points.length; k += 2) expect(c.points[k + 1].t - c.points[k].t).toBeGreaterThanOrEqual(0.69);
+      for (let i = 0; i < 300; i++) {
+        const phrase = makePhrase(rng, tier);
+        expect([0, 0.5, 1]).toContain(phrase.lead);
+        expect(phraseBeats(phrase)).toBeLessThanOrEqual(MAX_TRACE_BEATS);
+        for (const m of phrase.moves) {
+          expect(MOVE_BEATS as readonly number[]).toContain(m.beats);
+          // Every pitch is held at least half a beat once it is reached.
+          expect(m.beats - m.rise).toBeGreaterThanOrEqual(0.5);
+        }
+        expect(phrase.moves.length).toBeGreaterThanOrEqual(2);
       }
     }
+  });
+
+  it('builds contours that run forward in time, start unbent unless pre-bent, and land each move on its beat', () => {
+    const rng = new Rng(4);
+    for (const tier of BEND_TIERS) {
+      const bpm = TRACE_BPM[tier];
+      const beat = 60 / bpm;
+      for (let i = 0; i < 300; i++) {
+        const phrase = makePhrase(rng, tier);
+        const c = buildContour(phrase, bpm);
+        expect(c.points[0].cents).toBe(phrase.pre ? phrase.moves[0].to * 100 : 0);
+        for (let k = 1; k < c.points.length; k++) expect(c.points[k].t).toBeGreaterThan(c.points[k - 1].t);
+        expect(contourDuration(c)).toBeCloseTo(phraseBeats(phrase) * beat, 2);
+        expect(contourPeak(c)).toBeLessThanOrEqual(tier === 'standard' ? 200 : tier === 'advanced' ? 300 : 400);
+        // Each move's pitch is there by the end of its rise and held to the next move's start.
+        let t = phrase.lead * beat;
+        phrase.moves.forEach((m, k) => {
+          const landed = k === 0 && phrase.pre ? 0 : Math.max(INSTANT, m.rise * beat);
+          if (!m.vibrato) expect(contourAt(c, t + landed + 0.01)).toBeCloseTo(m.to * 100, 0);
+          t += m.beats * beat;
+          expect(contourAt(c, t - 0.001)).toBeCloseTo(m.to * 100, -1);
+        });
+      }
+    }
+  });
+
+  it('asks for instant bends, pre-bends, releases and slopes of more than one kind', () => {
+    const rng = new Rng(11);
+    const seen = new Set<string>();
+    for (let i = 0; i < 400; i++) {
+      const phrase = makePhrase(rng, 'advanced');
+      if (phrase.pre) seen.add('pre');
+      for (const m of phrase.moves) {
+        if (m.rise === 0) seen.add('instant');
+        if (m.to === 0) seen.add('release');
+        if (m.vibrato) seen.add('vibrato');
+        seen.add(m.curve ?? 'even');
+      }
+    }
+    for (const kind of ['pre', 'instant', 'release', 'vibrato', 'even', 'snap', 'swell', 'push']) expect(seen).toContain(kind);
+  });
+
+  it('names a trace the way it is played', () => {
+    const rng = new Rng(1);
+    const pre = buildContour({ lead: 0, pre: true, moves: [{ to: 2, beats: 2, rise: 0 }, { to: 0, beats: 2, rise: 0.5 }] }, 80);
+    expect(contourWords(pre)).toBe('pre-bend 1 → release');
+    expect(pre.points[0]).toEqual({ t: 0, cents: 200 });
+    expect(contourWords(makeContour(rng, 'standard'))).toMatch(/→/);
+  });
+
+  it('wobbles a vibrato below the held pitch, and never above it', () => {
+    const c = buildContour({ lead: 1, moves: [{ to: 2, beats: 3, rise: 0.5, curve: 'snap', vibrato: 25 }] }, 60);
+    const held = c.points.filter((p) => p.t > 1.6);
+    expect(Math.max(...held.map((p) => p.cents))).toBe(200);
+    expect(Math.min(...held.map((p) => p.cents))).toBe(175);
   });
 
   it('puts wide traces on the high strings', () => {

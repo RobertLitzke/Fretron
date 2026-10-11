@@ -72,6 +72,19 @@ export function now(): number {
   return context().currentTime;
 }
 
+/** The clock of the page (performance.now(), ms) at which a sound scheduled for audio time `t` is heard. */
+export function heardAt(t: number): number {
+  const c = context();
+  const latency = (c.baseLatency || 0) + (c.outputLatency || 0);
+  return performance.now() + (t - c.currentTime + latency) * 1000;
+}
+
+/** The context, where to send a sound and a buffer of white noise: for the beat (beat.ts). */
+export function mixer(): { ctx: AudioContext; out: AudioNode; noise: AudioBuffer } {
+  const c = context();
+  return { ctx: c, out: master!, noise: noise! };
+}
+
 /** Settles once the guitar voice's string has loaded (or failed to). */
 export function voiceReady(): Promise<void> {
   context();
@@ -187,10 +200,13 @@ export class BendVoice {
   }
 }
 
-/** Play a bend over time: the prompt of the trace game. Returns a way to cut it short. */
-export function playContour(midi: number, contour: Contour): () => void {
+/**
+ * Play a bend over time: the prompt of the trace game. It starts at audio time
+ * `at`, or straight away. Returns a way to cut it short.
+ */
+export function playContour(midi: number, contour: Contour, at?: number): () => void {
   const c = context();
-  const when = c.currentTime + 0.05;
+  const when = Math.max(c.currentTime + 0.02, at ?? c.currentTime + 0.05);
   const nodes = strike(midi, when, 0.5, 0.5, HELD);
   nodes.detune.setValueAtTime(contour.points[0].cents, when);
   for (const p of contour.points.slice(1)) nodes.detune.linearRampToValueAtTime(p.cents, when + p.t);

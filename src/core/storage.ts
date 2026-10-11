@@ -10,6 +10,10 @@ import { betterRank, FIRST_TOUR, type TourBest } from './tour';
 
 export const SAVE_VERSION = 1;
 
+/** What plays behind Bend Trace: nothing, a click or a soft drum kit. */
+export type BeatStyle = 'off' | 'click' | 'kit';
+export const BEAT_STYLES: readonly BeatStyle[] = ['off', 'click', 'kit'];
+
 /** Places on each score table. */
 export const TABLE_SIZE = 10;
 
@@ -31,6 +35,8 @@ export interface SaveData {
   /** How notes sound: the original synth tone or an overdriven electric guitar. */
   voice: 'synth' | 'guitar';
   accidentals: Accidentals;
+  /** The beat behind Bend Trace. */
+  beat: BeatStyle;
   /** How many frets the games are played over: one of NECK_SIZES. */
   frets: number;
   /** The initials last entered, offered again next time. */
@@ -44,7 +50,7 @@ export interface SaveData {
 }
 
 export function emptySave(): SaveData {
-  return { v: SAVE_VERSION, hand: 'right', volume: 0.8, voice: 'synth', accidentals: 'mixed', frets: DEFAULT_FRETS, initials: 'AAA', scores: {}, picks: {}, tours: {} };
+  return { v: SAVE_VERSION, hand: 'right', volume: 0.8, voice: 'synth', accidentals: 'mixed', beat: 'kit', frets: DEFAULT_FRETS, initials: 'AAA', scores: {}, picks: {}, tours: {} };
 }
 
 function isObject(x: unknown): x is Record<string, unknown> {
@@ -72,6 +78,7 @@ export function migrate(raw: unknown): SaveData {
   if (raw.hand === 'left' || raw.hand === 'right') save.hand = raw.hand;
   if (typeof raw.volume === 'number' && raw.volume >= 0 && raw.volume <= 1) save.volume = raw.volume;
   if (raw.voice === 'synth' || raw.voice === 'guitar') save.voice = raw.voice;
+  if ((BEAT_STYLES as readonly unknown[]).includes(raw.beat)) save.beat = raw.beat as BeatStyle;
   if (raw.accidentals === 'mixed' || raw.accidentals === 'sharp' || raw.accidentals === 'flat') save.accidentals = raw.accidentals;
   if ((NECK_SIZES as readonly unknown[]).includes(raw.frets)) save.frets = raw.frets as number;
   save.initials = cleanInitials(raw.initials);

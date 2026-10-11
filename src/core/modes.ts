@@ -4,6 +4,7 @@
 import { BEND_TIERS, type BendTier } from './bend';
 import { DEFAULT_FRETS } from './music';
 import { SCALE_IDS, type ScaleId } from './scaleBend';
+import { SONG_GAMES, SONGS } from './songs';
 
 export type Rank = 'S' | 'A' | 'B' | 'C';
 
@@ -27,6 +28,8 @@ export interface Mode {
   unit: 'points' | 'seconds';
   /** The key its score table is stored under, where that is not its id: a table started afresh when the scoring changed. */
   table?: string;
+  /** Not a stop on the World Tour. */
+  offTour?: boolean;
 }
 
 const TIER_WORDS: Record<BendTier, string> = { standard: 'Standard', advanced: 'Advanced', virtuoso: 'Virtuoso' };
@@ -45,7 +48,21 @@ export const MODES: readonly Mode[] = [
     (tier): Mode => ({ id: `bend-${tier}`, title: 'Bend by Ear', variant: TIER_WORDS[tier], route: `/play/bend/${tier}`, better: 'high', unit: 'points', table: `bend-${tier}.2` }),
   ),
   ...BEND_TIERS.map(
-    (tier): Mode => ({ id: `trace-${tier}`, title: 'Bend Trace', variant: TIER_WORDS[tier], route: `/play/trace/${tier}`, better: 'high', unit: 'points', table: `trace-${tier}.2` }),
+    (tier): Mode => ({ id: `trace-${tier}`, title: 'Bend Trace', variant: TIER_WORDS[tier], route: `/play/trace/${tier}`, better: 'high', unit: 'points', table: `trace-${tier}.3` }),
+  ),
+  // Each song's own versions of the games: titled by the song, named by the game.
+  ...SONGS.flatMap((song) =>
+    SONG_GAMES.filter((game) => game.has(song)).map(
+      (game): Mode => ({
+        id: `song-${song.id}-${game.kind}`,
+        title: song.title,
+        variant: game.name,
+        route: `/play/song/${song.id}/${game.kind}`,
+        better: 'high',
+        unit: 'points',
+        offTour: true,
+      }),
+    ),
   ),
   ...SCALE_IDS.map(
     (scale): Mode => ({ id: `scalebend-${scale}`, title: 'Scale Bends', variant: SCALE_WORDS[scale], route: `/play/scalebend/${scale}`, better: 'high', unit: 'points', table: `scalebend-${scale}.2` }),
