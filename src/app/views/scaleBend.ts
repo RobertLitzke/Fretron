@@ -7,7 +7,7 @@ import { BendVoice, blip, pluck } from '../../audio/audio';
 import type { BoardTouch } from '../../board/board';
 import type { NoteRenderData } from '../../board/renderer';
 import { BEND_PROMPTS, bendLabel, centsFromDrag, dragForCents, GRADE_WORDS, gradeBend, scoreGrade, type Grade } from '../../core/bend';
-import { modeById, rankBend, scaleWords } from '../../core/modes';
+import { bendTargets, modeById, rankBend, scaleWords } from '../../core/modes';
 import { cellMidi, pc, pcName, sameCell, stringName, type Cell } from '../../core/music';
 import { Rng } from '../../core/rng';
 import { asScale, degreeOf, makeScaleBendPrompt, SCALE_IDS, SCALES, scaleCells, type ScaleBendPrompt, type ScaleId } from '../../core/scaleBend';
@@ -278,6 +278,7 @@ export const scaleBendView: View = (root, ctx) => {
         mode,
         value: score,
         rank: rankBend(mean),
+        targets: bendTargets(),
         stats: [
           ['Pitch accuracy', `${mean.toFixed(1)} ¢ off`],
           ['Speed rating', `${(secondsTotal / BEND_PROMPTS).toFixed(1)} s`],
@@ -300,6 +301,7 @@ export const scaleBendView: View = (root, ctx) => {
       `${BEND_PROMPTS} bends, scored as in Bend by Ear. Within 5 cents is a bullseye.`,
       STREAK_LINE,
     ],
+    bendTargets(),
     () => {
       blip();
       next();

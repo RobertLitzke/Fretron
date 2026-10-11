@@ -10,7 +10,7 @@
 
 import { blip, buzz, strum } from '../../audio/audio';
 import type { LineData, NoteRenderData } from '../../board/renderer';
-import { formatSeconds, modeById, rankGrid, rankTriads } from '../../core/modes';
+import { formatSeconds, gridTargets, modeById, rankGrid, rankTriads, triadTargets } from '../../core/modes';
 import { allCells, cellKey, cellMidi, pc, pcName, stringName, type Cell } from '../../core/music';
 import { Rng } from '../../core/rng';
 import { formatMultiplier, GREEN_STEP, NO_STREAK, stepStreak, topMultiplier } from '../../core/streak';
@@ -413,6 +413,7 @@ export const triadsView: View = (root, ctx) => {
         mode,
         value: score,
         rank: rankTriads(score, possible),
+        targets: triadTargets(possible),
         stats: [
           targets
             ? ['Off target', `${(missedBy / Math.max(1, total - given)).toFixed(1)} steps`]
@@ -445,6 +446,7 @@ export const triadsView: View = (root, ctx) => {
       `A wrong rake keeps the notes that were right and spells the chord. The ${RAKES_BEFORE_ANSWER}th shows the answer, for no points.`,
       `A chord with no wrong rake adds ×${GREEN_STEP} to the multiplier, after it is scored; one found after a wrong rake starts it again from ×1.`,
     ],
+    triadTargets(),
     () => {
       frame.setPrompt(...waiting(`${progressions[0].keyName} · 1 / ${total}`));
       frame.beat(present);
@@ -558,6 +560,7 @@ export const gridClearView: View = (root, ctx) => {
         mode,
         value: total,
         rank: rankGrid(total, all.length),
+        targets: gridTargets(all.length),
         stats: [
           ['Chord', name],
           ['Voicings', String(all.length)],
@@ -580,6 +583,7 @@ export const gridClearView: View = (root, ctx) => {
       'Tap one fret on each string, or beside the nut for an open string, then drag anywhere on the board to play it.',
       `A wrong rake adds ${GRID_PENALTY} seconds.`,
     ],
+    gridTargets(all.length),
     () => {
       frame.setPrompt(el('b.call.wait', {}, '· · ·'));
       frame.beat(() => {

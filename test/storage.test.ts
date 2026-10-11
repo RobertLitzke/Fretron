@@ -1,5 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { formatSeconds, modeById, MODES, rankBend, rankHunter, rankSweep, tableKey } from '../src/core/modes';
+import {
+  bendTargets,
+  formatSeconds,
+  gridTargets,
+  hunterTargets,
+  modeById,
+  MODES,
+  rankBend,
+  rankGrid,
+  rankHunter,
+  rankSweep,
+  rankSweepRandom,
+  rankTriads,
+  sweepTargets,
+  tableKey,
+  triadTargets,
+  type Targets,
+} from '../src/core/modes';
 import { cleanInitials, emptySave, migrate, placeFor, TABLE_SIZE, withScore, type SaveData, type ScoreEntry } from '../src/core/storage';
 
 const entry = (value: number, name = 'AAA'): ScoreEntry => ({ name, value, rank: 'B', date: '2026-10-10T00:00:00.000Z' });
@@ -99,5 +116,44 @@ describe('modes', () => {
     expect(rankBend(12)).toBe('A');
     expect(rankBend(25)).toBe('B');
     expect(rankBend(80)).toBe('C');
+  });
+});
+
+describe('star targets', () => {
+  /** "1:04.0" → 64 */
+  const secondsIn = (text: string) => {
+    const [, m, sec] = /^(\d+):(\d+\.\d)$/.exec(text)!;
+    return Number(m) * 60 + Number(sec);
+  };
+
+  it('name a time that earns the rank it is shown for, and a slower one that does not', () => {
+    const cases: [Targets, (s: number) => string][] = [
+      [hunterTargets(20), (s) => rankHunter(s, 20)],
+      [hunterTargets(20, true), (s) => rankHunter(s, 20, true)],
+      [sweepTargets(133), (s) => rankSweep(s, 133)],
+      [sweepTargets(133, true), (s) => rankSweepRandom(s, 133)],
+      [gridTargets(15), (s) => rankGrid(s, 15)],
+    ];
+    for (const [targets, rank] of cases) {
+      expect(targets.ranks.map((t) => t.rank)).toEqual(['S', 'A', 'B']);
+      for (const t of targets.ranks) {
+        expect(rank(secondsIn(t.value))).toBe(t.rank);
+        expect(rank(secondsIn(t.value) + 0.2)).not.toBe(t.rank);
+      }
+    }
+    expect(hunterTargets(20).ranks.map((t) => t.value)).toEqual(['0:20.0', '0:36.0', '1:04.0']);
+  });
+
+  it('give triads as a share before a run and as points after it', () => {
+    expect(triadTargets().ranks[0].value).toBe('65%');
+    expect(triadTargets().lead).toBe('Share of the points to score');
+    expect(triadTargets(120000).ranks.map((t) => t.value)).toEqual(['78,000', '50,400', '26,400']);
+    expect(rankTriads(78000, 120000)).toBe('S');
+    expect(rankTriads(77999, 120000)).toBe('A');
+  });
+
+  it('give bends in cents', () => {
+    expect(bendTargets().ranks.map((t) => t.value)).toEqual(['8 ¢', '15 ¢', '30 ¢']);
+    expect(rankBend(8)).toBe('S');
   });
 });
