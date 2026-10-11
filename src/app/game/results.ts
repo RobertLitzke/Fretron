@@ -1,17 +1,19 @@
-// The end of a run: the rank, the numbers, initials if the run made the table,
+// The end of a run: the stars, the numbers, initials if the run made the table,
 // and the table.
 
 import { fanfare } from '../../audio/audio';
-import { formatValue, RANK_WORDS, tableKey, type Mode, type Rank } from '../../core/modes';
+import { formatValue, RANK_WORDS, tableKey, type Mode, type Rank, type Targets } from '../../core/modes';
 import { DEFAULT_FRETS } from '../../core/music';
-import { placeFor, withScore, withTourRank, type ScoreEntry } from '../../core/storage';
-import { legBooked, LEGS, starsFor, stopFor, totalStars } from '../../core/tour';
+import { placeFor, withScore, withTourRun, type ScoreEntry } from '../../core/storage';
+import { LAST_TOUR, legBooked, starsFor, stopFor, totalStars } from '../../core/tour';
 import { el } from '../dom';
 import type { ViewContext } from '../router';
 import { getSave, updateSave } from '../store';
+import { currentTour } from '../tour/current';
 import { onTour } from '../tour/route';
 import { starRow } from '../views/tour';
 import { replay, type Frame } from './frame';
+import { nextTarget, stars } from './targets';
 
 export interface RunResult {
   mode: Mode;
@@ -20,6 +22,8 @@ export interface RunResult {
   rank: Rank;
   /** Label and value pairs for the card. */
   stats: readonly (readonly [string, string])[];
+  /** What each rank took on this run. */
+  targets: Targets;
 }
 
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789';
@@ -40,7 +44,7 @@ export function scoreTable(mode: Mode, entries: readonly ScoreEntry[], highlight
         {},
         el('span.table-place.num', {}, String(i + 1)),
         el('span.table-name', {}, e.name),
-        el(`span.table-rank.rank-${e.rank}`, {}, e.rank),
+        stars(e.rank, '.table-stars'),
         el('span.table-value.num', {}, formatValue(mode, e.value)),
       ),
     ),
@@ -97,22 +101,29 @@ function initialsEntry(initial: string, done: (name: string) => void): HTMLEleme
   return node;
 }
 
-/** On tour: keep the rank if it is the stop's best, and say what it earned. */
+/** On tour: keep what the run beat of the stop's bests, and say what it earned. */
 function tourEarned(result: RunResult): HTMLElement | null {
-  const at = stopFor(result.mode.id);
+  const { id, year, legs } = currentTour(getSave());
+  const at = stopFor(legs, result.mode.id);
   if (!onTour() || !at) return null;
-  const before = getSave().tour;
-  const after = updateSave((s) => withTourRank(s, result.mode.id, result.rank)).tour;
-  const gained = totalStars(after) - totalStars(before);
-  const booked = LEGS.filter((leg) => !legBooked(leg, before) && legBooked(leg, after));
-  const stars = starsFor(after[result.mode.id]);
+  const before = getSave().tours[id] ?? {};
+  const after = updateSave((s) => withTourRun(s, id, result.mode.id, result.rank, result.value, result.mode.better)).tours[id];
+  const starsBefore = totalStars(legs, before);
+  const starsAfter = totalStars(legs, after);
+  const booked = legs.filter((leg) => !legBooked(leg, starsBefore) && legBooked(leg, starsAfter));
+  const tourDone = !legBooked(legs.at(-1)!, starsBefore) && legBooked(legs.at(-1)!, starsAfter);
+  const got = starsFor(after[result.mode.id].rank);
+  const was = before[result.mode.id]?.value;
+  const newBest = was !== undefined && after[result.mode.id].value !== was;
   return el(
     'div.tour-earned',
     {},
     el('div', {}, at.stop.city),
-    starRow(stars),
-    el('div', {}, gained > 0 ? `+${gained} ★` : stars === 3 ? 'Sold out' : 'No new stars: play it again'),
+    starRow(got),
+    el('div', {}, starsAfter > starsBefore ? `+${starsAfter - starsBefore} ★` : got === 3 ? 'Sold out' : 'No new stars'),
+    newBest ? el('b', {}, `New best on the '${year} tour`) : null,
     booked.map((leg) => el('b', {}, `${leg.name} booked!`)),
+    tourDone && id < LAST_TOUR ? el('b', {}, 'Your next tour is booked!') : null,
   );
 }
 
@@ -149,7 +160,7 @@ export function showResult(frame: Frame, ctx: ViewContext, result: RunResult, ag
       el(
         'div.result-card',
         {},
-        el(`div.result-rank.rank-${rank}`, {}, rank),
+        stars(rank, `.result-stars.rank-${rank}`),
         el('div.result-words', {}, RANK_WORDS[rank]),
         el('div.result-value.num', {}, formatValue(mode, value)),
         el(
@@ -157,6 +168,7 @@ export function showResult(frame: Frame, ctx: ViewContext, result: RunResult, ag
           {},
           result.stats.map(([label, text]) => [el('dt', {}, label), el('dd.num', {}, text)]),
         ),
+        nextTarget(result.targets, rank),
         earned,
       ),
       side,

@@ -782,9 +782,26 @@ input[type='range'] {
 }
 
 .hud-clock {
+  --digit: 0.84em;
+  flex: none;
+  text-align: right;
   font-size: 16px;
   font-weight: 700;
   color: var(--text);
+}
+
+/* Once a game has used its clock: room for 0:00.0 and 12.3 s, kept while the
+   clock is blank between prompts. */
+.hud-clock.timed {
+  min-width: calc(4 * var(--digit) + 0.7em);
+}
+
+/* As wide as the widest figure in the face, so a 1 takes the room an 8 does. */
+.clock-digit {
+  display: inline-block;
+  width: var(--digit);
+  font-style: normal;
+  text-align: center;
 }
 
 .hud-action {
@@ -1098,6 +1115,45 @@ input[type='range'] {
   margin: 0 0 14px;
 }
 
+/* What each rank takes, on one line where it fits. */
+.targets {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 2px 14px;
+  margin: 0 0 14px;
+  font-size: 13px;
+}
+
+.target-lead {
+  color: var(--muted);
+}
+
+.target {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.stars {
+  letter-spacing: 1px;
+  white-space: nowrap;
+  color: var(--gold);
+}
+
+.stars em {
+  font-style: normal;
+  color: color-mix(in srgb, var(--muted) 35%, transparent);
+}
+
+.target-next {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
 /* --- the end of a run ------------------------------------------------------ */
 
 .result {
@@ -1112,28 +1168,15 @@ input[type='range'] {
   text-align: center;
 }
 
-.result-rank {
-  font-family: var(--display);
-  font-size: 64px;
-  font-weight: 900;
-  line-height: 1;
+.result-stars {
+  display: block;
+  font-size: 44px;
+  line-height: 1.1;
+  letter-spacing: 4px;
 }
 
-.rank-S {
-  color: var(--gold);
+.result-stars.rank-S {
   text-shadow: 0 0 18px rgba(255, 209, 102, 0.8);
-}
-
-.rank-A {
-  color: var(--good);
-}
-
-.rank-B {
-  color: var(--cyan);
-}
-
-.rank-C {
-  color: var(--muted);
 }
 
 .result-words {
@@ -1264,10 +1307,8 @@ input[type='range'] {
   letter-spacing: 0.14em;
 }
 
-.table-rank {
-  font-family: var(--display);
+.table-stars {
   font-size: 11px;
-  font-weight: 800;
 }
 
 .table-value {
@@ -1376,5 +1417,33 @@ input[type='range'] {
 
   .hud-title {
     display: none;
+  }
+
+  /* Room for the rank's targets, with the buttons still on the screen. */
+  .panel {
+    padding: 10px 16px;
+  }
+
+  .panel-lines li + li {
+    margin-top: 2px;
+  }
+
+  .panel-lines {
+    margin: 8px 0 10px;
+    font-size: 13px;
+  }
+
+  .targets,
+  .panel-option {
+    margin-bottom: 10px;
+  }
+
+  .result-stars {
+    font-size: 34px;
+  }
+
+  .result-value {
+    margin-top: 2px;
+    font-size: 22px;
   }
 }

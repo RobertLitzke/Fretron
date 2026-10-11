@@ -45,7 +45,7 @@ import {
   type TraceSample,
 } from '../../core/bend';
 import type { BoardLayout } from '../../core/geometry';
-import { asTier, modeById, rankBend, rankTrace, tierWords, type Mode } from '../../core/modes';
+import { asTier, bendTargets, modeById, rankBend, rankTrace, tierWords, type Mode, type Targets } from '../../core/modes';
 import { pc, pcName, stringName, type Cell, type Tuning } from '../../core/music';
 import { Rng } from '../../core/rng';
 import { el } from '../dom';
@@ -322,6 +322,7 @@ export const bendView: View = (root, ctx) => {
         mode,
         value: score,
         rank: rankBend(mean),
+        targets: bendTargets(),
         stats: [
           ['Pitch accuracy', `${mean.toFixed(1)} ¢ off`],
           ['Speed rating', `${(secondsTotal / BEND_PROMPTS).toFixed(1)} s`],
@@ -343,6 +344,7 @@ export const bendView: View = (root, ctx) => {
       'Afterwards, tap the note to hear where you let go, and compare it with the target.',
       `${BEND_PROMPTS} bends. Within 5 cents is a bullseye.`,
     ],
+    bendTargets(),
     () => {
       blip();
       next();
@@ -372,6 +374,8 @@ export interface TraceGame {
   /** What the prompt is called, above its bends: a phrase's name. */
   caption?(index: number): string | null;
   lines: readonly string[];
+  /** What each rank takes, on the ready panel and the result. */
+  targets: Targets;
 }
 
 export const traceView: View = (root, ctx) => {
@@ -383,6 +387,7 @@ export const traceView: View = (root, ctx) => {
     bpm: TRACE_BPM[tier],
     prompts: BEND_PROMPTS,
     makePrompt: (_, tuning, frets) => makeTracePrompt(rng, tuning, tier, frets),
+    targets: bendTargets(true),
     lines: [
       'Hear a bend that moves in time with the beat, and see its shape, with a line on each beat. Some are pushed at once, some leaned into; a pre-bend starts bent, so push as you touch.',
       'Then hold the lit note on a beat and play it back from memory: the line disappears. Tap with another finger to call it off and hear it again.',
@@ -783,6 +788,7 @@ export function traceGame(root: HTMLElement, ctx: ViewContext, game: TraceGame):
         mode,
         value: score,
         rank: rankTrace(mean),
+        targets: game.targets,
         stats: [
           ['Pitch accuracy', `${mean.toFixed(1)} ¢ off`],
           ['Best trace', `${best.toFixed(1)} ¢ off`],
@@ -798,6 +804,7 @@ export function traceGame(root: HTMLElement, ctx: ViewContext, game: TraceGame):
     frame,
     `${mode.title} · ${game.subtitle}`,
     game.lines,
+    game.targets,
     () => {
       blip();
       next();

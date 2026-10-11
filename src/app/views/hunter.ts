@@ -4,7 +4,7 @@
 import { blip, pluck, thud } from '../../audio/audio';
 import type { BoardTouch } from '../../board/board';
 import type { NoteRenderData } from '../../board/renderer';
-import { formatSeconds, modeById, rankHunter } from '../../core/modes';
+import { formatSeconds, hunterTargets, modeById, rankHunter } from '../../core/modes';
 import { cellMidi, pc, pcName, sameCell, stringName, type Cell } from '../../core/music';
 import {
   HUNT_PENALTY,
@@ -31,7 +31,7 @@ const FAST_S = 1;
 
 export const hunterView: View = (root, ctx) => {
   const wanted = ctx.params.variant;
-  const variant: HuntVariant = wanted === 'ear' || wanted === 'advanced' ? wanted : 'name';
+  const variant: HuntVariant = wanted === 'advanced' ? wanted : 'name';
   const mode = modeById(`hunter-${variant}`)!;
   const rng = new Rng(freshSeed());
   const accidentals = getSave().accidentals;
@@ -89,16 +89,13 @@ export const hunterView: View = (root, ctx) => {
     const where = prompt.string !== null ? `on the ${stringName(tuning, prompt.string)} string` : prompt.fret !== null ? `at fret ${prompt.fret}` : null;
     frame.setPrompt(
       el('span.caps', {}, count()),
-      el('b.call.pop', {}, variant === 'ear' ? '?' : prompt.name),
+      el('b.call.pop', {}, prompt.name),
       where ? el('span.call-sub', {}, where) : null,
     );
     asked++;
     if (prompt.string !== null) board.setGlowString(prompt.string);
     if (prompt.fret !== null) board.setGlowFret(prompt.fret);
-    const hear = () => pluck(prompt!.midi, { level: 0.5 });
-    hear();
-    // By ear the sound is the whole prompt, so it can be asked for again.
-    if (variant === 'ear') frame.setAction('Hear again', hear);
+    pluck(prompt.midi, { level: 0.5 });
     liveSince = performance.now();
   }
 
@@ -131,7 +128,7 @@ export const hunterView: View = (root, ctx) => {
       pluck(cellMidi(tuning, cell), { level: 0.55 });
       board.flash(cell, board.theme.good);
       frame.setStreak(++streak);
-      frame.pop(`${seconds.toFixed(2)} s`, [cell], seconds < FAST_S ? 'gold' : 'good');
+      frame.pop(`${seconds.toFixed(1)} s`, [cell], seconds < FAST_S ? 'gold' : 'good');
     } else {
       penalty += HUNT_PENALTY;
       thud();
@@ -141,8 +138,6 @@ export const hunterView: View = (root, ctx) => {
       frame.pop(`+${HUNT_PENALTY} s`, [cell], 'bad');
       frame.banner('Miss', 'bad');
     }
-    // The ear game names the note only now.
-    if (variant === 'ear') frame.setPrompt(el('span.caps', {}, `${asked} / ${HUNT_PROMPTS}`), el('b.call.pop', {}, prompt.name));
     board.setNotes(marks);
     frame.setClock(formatSeconds(total(0)));
     frame.offerNext((counted) => void next(counted), NEXT_AFTER_MS);
@@ -155,9 +150,6 @@ export const hunterView: View = (root, ctx) => {
       return;
     }
     if (!liveSince || !touch.cell) return;
-    // In the ear game only the lit string is in play; a touch elsewhere is a slip, not an answer.
-    // (In the advanced game the string is part of the question, and the wrong one is a miss.)
-    if (variant === 'ear' && prompt?.string != null && touch.cell.string !== prompt.string) return;
     settle(touch.cell, (touch.time - liveSince) / 1000);
   }
 
@@ -190,6 +182,7 @@ export const hunterView: View = (root, ctx) => {
         mode,
         value: seconds,
         rank: rankHunter(seconds, HUNT_PROMPTS, variant === 'advanced'),
+        targets: hunterTargets(HUNT_PROMPTS, variant === 'advanced'),
         stats: [
           ['Found', `${found} / ${HUNT_PROMPTS}`],
           ['Speed rating', found ? `${(foundSeconds / found).toFixed(2)} s a note` : '—'],
@@ -209,12 +202,11 @@ export const hunterView: View = (root, ctx) => {
     [
       variant === 'name'
         ? 'A note name is called. Tap any fret that plays it, or its open string beside the nut.'
-        : variant === 'ear'
-          ? 'A pitch sounds and a string lights up. Tap the fret on that string that plays it; beside the nut for the open string.'
-          : 'A note is called with a string or a fret to find it on, which lights up. Only there will do: the same note anywhere else is a miss.',
+        : 'A note is called with a string or a fret to find it on, which lights up. Only there will do: the same note anywhere else is a miss.',
       `The clock runs only while you look. ${HUNT_PROMPTS} notes; a wrong fret adds ${HUNT_PENALTY} seconds.`,
       'The next note comes after two seconds. Tap the board to hold it there; swipe, or press Next, to go at once.',
     ],
+    hunterTargets(HUNT_PROMPTS, variant === 'advanced'),
     () => {
       blip();
       void next();

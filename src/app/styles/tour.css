@@ -3,71 +3,49 @@
    Mostly the same tokens re-pointed; below them, the few things that change
    shape rather than colour. */
 
-@font-face {
-  font-family: 'Shrikhand';
-  font-style: normal;
-  font-display: swap;
-  font-weight: 400;
-  src: url('../../../node_modules/@fontsource/shrikhand/files/shrikhand-latin-400-normal.woff2') format('woff2');
-}
+@import './looks.css';
 
-/* Upright only: this file is inlined into the page, and italics would add
-   another 45 KB. The browser slants it where italic is asked for. */
-@font-face {
-  font-family: 'Fraunces';
-  font-style: normal;
-  font-display: swap;
-  font-weight: 300 900;
-  src: url('../../../node_modules/@fontsource-variable/fraunces/files/fraunces-latin-wght-normal.woff2')
-    format('woff2-variations');
-}
-
+/* The app's own tokens, re-pointed at the tour's look. looks.css sets the
+   look's own (--ink, --paper, --rust, ...) by genre, era and continent. */
 :root[data-skin='tour'] {
-  --ink: #3b2416;
-  --paper: #f8f1df;
-  --rust: #c8502a;
-  --mustard: #e3a72f;
-  --olive: #8fa33a;
-
-  --bg: #2a1a10;
-  --panel: #3b2416;
-  --panel-2: #4a2e1c;
-  --hair: #3b2416;
-  --hair-dim: #8a6a45;
-  --text: #f1e2c0;
-  --muted: #b89a72;
-  --cyan: #e3a72f; /* "the player" becomes mustard */
-  --cyan-dim: #6b4a1c;
-  --orange: #c8502a; /* "what is asked for" becomes rust */
-  --orange-dim: #5e2a16;
-  --good: #8fa33a;
+  --bg: var(--stage);
+  --panel: var(--ink);
+  --panel-2: color-mix(in srgb, var(--ink) 85%, var(--paper));
+  --hair: var(--ink);
+  --hair-dim: color-mix(in srgb, var(--ink) 55%, var(--paper));
+  --text: var(--paper);
+  --muted: color-mix(in srgb, var(--paper) 62%, var(--ink));
+  --cyan: var(--mustard); /* "the player" */
+  --cyan-dim: color-mix(in srgb, var(--mustard) 40%, var(--ink));
+  --orange: var(--rust); /* "what is asked for" */
+  --orange-dim: color-mix(in srgb, var(--rust) 40%, var(--ink));
+  --good: var(--olive);
   --danger: #d0402a;
-  --gold: #e3a72f;
+  --gold: var(--mustard);
 
-  --note-root: #c8502a;
-  --note-third: #e3a72f;
-  --note-fifth: #8fa33a;
-  --note-pivot: #f1e2c0;
-  --board-string: #d9c7a0;
-  --board-fret: #b8a27a;
-  --board-fret-bold: #e6d7b5;
-  --board-nut: #f4ead2;
-  --board-wood: #4a2a18; /* rosewood */
+  --note-root: var(--rust);
+  --note-third: var(--mustard);
+  --note-fifth: var(--olive);
+  --note-pivot: var(--paper);
+  --board-string: var(--strings);
+  --board-fret: color-mix(in srgb, var(--strings) 75%, var(--wood));
+  --board-fret-bold: color-mix(in srgb, var(--strings) 85%, white);
+  --board-nut: var(--paper);
+  --board-wood: var(--wood);
   --board-tint: rgba(0, 0, 0, 0.12);
-  --board-glow: 0;
-  --board-inlay: #efe6d2; /* mother of pearl */
-  --board-number-font: 'Shrikhand', Georgia, serif;
-  --board-label-font: 'Fraunces', Georgia, serif;
-  --board-dead: #24150c;
-  --board-dead-edge: #3a2414;
+  --board-inlay: color-mix(in srgb, var(--paper) 90%, white);
+  --board-number-font: var(--display);
+  --board-label-font: var(--font);
+  --board-dead: color-mix(in srgb, var(--wood) 60%, black);
+  --board-dead-edge: color-mix(in srgb, var(--wood) 80%, black);
 
-  --font: 'Fraunces', Georgia, serif;
-  --display: 'Shrikhand', 'Cooper Black', Georgia, serif;
+  /* Derived from the look, for the paper parts of the map. */
+  --ink-soft: color-mix(in srgb, var(--ink) 72%, var(--paper));
+  --rule: color-mix(in srgb, var(--ink) 28%, var(--paper));
+  --faint: color-mix(in srgb, var(--ink) 38%, var(--map));
+  --shadow: color-mix(in srgb, var(--ink) 35%, transparent);
 
   --radius: 14px;
-  /* Glows become the offset ink of a screen print. */
-  --glow-cyan: 2px 2px 0 var(--ink);
-  --glow-orange: 2px 2px 0 var(--ink);
   color-scheme: dark;
 }
 
@@ -84,13 +62,25 @@
 
 /* --- in a game ----------------------------------------------------------- */
 
+/* The band under each bar: stripes, a checker or a neon line, by era. */
+[data-skin='tour'] .hud::after,
+.tour-top::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: var(--band-h);
+  background: var(--band);
+  box-shadow: var(--band-glow);
+}
+
 /* The three stripes, under the bar. */
 [data-skin='tour'] .hud {
   border-bottom: 0;
-  box-shadow: 0 4px 0 var(--rust), 0 8px 0 var(--mustard), 0 12px 0 var(--olive);
   position: relative;
   z-index: 2;
-  margin-bottom: 12px;
+  margin-bottom: var(--band-h);
 }
 
 [data-skin='tour'] .hud-quit {
@@ -119,6 +109,10 @@
   color: var(--text);
 }
 
+[data-skin='tour'] .hud-clock {
+  --digit: 0.8em;
+}
+
 [data-skin='tour'] .hud-combo.hot {
   text-shadow: 2px 2px 0 var(--rust);
 }
@@ -128,7 +122,7 @@
   color: var(--mustard);
   background: var(--ink);
   border: 0;
-  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.4);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.4), var(--glow-cyan);
 }
 
 [data-skin='tour'] .banner.good {
@@ -141,17 +135,17 @@
 
 /* Panels are paper, with dark ink: the tokens turn over inside them. */
 [data-skin='tour'] .panel-host {
-  background: rgba(42, 26, 16, 0.72);
+  background: color-mix(in srgb, var(--stage) 72%, transparent);
 }
 
 [data-skin='tour'] .panel {
   --text: var(--ink);
-  --muted: #6b5236;
+  --muted: var(--ink-soft);
   --cyan: var(--rust);
   --orange: var(--rust);
-  --good: #5f6e1e;
-  --gold: #b07a10;
-  --hair-dim: #c9b28a;
+  --good: color-mix(in srgb, var(--olive) 70%, var(--ink));
+  --gold: color-mix(in srgb, var(--mustard) 70%, var(--ink));
+  --hair-dim: var(--rule);
   color: var(--ink);
   background: var(--paper);
   border: 0;
@@ -166,8 +160,8 @@
   text-shadow: none;
 }
 
-[data-skin='tour'] :is(.rank-S, .result-value) {
-  text-shadow: 2px 2px 0 rgba(59, 36, 22, 0.25);
+[data-skin='tour'] :is(.result-stars.rank-S, .result-value) {
+  text-shadow: 2px 2px 0 color-mix(in srgb, var(--ink) 25%, transparent);
 }
 
 [data-skin='tour'] .btn {
@@ -235,10 +229,9 @@ body.in-tour #app {
   color: var(--ink);
   background:
     radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, 0.35), transparent 60%),
-    radial-gradient(ellipse at 80% 90%, rgba(120, 70, 20, 0.18), transparent 55%),
-    repeating-linear-gradient(0deg, transparent 0 46px, rgba(138, 106, 69, 0.18) 46px 47px),
-    repeating-linear-gradient(90deg, transparent 0 62px, rgba(138, 106, 69, 0.18) 62px 63px),
-    #ecd9b0;
+    radial-gradient(ellipse at 80% 90%, var(--shadow), transparent 55%),
+    var(--texture),
+    color-mix(in srgb, var(--map) 86%, var(--tint));
 }
 
 .tour-top {
@@ -250,8 +243,8 @@ body.in-tour #app {
   padding: 0 max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
   color: var(--text);
   background: var(--ink);
-  box-shadow: 0 4px 0 var(--rust), 0 8px 0 var(--mustard), 0 12px 0 var(--olive);
-  margin-bottom: 12px;
+  position: relative;
+  margin-bottom: var(--band-h);
 }
 
 .tour-back {
@@ -270,13 +263,38 @@ body.in-tour #app {
   white-space: nowrap;
 }
 
-.tour-title small {
-  margin-left: 8px;
+.tour-years {
+  display: flex;
+  align-items: center;
+  gap: 2px;
   font-family: var(--font);
-  font-size: 14px;
+  font-size: 16px;
   font-style: italic;
-  color: var(--text);
-  text-shadow: none;
+  white-space: nowrap;
+}
+
+.tour-years b {
+  min-width: 34px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.tour-year-step {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--mustard);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.tour-year-step:disabled {
+  color: var(--hair-dim);
+  opacity: 0.4;
+  cursor: default;
 }
 
 .tour-total {
@@ -318,12 +336,53 @@ body.in-tour #app {
 .tour-road {
   position: absolute;
   inset: 0;
-  color: rgba(59, 36, 22, 0.5);
+  color: color-mix(in srgb, var(--ink) 50%, transparent);
 }
 
 .tour-road svg {
   width: 100%;
   height: 100%;
+}
+
+.tour-road path {
+  stroke-dasharray: var(--road);
+  stroke-width: var(--road-width);
+}
+
+/* A postmark in the corner of the map: where the tour is, and when. */
+.tour-postmark {
+  position: absolute;
+  left: 6px;
+  top: 0;
+  display: grid;
+  place-items: center;
+  width: 70px;
+  height: 70px;
+  padding: 6px;
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: 1px;
+  text-align: center;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--ink) 45%, transparent);
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  outline: 1px solid currentColor;
+  outline-offset: 2px;
+  transform: rotate(-12deg);
+  pointer-events: none;
+}
+
+.tour-postmark::before {
+  content: var(--postmark);
+}
+
+.tour-postmark b {
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0;
 }
 
 .sticker {
@@ -335,7 +394,7 @@ body.in-tour #app {
   border: 0;
   cursor: pointer;
   transform: translate(-50%, -50%) rotate(var(--r, 0deg));
-  filter: drop-shadow(2px 3px 0 rgba(59, 36, 22, 0.35));
+  filter: drop-shadow(2px 3px 0 var(--shadow));
   transition: transform 0.15s ease-out;
 }
 
@@ -347,8 +406,8 @@ body.in-tour #app {
   display: grid;
   place-items: center;
   color: var(--c);
-  background: #f8eed8;
-  border: 4px solid #f8eed8;
+  background: var(--paper);
+  border: 4px solid var(--paper);
   outline: 3px solid var(--c);
   outline-offset: -9px;
 }
@@ -415,13 +474,13 @@ body.in-tour #app {
 }
 
 .sticker.filled .face {
-  color: #f8eed8;
+  color: var(--paper);
   background: var(--c);
-  outline-color: #f8eed8;
+  outline-color: var(--paper);
 }
 
 .sticker.filled :is(.sub, .got) {
-  color: #f8eed8;
+  color: var(--paper);
 }
 
 .sticker.here::before {
@@ -441,15 +500,15 @@ body.in-tour #app {
 }
 
 .sticker.locked .face {
-  color: #a08868;
-  background: #ecd9b0;
+  color: var(--faint);
+  background: var(--map);
   border-style: dashed;
-  border-color: #b39c78;
+  border-color: var(--faint);
   outline: none;
 }
 
 .sticker.locked .sub {
-  color: #9a8262;
+  color: var(--faint);
 }
 
 .stamp {
@@ -460,15 +519,15 @@ body.in-tour #app {
   font-size: 9px;
   font-weight: 900;
   letter-spacing: 1.5px;
-  color: #b0302a;
-  background: rgba(248, 238, 216, 0.9);
+  color: var(--rust);
+  background: color-mix(in srgb, var(--paper) 90%, transparent);
   border: 2px solid currentColor;
   border-radius: 3px;
   transform: rotate(-14deg);
 }
 
 .stamp.gold {
-  color: #a0700a;
+  color: color-mix(in srgb, var(--mustard) 70%, var(--ink));
 }
 
 /* --- the set list -------------------------------------------------------- */
@@ -480,7 +539,7 @@ body.in-tour #app {
   padding: 12px 14px 12px;
   background: var(--paper);
   border-top: 6px solid var(--rust);
-  box-shadow: 3px 4px 0 rgba(59, 36, 22, 0.25);
+  box-shadow: 3px 4px 0 var(--shadow);
   transform: rotate(1deg);
 }
 
@@ -491,7 +550,7 @@ body.in-tour #app {
   top: -14px;
   width: 54px;
   height: 18px;
-  background: rgba(227, 167, 47, 0.55);
+  background: color-mix(in srgb, var(--mustard) 55%, transparent);
 }
 
 .setlist::before {
@@ -523,14 +582,14 @@ body.in-tour #app {
   font-size: 12px;
   font-style: italic;
   line-height: 1.25;
-  color: #6b5236;
+  color: var(--ink-soft);
 }
 
 .tour-sleeve {
   flex: none;
   width: 64px;
   height: 64px;
-  box-shadow: 2px 2px 0 rgba(59, 36, 22, 0.4);
+  box-shadow: 2px 2px 0 var(--shadow);
   transform: rotate(-3deg);
 }
 
@@ -558,7 +617,7 @@ body.in-tour #app {
   color: var(--ink);
   background: none;
   border: 0;
-  border-bottom: 1px dashed #c9b28a;
+  border-bottom: 1px dashed var(--rule);
   cursor: pointer;
 }
 
@@ -568,13 +627,13 @@ body.in-tour #app {
 }
 
 .song.sel {
-  background: linear-gradient(90deg, rgba(227, 167, 47, 0.3), transparent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--mustard) 30%, transparent), transparent);
 }
 
 .song .n {
   font-family: var(--display);
   font-size: 14px;
-  color: #8a6a45;
+  color: var(--ink-soft);
 }
 
 .song .t {
@@ -587,7 +646,7 @@ body.in-tour #app {
   font-variant-numeric: tabular-nums;
   font-size: 11px;
   font-weight: 400;
-  color: #6b5236;
+  color: var(--ink-soft);
 }
 
 
@@ -600,7 +659,7 @@ body.in-tour #app {
 
 .tour-stars em {
   font-style: normal;
-  color: #c9b28a;
+  color: var(--rule);
 }
 
 .tour-play {
@@ -621,7 +680,7 @@ body.in-tour #app {
   margin: 10px 0 0;
   font-size: 13px;
   font-style: italic;
-  color: #6b5236;
+  color: var(--ink-soft);
 }
 
 /* A phone held upright, or a narrow window: the set list goes under the map. */
@@ -675,4 +734,17 @@ body.in-tour #app {
   .sticker {
     scale: 0.9;
   }
+}
+
+/* The biggest words wear the look's poster type. */
+[data-skin='tour'] :is(.tour-title, .setlist h2, .panel-title) {
+  font-family: var(--poster);
+  font-weight: 400;
+}
+
+.tour-years b i {
+  margin-left: 6px;
+  font-size: 13px;
+  font-weight: 400;
+  opacity: 0.8;
 }

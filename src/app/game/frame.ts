@@ -3,10 +3,12 @@
 
 import { unlock } from '../../audio/audio';
 import { Board, type BoardOptions } from '../../board/board';
+import type { Targets } from '../../core/modes';
 import { STANDARD_TUNING, type Cell, type Tuning } from '../../core/music';
 import { el, type Child } from '../dom';
 import type { ViewContext } from '../router';
 import { getSave } from '../store';
+import { targetList } from './targets';
 
 /** The pause between asking for the next prompt and getting it, in milliseconds. */
 export const BEAT_MS = 550;
@@ -91,6 +93,7 @@ export function makeFrame(root: HTMLElement, ctx: ViewContext, title: string, ha
   let streakWas = 0;
   const prompt = el('div.hud-prompt');
   const clock = el('span.hud-clock.num');
+  let clockText = '';
   const action = el('button.btn.btn-small.hud-action', { type: 'button', hidden: true }) as HTMLButtonElement;
   const banners = el('div.banners');
   const floats = el('div.floats');
@@ -266,7 +269,12 @@ export function makeFrame(root: HTMLElement, ctx: ViewContext, title: string, ha
       prompt.replaceChildren(el('span', {}, ...children));
     },
     setClock(text) {
-      clock.textContent = text;
+      // Neither display face has even-width figures, so each digit gets a cell
+      // of its own: the clock keeps its size as it counts and the bar holds still.
+      clock.classList.add('timed');
+      if (text === clockText) return;
+      clockText = text;
+      clock.replaceChildren(...[...text].map((ch) => (/\d/.test(ch) ? el('i.clock-digit', {}, ch) : ch)));
     },
     setAction,
     offerNext(run, auto = 0) {
@@ -351,7 +359,7 @@ export function replay(again: () => void): void {
 }
 
 /** The panel shown before a run: what the game is, and a button that starts it. */
-export function readyPanel(frame: Frame, title: string, lines: readonly string[], start: () => void, extra?: Child): void {
+export function readyPanel(frame: Frame, title: string, lines: readonly string[], targets: Targets, start: () => void, extra?: Child): void {
   if (replaying) {
     // The player has read it already: "Again" goes straight into the next run.
     replaying = false;
@@ -362,6 +370,7 @@ export function readyPanel(frame: Frame, title: string, lines: readonly string[]
   frame.panel(
     el('h1.panel-title', {}, title),
     el('ul.panel-lines', {}, lines.map((line) => el('li', {}, line))),
+    targetList(targets),
     extra ?? null,
     el(
       'button.btn.btn-primary.btn-big',
