@@ -41,6 +41,7 @@ const CABINETS: Cabinet[] = [
       { name: 'Bend by Ear', blurb: 'Push the string to the pitch you heard. No meter.', modes: modesTitled('Bend by Ear') },
       { name: 'Bend Trace', blurb: 'Hear a bend that moves over time, and play it back from memory.', modes: modesTitled('Bend Trace') },
       { name: 'Scale Bends', blurb: 'Bend from one note of a scale to the next, with the shape drawn around you.', modes: modesTitled('Scale Bends'), pick: 'scalebend' },
+      { name: 'Scale Builder', blurb: 'Pick a scale, hear the root, and bend it into place by ear, up and back down.', modes: modesTitled('Scale Builder'), pick: 'scales' },
     ],
   },
   {

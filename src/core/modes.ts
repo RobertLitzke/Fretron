@@ -4,6 +4,7 @@
 import { BEND_TIERS, type BendTier } from './bend';
 import { DEFAULT_FRETS } from './music';
 import { SCALE_IDS, type ScaleId } from './scaleBend';
+import { BUILD_LEVELS, BUILDER_SCALES, type BuildLevel } from './scaleBuilder';
 import { SONG_GAMES, SONGS } from './songs';
 
 export type Rank = 'S' | 'A' | 'B' | 'C';
@@ -30,10 +31,13 @@ export interface Mode {
   table?: string;
   /** Not a stop on the World Tour. */
   offTour?: boolean;
+  /** One of many tables of a kind: the Scores page lists it only once it has a score. */
+  listOncePlayed?: boolean;
 }
 
 const TIER_WORDS: Record<BendTier, string> = { standard: 'Standard', advanced: 'Advanced', virtuoso: 'Virtuoso' };
 const SCALE_WORDS: Record<ScaleId, string> = { blues: 'Blues', major: 'Major', minor: 'Minor' };
+const LEVEL_WORDS: Record<BuildLevel, string> = { easy: 'Easy', hard: 'Hard' };
 
 export const MODES: readonly Mode[] = [
   { id: 'hunter-name', title: 'Speed Hunter', variant: 'By name', route: '/play/hunter/name', better: 'low', unit: 'seconds' },
@@ -68,6 +72,21 @@ export const MODES: readonly Mode[] = [
   ...SCALE_IDS.map(
     (scale): Mode => ({ id: `scalebend-${scale}`, title: 'Scale Bends', variant: SCALE_WORDS[scale], route: `/play/scalebend/${scale}`, better: 'high', unit: 'points', table: `scalebend-${scale}.3` }),
   ),
+  // A table for each scale at each level: kept off the tour, and off the Scores page until played.
+  ...BUILD_LEVELS.flatMap((level) =>
+    BUILDER_SCALES.map(
+      (scale): Mode => ({
+        id: `scales-${level}-${scale.id}`,
+        title: 'Scale Builder',
+        variant: `${scale.name} · ${LEVEL_WORDS[level]}`,
+        route: `/play/scales/${level}/${scale.id}`,
+        better: 'high',
+        unit: 'points',
+        offTour: true,
+        listOncePlayed: true,
+      }),
+    ),
+  ),
 ];
 
 export function modeById(id: string): Mode | undefined {
@@ -85,6 +104,10 @@ export function tableKey(mode: Mode, frets: number): string {
 
 export function tierWords(tier: BendTier): string {
   return TIER_WORDS[tier];
+}
+
+export function levelWords(level: BuildLevel): string {
+  return LEVEL_WORDS[level];
 }
 
 export function scaleWords(scale: ScaleId): string {
@@ -143,6 +166,8 @@ export const GRID_BARS: Bars = { s: 4, a: 7, b: 12, better: 'low' };
 /** The mean miss, in cents, across the run. */
 export const BEND_BARS: Bars = { s: 8, a: 15, b: 30, better: 'low' };
 export const TRACE_BARS: Bars = { s: 12, a: 22, b: 40, better: 'low' };
+/** Scale Builder's mean miss: a little wider than Bend by Ear's, as nothing is played to match. */
+export const SCALE_BUILD_BARS: Bars = { s: 10, a: 18, b: 32, better: 'low' };
 
 export function rankHunter(seconds: number, prompts: number, advanced = false): Rank {
   return rankBy(seconds / prompts, advanced ? HUNTER_ADVANCED_BARS : HUNTER_BARS);
@@ -170,6 +195,14 @@ export function rankBend(meanCents: number): Rank {
 
 export function rankTrace(meanCents: number): Rank {
   return rankBy(meanCents, TRACE_BARS);
+}
+
+const RANKS_DOWN: readonly Rank[] = ['S', 'A', 'B', 'C'];
+
+/** By the mean miss; on Hard, each step named wrong costs a star. */
+export function rankScaleBuild(meanCents: number, wrongSteps = 0): Rank {
+  const at = RANKS_DOWN.indexOf(rankBy(meanCents, SCALE_BUILD_BARS));
+  return RANKS_DOWN[Math.min(RANKS_DOWN.length - 1, at + wrongSteps)];
 }
 
 // --- star targets --------------------------------------------------------------
@@ -212,6 +245,10 @@ export function triadTargets(possible?: number): Targets {
   return possible
     ? targets('Score at least', TRIAD_BARS, (bar) => Math.ceil(bar * possible - 1e-9).toLocaleString('en-US'))
     : targets('Share of the points to score', TRIAD_BARS, (bar) => `${Math.round(bar * 100)}%`);
+}
+
+export function scaleBuildTargets(): Targets {
+  return targets('Average miss within', SCALE_BUILD_BARS, (bar) => `${bar} ¢`);
 }
 
 /** Bend ranks go by pitch, not points: the mean miss over the run. */
