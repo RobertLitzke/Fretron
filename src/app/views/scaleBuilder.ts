@@ -411,13 +411,11 @@ export const scaleBuilderView: View = (root, ctx) => {
     frame,
     `${mode.title} · ${scale.name}`,
     [
-      'The game picks a key and plays its root. Build the scale from it by ear, a note at a time, up to the octave and back down.',
-      'Hold the orange note and push until it sounds like the next note: going up bends it sharp, coming down dips it flat. Nothing is played to match.',
+      'Build the scale by ear from the root: bend up to the octave, dip back down.',
       hard
-        ? 'Hard: the notes are named but not shown. Going up, name each step (½, 1 or 1½ tones) before you play it; a wrong one costs a star and the streak.'
-        : 'Easy: every note is on the neck, with the step to it on the line between.',
-      'Tap a placed note to hear it again. Another finger mid-push calls it off.',
-      `${scale.steps.length * 2} notes, scored like Bend by Ear, streak and all.`,
+        ? 'Hard: notes are hidden. Name each step up (½, 1, 1½) before playing it.'
+        : 'Easy: every note is shown, with the step between.',
+      `${scale.steps.length * 2} notes, scored like Bend by Ear. Tap a placed note to hear it.`,
     ],
     scaleBuildTargets(),
     () => {
