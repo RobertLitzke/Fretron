@@ -23,9 +23,8 @@ export const songTraceView: View = (root, ctx) => {
     caption: (index) => trace.phrases[index].name,
     targets: bendTargets(true),
     lines: [
-      `${count} bends inspired by the solos of ${song.title}: ${song.about}, at ${trace.bpm} beats a minute. Each is a sketch of a bend's shape and timing, from the gentlest to the hardest.`,
-      'Hear each one with its beat and see its shape, then hold the lit note on a beat and play it back from memory. Tap with another finger to call it off and hear it again.',
-      'Scored as Bend Trace is, on how far your pitch was from the bend along the way. Tap the note afterwards to hear yours.',
+      `${count} bends from ${song.title}, ${song.about}, at ${trace.bpm} bpm.`,
+      'Hear each one, then play it back from memory on the lit note, on the beat.',
       STREAK_LINE,
     ],
   });

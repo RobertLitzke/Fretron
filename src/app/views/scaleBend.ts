@@ -294,11 +294,8 @@ export const scaleBendView: View = (root, ctx) => {
     frame,
     `${mode.title} · ${scaleWords(scaleId)}`,
     [
-      `Each bend is in a new key of the ${scale.name} scale. Its notes around the bend are drawn hollow, with the root named in gold.`,
-      'The green note is the one to reach: tap it to hear it. Then hold the orange note and push it up until it matches.',
-      'Mid-bend, tap anywhere else with another finger to mute the bend and call it off; tap the green note to hear the target again too.',
-      'Afterwards, tap the orange note to hear where you let go, and the green one to hear the target.',
-      `${BEND_PROMPTS} bends, scored as in Bend by Ear. Within 5 cents is a bullseye.`,
+      `A new key of the ${scale.name} scale each bend. Tap green to hear the target, then push orange up to match.`,
+      `${BEND_PROMPTS} bends, scored as Bend by Ear. Another finger calls a bend off.`,
       STREAK_LINE,
     ],
     bendTargets(),
