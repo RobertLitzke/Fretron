@@ -15,7 +15,7 @@ export const scoresView: View = (root) => {
       el(
         'div.tables',
         {},
-        MODES.map((mode) =>
+        MODES.filter((mode) => !mode.listOncePlayed || scores[tableKey(mode, frets)]?.length).map((mode) =>
           el('section.table-card', {}, el('h2.caps', {}, tableTitle(mode, frets)), scoreTable(mode, scores[tableKey(mode, frets)] ?? [])),
         ),
       ),

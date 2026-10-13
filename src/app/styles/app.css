@@ -808,6 +808,60 @@ input[type='range'] {
   flex: none;
 }
 
+/* Scale Builder: the scale's notes root to octave, with the steps between. */
+.ladder {
+  flex: none;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  font-family: var(--display);
+}
+
+.ladder b {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.ladder b.done {
+  color: var(--cyan);
+}
+
+.ladder b.now {
+  color: var(--orange);
+  text-shadow: var(--glow-orange);
+}
+
+.ladder i {
+  font-style: normal;
+  font-size: 10px;
+  color: var(--muted);
+  opacity: 0.8;
+}
+
+/* Scale Builder, Hard: name the step before playing it. */
+.step-pick {
+  flex: none;
+  display: flex;
+  gap: 6px;
+  align-self: center;
+}
+
+.step-pick .btn {
+  min-width: 44px;
+  font-size: 14px;
+}
+
+select.pick {
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--cyan-dim);
+  border-radius: var(--radius);
+  padding: 7px 10px;
+}
+
 /* After a bend: play the target and what was played, to compare them. */
 .review {
   flex: none;
