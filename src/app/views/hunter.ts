@@ -201,10 +201,9 @@ export const hunterView: View = (root, ctx) => {
     `${mode.title} · ${mode.variant}`,
     [
       variant === 'name'
-        ? 'A note name is called. Tap any fret that plays it, or its open string beside the nut.'
-        : 'A note is called with a string or a fret to find it on, which lights up. Only there will do: the same note anywhere else is a miss.',
-      `The clock runs only while you look. ${HUNT_PROMPTS} notes; a wrong fret adds ${HUNT_PENALTY} seconds.`,
-      'The next note comes after two seconds. Tap the board to hold it there; swipe, or press Next, to go at once.',
+        ? 'Tap any fret that plays the called note, or its open string by the nut.'
+        : 'Find the called note on the lit string or fret only.',
+      `${HUNT_PROMPTS} notes; a wrong fret adds ${HUNT_PENALTY} s. Tap to pause between notes, swipe to skip.`,
     ],
     hunterTargets(HUNT_PROMPTS, variant === 'advanced'),
     () => {

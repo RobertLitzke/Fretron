@@ -437,14 +437,13 @@ export const triadsView: View = (root, ctx) => {
     frame,
     `${mode.title} · ${mode.variant}`,
     [
-      'Build each chord on three neighbouring strings: tap a fret on each, or beside the nut for an open string. Then drag anywhere on the board to play it.',
+      'Tap a fret on three neighbouring strings, then drag to play. Points for speed.',
       targets
-        ? `Each chord lights a fret, a string, or both. Play it as near as the chord allows: every fret or string further out costs ${TARGET_STEP} points. Points for speed too; there is no time limit.`
+        ? `Play near the lit fret or string: ${TARGET_STEP} off per step away.`
         : compact
-          ? `Points for speed, and at the end of each progression a bonus for holding all its chords across as few frets as they can be: ${COMPACT_BONUS} a chord at the tightest, less for every fret wider. Open strings do not count. There is no time limit.`
-          : 'Points for speed, and a bonus for staying close to the chord before. There is no time limit.',
-      `A wrong rake keeps the notes that were right and spells the chord. The ${RAKES_BEFORE_ANSWER}th shows the answer, for no points.`,
-      `A chord with no wrong rake adds ×${GREEN_STEP} to the multiplier, after it is scored; one found after a wrong rake starts it again from ×1.`,
+          ? `Up to ${COMPACT_BONUS} a chord for a progression held in few frets.`
+          : 'A bonus for staying close to the chord before.',
+      `Clean chords add ×${GREEN_STEP}; the ${RAKES_BEFORE_ANSWER}th wrong rake shows the answer.`,
     ],
     triadTargets(),
     () => {
@@ -579,9 +578,8 @@ export const gridClearView: View = (root, ctx) => {
     frame,
     `${mode.title} · ${mode.variant}`,
     [
-      'One chord. Find every close voicing of it: all three inversions, on every set of three neighbouring strings, open strings included.',
-      'Tap one fret on each string, or beside the nut for an open string, then drag anywhere on the board to play it.',
-      `A wrong rake adds ${GRID_PENALTY} seconds.`,
+      'Find every close voicing of one chord: each inversion on every string set, open strings included.',
+      `Tap a fret per string, then drag to play. A wrong rake adds ${GRID_PENALTY} s.`,
     ],
     gridTargets(all.length),
     () => {

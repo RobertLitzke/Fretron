@@ -89,7 +89,7 @@ export function reviewButtons(target: () => void, yours: () => void): HTMLElemen
 
 /** Draw the note being bent, pulled `offsetY` pixels across the neck, and its string with it. */
 /** How the streak works in the bend games, for their ready panels. */
-export const STREAK_LINE = `Each green bend adds ×${GREEN_STEP} to the multiplier and each tan one ×${OK_STEP}, after it is scored. An off bend puts it back to ×1.`;
+export const STREAK_LINE = `Green bends add ×${GREEN_STEP} to the multiplier, tan ×${OK_STEP}; an off bend resets it.`;
 
 /** The streak meter in the bend games: the bends in a row, and the multiplier they give. */
 export function bendStreak(frame: Frame, streak: Streak, prompts = BEND_PROMPTS): void {
@@ -340,11 +340,8 @@ export const bendView: View = (root, ctx) => {
     frame,
     `${mode.title} · ${tierWords(tier)}`,
     [
-      'You hear the pitch to reach. Then hold the lit note and drag it across the strings: the further you push, the higher it goes.',
-      'There is no meter, and no two bends take the same push. Listen, and let go when your note matches.',
-      'To hear the target again mid-bend, tap anywhere else with another finger: the bend is muted and called off, and you can try it again.',
-      'Afterwards, tap the note to hear where you let go, and compare it with the target.',
-      `${BEND_PROMPTS} bends. Within 5 cents is a bullseye.`,
+      'Hear the target, then push the lit note up and let go when it matches. No meter: just listen.',
+      `${BEND_PROMPTS} bends; within 5 cents is a bullseye. Another finger calls a bend off.`,
       STREAK_LINE,
     ],
     bendTargets(),
@@ -392,9 +389,8 @@ export const traceView: View = (root, ctx) => {
     makePrompt: (_, tuning, frets) => makeTracePrompt(rng, tuning, tier, frets),
     targets: bendTargets(true),
     lines: [
-      'Hear a bend that moves in time with the beat, and see its shape, with a line on each beat. Some are pushed at once, some leaned into; a pre-bend starts bent, so push as you touch.',
-      'Then hold the lit note on a beat and play it back from memory: the line disappears. Tap with another finger to call it off and hear it again.',
-      `${BEND_PROMPTS} bends, scored on how far your pitch was from the prompt along the way. Tap the note afterwards to hear yours.`,
+      'Hear a bend in time and see its shape, then play it back from memory on the lit note, on the beat.',
+      `${BEND_PROMPTS} bends, scored on pitch along the way. Another finger calls one off.`,
       STREAK_LINE,
     ],
   });

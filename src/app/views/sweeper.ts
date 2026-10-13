@@ -158,16 +158,8 @@ export const sweeperView: View = (root, ctx) => {
     frame,
     `${mode.title} · ${mode.variant}`,
     kind === 'note'
-      ? [
-          `A note is called. Tap every place that plays it, on all six strings: the open strings beside the nut, and frets 1 to ${frame.frets}.`,
-          'When they are all gone the next note is called, until the neck is clear.',
-          `The clock runs while a note is up. A wrong tap adds ${SWEEP_PENALTY} seconds.`,
-        ]
-      : [
-          `A note is called. Tap one place that plays it, an open string beside the nut or any of frets 1 to ${frame.frets}, and it is gone.`,
-          'Every tap brings a new note, until the neck is clear. The places left for each note get fewer as you go.',
-          `The clock runs while a note is up. A wrong tap adds ${SWEEP_PENALTY} seconds.`,
-        ],
+      ? ['Tap every place the called note plays, open strings included, until the neck is clear.', `A wrong tap adds ${SWEEP_PENALTY} s.`]
+      : ['Tap one place that plays the called note to clear it, until the neck is clear.', `A wrong tap adds ${SWEEP_PENALTY} s.`],
     sweepTargets(sweep.total, kind === 'random'),
     () => {
       frame.setPrompt(el('b.call.wait', {}, '· · ·'), progress());
