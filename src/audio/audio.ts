@@ -11,6 +11,7 @@
 import { contourDuration, type Contour } from '../core/bend';
 import { midiToHz } from '../core/music';
 import { buildAmp, loadString, strikeGuitar, type Amp, type StringNodes } from './guitar';
+import { loudnessGain } from './loudness';
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -98,7 +99,12 @@ export function voiceReady(): Promise<void> {
  * be found by ear.
  */
 function strike(midi: number, when: number, level: number, ring: number, hold = 0, clean = false): StringNodes {
-  if (voice === 'guitar' && stringLoaded) {
+  const guitar = voice === 'guitar' && stringLoaded;
+  // Low notes are raised and high ones lowered, so that they sound alike (loudness.ts).
+  const even = loudnessGain(guitar ? 'guitar' : 'synth', midi);
+  level *= even;
+  hold *= even;
+  if (guitar) {
     return strikeGuitar(context(), clean ? amp!.clean : amp!.drive, midiToHz(midi), when, level, ring, hold);
   }
   return strikeSynth(midi, when, level, ring, hold);
