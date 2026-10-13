@@ -13,6 +13,7 @@ import { homeView } from './app/views/home';
 import { hunterView } from './app/views/hunter';
 import { scoresView } from './app/views/scores';
 import { scaleBendView } from './app/views/scaleBend';
+import { scaleBuilderView } from './app/views/scaleBuilder';
 import { settingsView } from './app/views/settings';
 import { sweeperView } from './app/views/sweeper';
 import { tourView } from './app/views/tour';
@@ -74,7 +75,8 @@ function boot(): void {
       .add(`${base}/play/bend/:tier`, bendView)
       .add(`${base}/play/trace/:tier`, traceView)
       .add(`${base}/play/song/:song/trace`, songTraceView)
-      .add(`${base}/play/scalebend/:scale`, scaleBendView);
+      .add(`${base}/play/scalebend/:scale`, scaleBendView)
+      .add(`${base}/play/scales/:level/:scale`, scaleBuilderView);
   }
   router
     .add('/scores', scoresView)
