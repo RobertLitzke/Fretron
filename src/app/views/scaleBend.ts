@@ -3,26 +3,22 @@
 // the note to bend up to is filled in where it is fretted: tap it to hear the
 // target. Then bend up to it by ear, as in Bend by Ear, and let go.
 
-import { BendVoice, blip, pluck } from '../../audio/audio';
+import { blip, pluck } from '../../audio/audio';
 import type { BoardTouch } from '../../board/board';
 import type { NoteRenderData } from '../../board/renderer';
-import { BEND_PROMPTS, bendLabel, centsFromDrag, dragForCents, GRADE_WORDS, gradeBend, scoreGrade, type Grade } from '../../core/bend';
+import { BEND_PROMPTS, bendLabel, dragForCents, gradeBend, type Grade } from '../../core/bend';
 import { bendTargets, modeById, starsBend, scaleWords } from '../../core/modes';
 import { cellMidi, pc, pcName, sameCell, stringName, type Cell } from '../../core/music';
 import { Rng } from '../../core/rng';
 import { asScale, degreeOf, makeScaleBendPrompt, SCALE_IDS, SCALES, scaleCells, type ScaleBendPrompt, type ScaleId } from '../../core/scaleBend';
-import { NO_STREAK } from '../../core/streak';
 import { el } from '../dom';
 import { BendFx } from '../game/bendFx';
+import { BendInput, BendScore, bentTo, drawLanding, onPuck, reviewButtons, STREAK_LINE } from '../game/bendInput';
 import { makeFrame, panelOption, readyPanel, waiting } from '../game/frame';
 import { showResult } from '../game/results';
 import type { View } from '../router';
 import { updateSave } from '../store';
 import { freshSeed, segmented } from '../ui';
-import { bendStreak, bentTo, gradeColor, onPuck, popGrade, reviewButtons, signedCents, STREAK_LINE } from './bend';
-
-const SLIP_MS = 300;
-const SLIP_CENTS = 8;
 
 /** How many frets of the scale are drawn either side of the bend: about one position. */
 const SHAPE_REACH = 4;
@@ -34,23 +30,15 @@ export const scaleBendView: View = (root, ctx) => {
   // The menu's Play button comes back to the scale last played.
   updateSave((s) => ({ ...s, picks: { ...s.picks, scalebend: scaleId } }));
   const rng = new Rng(freshSeed());
-  const voice = new BendVoice();
   const fx = new BendFx();
 
   let asked = 0;
-  let score = 0;
-  let streak = NO_STREAK;
   let missTotal = 0;
   let secondsTotal = 0;
   let prompt: ScaleBendPrompt | null = null;
   let shape: Cell[] = [];
   let phase: 'idle' | 'aim' | 'bending' | 'shown' = 'idle';
   let aimSince = 0;
-  let finger = -1;
-  let downAt = 0;
-  let downY = 0;
-  let offsetY = 0;
-  let cents = 0;
   let shown: { direction: number; error: number; grade: Grade; cents: number } | null = null;
   let promptLine: HTMLElement[] = [];
 
@@ -60,10 +48,13 @@ export const scaleBendView: View = (root, ctx) => {
 
   const name = (midi: number) => pcName(pc(midi), 'sharp');
   const semitonePx = () => (prompt ? prompt.travel * board.layout.spacing : 1);
+  const input = new BendInput({ semitonePx, paint });
+  const tally = new BendScore(frame, fx);
 
   /** The shape, the target and the note being bent, which is drawn last so it passes over the rest. */
   function paint(held: boolean): void {
     if (!prompt) return;
+    const { offsetY } = input;
     const theme = board.theme;
     const p = prompt;
     const notes: NoteRenderData[] = [];
@@ -109,25 +100,12 @@ export const scaleBendView: View = (root, ctx) => {
   board.overlay = (g, layout, start) => {
     if (!prompt || !shown) return;
     const centre = layout.center(prompt.cell, start);
-    const targetY = centre.y + shown.direction * dragForCents(prompt.semis * 100, semitonePx());
-    const half = board.noteRadius * 2.1;
-    g.save();
-    g.strokeStyle = board.theme.orange;
-    g.shadowColor = board.theme.orange;
-    g.shadowBlur = 10;
-    g.lineWidth = 3;
-    g.beginPath();
-    g.moveTo(centre.x - half, targetY);
-    g.lineTo(centre.x + half, targetY);
-    g.stroke();
-    g.shadowBlur = 0;
-    g.font = `700 26px Orbitron, sans-serif`;
-    g.fillStyle = gradeColor(frame, shown.grade);
-    g.textAlign = 'right';
-    g.textBaseline = 'middle';
-    g.fillText(signedCents(shown.error), centre.x - half - 10 + fx.shake(), centre.y + offsetY);
-    g.restore();
-    fx.draw(g, centre.x, centre.y + offsetY, board.noteRadius * 1.15, gradeColor(frame, shown.grade));
+    drawLanding(g, frame, fx, centre, {
+      targetY: centre.y + shown.direction * dragForCents(prompt.semis * 100, semitonePx()),
+      offsetY: input.offsetY,
+      error: shown.error,
+      grade: shown.grade,
+    });
   };
   frame.everyFrame((nowMs) => {
     if (fx.tick(nowMs)) board.invalidate();
@@ -141,12 +119,8 @@ export const scaleBendView: View = (root, ctx) => {
   /** Mute the bend being held and put the note back, unscored, to be tried again. */
   function cancel(): void {
     if (phase !== 'bending' || !prompt) return;
-    voice.stop();
     phase = 'aim';
-    finger = -1;
-    offsetY = 0;
-    cents = 0;
-    paint(false);
+    input.drop();
     frame.banner('Bend cancelled');
   }
 
@@ -169,8 +143,7 @@ export const scaleBendView: View = (root, ctx) => {
   }
 
   async function present(): Promise<void> {
-    offsetY = 0;
-    cents = 0;
+    input.reset();
     prompt = makeScaleBendPrompt(rng, tuning, scaleId, frame.frets);
     if (import.meta.env.DEV) (window as unknown as { __prompt?: ScaleBendPrompt }).__prompt = prompt;
     asked++;
@@ -197,13 +170,13 @@ export const scaleBendView: View = (root, ctx) => {
   function onDown(touch: BoardTouch): void {
     // A second finger while the bend is held calls it off; on the target, it plays it too.
     if (phase === 'bending') {
-      if (touch.id === finger) return;
+      if (input.holds(touch)) return;
       if (prompt && touch.cell && sameCell(touch.cell, prompt.target)) return hearTarget();
       return cancel();
     }
     // Over: the bent note plays back what was played, the target plays the target, and the rest of the board moves on.
     if (phase === 'shown' && prompt) {
-      if (onPuck(frame, prompt.cell, touch, offsetY)) return hearYours();
+      if (onPuck(frame, prompt.cell, touch, input.offsetY)) return hearYours();
       if (touch.cell && sameCell(touch.cell, prompt.target)) return hearTarget();
     }
     if (frame.takeNext(true)) return;
@@ -215,51 +188,31 @@ export const scaleBendView: View = (root, ctx) => {
       return;
     }
     phase = 'bending';
-    finger = touch.id;
-    downAt = touch.time;
-    downY = touch.y;
-    offsetY = 0;
-    cents = 0;
-    voice.start(prompt.from);
-    paint(true);
+    input.start(touch, prompt.from);
   }
 
   function onMove(touch: BoardTouch): void {
-    if (phase !== 'bending' || touch.id !== finger || !prompt) return;
-    const drag = touch.y - downY;
-    cents = centsFromDrag(drag, semitonePx());
-    offsetY = Math.sign(drag) * dragForCents(cents, semitonePx());
-    voice.setCents(cents);
-    paint(true);
+    if (phase === 'bending') input.move(touch);
   }
 
   function onUp(touch: BoardTouch): void {
-    if (phase !== 'bending' || touch.id !== finger || !prompt) return;
-    if (cents < SLIP_CENTS && touch.time - downAt < SLIP_MS) {
-      voice.stop();
+    if (phase !== 'bending' || !input.holds(touch) || !prompt) return;
+    if (input.slipped(touch)) {
       phase = 'aim';
-      offsetY = 0;
-      paint(false);
+      input.drop();
       return;
     }
+    const { cents, offsetY } = input;
     const error = cents - prompt.semis * 100;
     const grade = gradeBend(error);
-    const scored = scoreGrade(grade, streak);
-    if (grade === 'bullseye') voice.bloom();
-    else voice.release();
-    score += scored.points;
-    streak = scored.streak;
+    input.letGo(grade);
     missTotal += Math.abs(error);
     secondsTotal += (touch.time - aimSince) / 1000;
     shown = { direction: offsetY < 0 ? -1 : 1, error, grade, cents };
     phase = 'shown';
-    fx.burst(grade);
     frame.setAction(null);
     frame.setPrompt(...promptLine, reviewButtons(hearTarget, hearYours));
-    frame.setScore(score);
-    bendStreak(frame, streak);
-    popGrade(frame, grade, scored.points, bentTo(frame, prompt.cell, offsetY));
-    frame.banner(GRADE_WORDS[grade], grade === 'off' ? 'bad' : 'good');
+    tally.land(grade, bentTo(frame, prompt.cell, offsetY));
     board.invalidate();
     frame.offerNext(next);
   }
@@ -276,7 +229,7 @@ export const scaleBendView: View = (root, ctx) => {
       ctx,
       {
         mode,
-        value: score,
+        value: tally.points,
         stars: starsBend(mean),
         targets: bendTargets(),
         stats: [
@@ -288,7 +241,6 @@ export const scaleBendView: View = (root, ctx) => {
     );
   }
 
-  bendStreak(frame, NO_STREAK);
   frame.setPrompt(el('span.caps', {}, scaleWords(scaleId)));
   readyPanel(
     frame,
@@ -317,7 +269,7 @@ export const scaleBendView: View = (root, ctx) => {
   );
 
   return () => {
-    voice.stop();
+    input.stop();
     frame.teardown();
   };
 };
