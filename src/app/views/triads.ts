@@ -60,7 +60,7 @@ const GRID_PENALTY = 3;
 const RAKES_BEFORE_ANSWER = 5;
 /** Once a progression's last chord is in, the wait before it is played back whole, and the time each chord of it gets. */
 const REPLAY_AFTER_MS = 900;
-const REPLAY_BEAT_MS = 520;
+const REPLAY_BEAT_MS = 330;
 
 /** A chord tone as it is written on a note: 'b3' is "♭3", 'd5' is "♭5". */
 function toneText(label: string): string {
