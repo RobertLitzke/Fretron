@@ -17,7 +17,7 @@
 // again, so the target can be heard once more first.
 
 import { BendVoice, blip, heardAt, now, playContour, pluck, unlock } from '../../audio/audio';
-import { BAR, Metronome } from '../../audio/beat';
+import { BAR, COUNT_IN, inBar, Metronome } from '../../audio/beat';
 import type { BoardTouch } from '../../board/board';
 import {
   BEND_PROMPTS,
@@ -413,6 +413,8 @@ export function traceGame(root: HTMLElement, ctx: ViewContext, game: TraceGame):
   /** performance.now() when the prompt, or the playing back of it, began: its first beat as heard. */
   let listenSince = 0;
   let playSince = 0;
+  /** With the beat on, the beat the player is counted in to, and when it is heard (page ms). */
+  let turn: { index: number; at: number } | null = null;
   let cutPrompt: (() => void) | null = null;
   let finger = -1;
   let downY = 0;
@@ -537,8 +539,21 @@ export function traceGame(root: HTMLElement, ctx: ViewContext, game: TraceGame):
       g.textAlign = 'left';
       g.fillStyle = theme.muted;
       const counting = phase === 'listen' && nowMs < listenSince;
+      const turnIn = turn && phase === 'ready' ? turn.at - nowMs : -1;
       const words =
-        phase === 'playing' ? 'PLAY' : counting ? 'COUNT IN' : phase === 'listen' ? 'LISTEN' : metro.running ? 'YOUR TURN: HOLD THE NOTE ON A BEAT' : 'YOUR TURN: HOLD THE NOTE';
+        phase === 'playing'
+          ? 'PLAY'
+          : counting
+            ? 'COUNT IN'
+            : phase === 'listen'
+              ? 'LISTEN'
+              : turnIn > COUNT_IN * beatMs
+                ? 'YOUR TURN: HOLD THE NOTE'
+                : turnIn > 0
+                  ? 'YOUR TURN: COUNT IN'
+                  : metro.running
+                    ? 'YOUR TURN: HOLD THE NOTE ON A BEAT'
+                    : 'YOUR TURN: HOLD THE NOTE';
       g.fillText(words, left + padL, top + 12);
     }
 
@@ -550,7 +565,7 @@ export function traceGame(root: HTMLElement, ctx: ViewContext, game: TraceGame):
       const x = left + width - padR - 8;
       const y = top + 12;
       g.globalAlpha = 0.3 + 0.7 * lit;
-      g.fillStyle = (((index % BAR) + BAR) % BAR) === 0 ? theme.orange : theme.cyan;
+      g.fillStyle = inBar(index) === 0 ? theme.orange : theme.cyan;
       g.beginPath();
       g.arc(x, y, 4 + 2 * lit, 0, 2 * Math.PI);
       g.fill();
@@ -558,7 +573,7 @@ export function traceGame(root: HTMLElement, ctx: ViewContext, game: TraceGame):
       g.font = `600 11px Orbitron, sans-serif`;
       g.textAlign = 'right';
       g.fillStyle = theme.muted;
-      g.fillText(String((((index % BAR) + BAR) % BAR) + 1), x - 10, y);
+      g.fillText(String(inBar(index) + 1), x - 10, y);
     }
 
     const playhead =
@@ -587,16 +602,21 @@ export function traceGame(root: HTMLElement, ctx: ViewContext, game: TraceGame):
     g.restore();
   }
 
-  /** Play the prompt: with the beat on, after a bar's count-in, and the beat runs on for the player. */
+  /**
+   * Play the prompt. With the beat on, it is counted in, and the beat runs on
+   * under it and after it: the player is counted in to the first bar after it.
+   */
   function listen(): void {
     if (!prompt || phase === 'shown') return;
     cancel();
     cutPrompt?.();
+    turn = null;
     let at = now() + 0.05;
     if (metro.on) {
-      const zero = now() + 0.1;
-      metro.start(bpm, zero);
-      at = zero + (BAR * 60) / bpm;
+      at = now() + 0.1 + (COUNT_IN * 60) / bpm;
+      metro.start(bpm, at, COUNT_IN);
+      // Rounded to the beat it ends on: a contour is timed to the millisecond.
+      countInTurn(Math.ceil(contourDuration(prompt.contour) / (60 / bpm) - 0.01));
     }
     cutPrompt = playContour(prompt.from, prompt.contour, at);
     listenSince = heardAt(at);
@@ -606,6 +626,18 @@ export function traceGame(root: HTMLElement, ctx: ViewContext, game: TraceGame):
       if (prompt === mine && phase === 'listen') phase = 'ready';
       board.invalidate();
     });
+  }
+
+  /** Count the player in to the first bar line with room for a count-in from beat `from`. */
+  function countInTurn(from: number): void {
+    const index = Math.ceil((from + COUNT_IN) / BAR) * BAR;
+    metro.countInto(index);
+    turn = { index, at: metro.heard(index) };
+  }
+
+  /** A fresh count-in to the player's turn, if the beat is running: after a cancel, or a slip. */
+  function recount(): void {
+    if (metro.running) countInTurn(metro.nearest(performance.now()).index + 1);
   }
 
   /** Mute the bend being played and put the note back, unscored, to be tried again. */
@@ -619,6 +651,7 @@ export function traceGame(root: HTMLElement, ctx: ViewContext, game: TraceGame):
     peak = 0;
     samples = [];
     paintPuck(frame, prompt.cell, name(prompt.from), 0, false);
+    recount();
     frame.banner('Bend cancelled');
   }
 
@@ -645,6 +678,7 @@ export function traceGame(root: HTMLElement, ctx: ViewContext, game: TraceGame):
     if (asked >= game.prompts) return finish();
     cutPrompt?.();
     metro.stop();
+    turn = null;
     fx.clear();
     shown = null;
     review = null;
@@ -690,12 +724,16 @@ export function traceGame(root: HTMLElement, ctx: ViewContext, game: TraceGame):
     if (phase === 'shown' && prompt && onPuck(frame, prompt.cell, touch)) return hearAgain('yours');
     if (frame.takeNext(true)) return;
     if ((phase !== 'listen' && phase !== 'ready') || !prompt || !onPuck(frame, prompt.cell, touch)) return;
+    // Counted in, the bend starts on the beat it was counted in to: the note can be
+    // held ahead of it. Missed that, or the prompt cut short, it starts on the beat
+    // nearest the touch.
+    const heard = listenSince + contourDuration(prompt.contour) * 1000;
+    const onTurn = turn !== null && touch.time >= heard && touch.time < turn.at + beatMs / 2;
     cutPrompt?.();
     phase = 'playing';
     finger = touch.id;
     downY = touch.y;
-    // With the beat running, the bend starts on the beat nearest the touch.
-    playSince = metro.running ? metro.nearest(touch.time).at : touch.time;
+    playSince = onTurn ? turn!.at : metro.running ? metro.nearest(touch.time).at : touch.time;
     offsetY = 0;
     cents = 0;
     peak = 0;
@@ -725,6 +763,7 @@ export function traceGame(root: HTMLElement, ctx: ViewContext, game: TraceGame):
       voice.stop();
       phase = 'ready';
       paintPuck(frame, prompt.cell, name(prompt.from), 0, false);
+      recount();
       return;
     }
     // Letting go early leaves the rest of the prompt unplayed: an unbent string.
