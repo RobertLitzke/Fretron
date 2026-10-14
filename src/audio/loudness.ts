@@ -3,11 +3,11 @@
 // out: each note's level is scaled by how loud that voice sounds at its pitch.
 //
 // The tables are each voice's measured loudness: one pluck at level 0.5,
-// rendered offline through the whole chain, A-weighted. A-weighting is the
-// ear at a quiet level and overstates the gap at a normal one, so only part of
-// it is made up. The middle of the neck (E4, the open top string) is left as
-// it was; notes below are raised and notes above lowered, within limits, so
-// that a low chord does not drive the limiter.
+// rendered offline through the whole chain, A-weighted. The whole gap is made
+// up: at 70% Rob still heard the low strings as too quiet. The middle of the
+// neck (E4, the open top string) is left as it was; notes below are raised and
+// notes above lowered, within limits, so that a low chord does not drive the
+// limiter too hard.
 
 import type { Voice } from './audio';
 
@@ -23,10 +23,10 @@ const MEASURED: Record<Voice, readonly number[]> = {
 /** The pitch whose level is left alone. */
 const REFERENCE = 64;
 /** How much of the measured gap is made up. */
-const SHARE = 0.7;
+const SHARE = 1;
 /** The most a note is raised, and lowered, in dB. */
-const MAX_BOOST = 8;
-const MAX_CUT = 4;
+const MAX_BOOST = 12;
+const MAX_CUT = 5;
 
 /** A voice's measured loudness at a pitch, between the measured ones. */
 function measured(voice: Voice, midi: number): number {

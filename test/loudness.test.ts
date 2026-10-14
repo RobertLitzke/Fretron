@@ -17,8 +17,8 @@ describe('loudnessGain', () => {
     for (const voice of ['synth', 'guitar'] as const) {
       for (let m = 20; m <= 110; m++) {
         const g = loudnessGain(voice, m);
-        expect(g).toBeLessThanOrEqual(10 ** (8 / 20) + 1e-9);
-        expect(g).toBeGreaterThanOrEqual(10 ** (-4 / 20) - 1e-9);
+        expect(g).toBeLessThanOrEqual(10 ** (12 / 20) + 1e-9);
+        expect(g).toBeGreaterThanOrEqual(10 ** (-5 / 20) - 1e-9);
       }
     }
   });
