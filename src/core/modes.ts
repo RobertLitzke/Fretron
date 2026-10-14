@@ -228,7 +228,7 @@ export function hunterTargets(prompts: number, advanced = false): Targets {
   return targets('Finish within', advanced ? HUNTER_ADVANCED_BARS : HUNTER_BARS, (bar) => within(bar * prompts));
 }
 
-/** For a neck of `cells` frets, open strings included. */
+/** For a neck of `cells` frets. */
 export function sweepTargets(cells: number, random = false): Targets {
   return targets('Finish within', random ? SWEEP_RANDOM_BARS : SWEEP_BARS, (bar) => within(bar * cells));
 }

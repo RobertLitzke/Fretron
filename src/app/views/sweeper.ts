@@ -28,10 +28,11 @@ export const sweeperView: View = (root, ctx) => {
   const rng = new Rng(freshSeed());
   const accidentals = getSave().accidentals;
 
-  const frame = makeFrame(root, ctx, mode.title, { onDown });
+  const frame = makeFrame(root, ctx, mode.title, { openStrings: false, onDown });
   const { board, tuning } = frame;
-  // From fret 0: the open strings are swept too.
-  const sweep = new Sweep(rng, tuning, 0, frame.frets, kind);
+  // From fret 1: an open string is the same note as a fret on the string below
+  // it, so the open strings are left out of play.
+  const sweep = new Sweep(rng, tuning, 1, frame.frets, kind);
   const dead = new Set<string>();
   /** The frets of the called note already cleared: tinted, by note, so it shows what is left of it. */
   const cleared = new Set<string>();
@@ -158,8 +159,8 @@ export const sweeperView: View = (root, ctx) => {
     frame,
     `${mode.title} · ${mode.variant}`,
     kind === 'note'
-      ? ['Tap every place the called note plays, open strings included, until the neck is clear.', `A wrong tap adds ${SWEEP_PENALTY} s.`]
-      : ['Tap one place that plays the called note to clear it, until the neck is clear.', `A wrong tap adds ${SWEEP_PENALTY} s.`],
+      ? ['Tap every fret that plays the called note until the neck is clear.', `A wrong tap adds ${SWEEP_PENALTY} s.`]
+      : ['Tap one fret that plays the called note to clear it, until the neck is clear.', `A wrong tap adds ${SWEEP_PENALTY} s.`],
     sweepTargets(sweep.total, kind === 'random'),
     () => {
       frame.setPrompt(el('b.call.wait', {}, '· · ·'), progress());
