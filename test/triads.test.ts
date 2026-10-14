@@ -265,15 +265,39 @@ describe('targets', () => {
 
   it('lights a fret, a string or both, within the frets given', () => {
     const rng = new Rng(7);
+    const all = enumerateVoicings(T, C, 0, 12);
     const kinds = new Set<string>();
     for (let i = 0; i < 200; i++) {
-      const t = makeTarget(rng, 6, 3, 9);
+      const t = makeTarget(rng, all, 3, 9)!;
       expect(t.string !== null || t.fret !== null).toBe(true);
       if (t.fret !== null) expect(t.fret >= 3 && t.fret <= 9).toBe(true);
       if (t.string !== null) expect(t.string >= 0 && t.string < 6).toBe(true);
       kinds.add(`${t.string === null}${t.fret === null}`);
     }
     expect(kinds.size).toBe(3);
+  });
+
+  it('only lights spots the chord can be played right on', () => {
+    const rng = new Rng(11);
+    for (let root = 0; root < 12; root++) {
+      for (const quality of ['maj', 'min', 'dim'] as const) {
+        const all = enumerateVoicings(T, { root, quality }, 0, 12);
+        for (let i = 0; i < 50; i++) {
+          const t = makeTarget(rng, all, 1, 12)!;
+          expect(closestToTarget(t, all)).toBe(0);
+          // The lit fret and string are a held note of a real voicing, not just near one.
+          if (t.string !== null && t.fret !== null) {
+            expect(all.some((v) => v.some((c) => c.string === t.string && c.fret === t.fret))).toBe(true);
+          }
+        }
+      }
+    }
+  });
+
+  it('lights nothing where no voicing reaches the frets given', () => {
+    const rng = new Rng(3);
+    const open = enumerateVoicings(T, C, 0, 3);
+    expect(makeTarget(rng, open, 10, 12)).toBeNull();
   });
 });
 
