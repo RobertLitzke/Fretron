@@ -284,12 +284,19 @@ export const TARGET_BONUS = 1400;
 /** Points off for each step, a fret or a string, further from the target than the chord needed to be. */
 export const TARGET_STEP = 700;
 
-/** A fret, a string or both, each as likely; the fret between `first` and `last`. */
-export function makeTarget(rng: Rng, strings: number, first: number, last: number): Target {
+/**
+ * A fret, a string or both, each as likely, always one the chord can be played
+ * right on: the lit spot is a held note of one of `voicings`, with its fret
+ * between `first` and `last`. Null if no voicing holds a note there.
+ */
+export function makeTarget(rng: Rng, voicings: readonly Voicing[], first: number, last: number): Target | null {
+  const spots = voicings.flatMap((v) => v.filter((c) => c.fret > 0 && c.fret >= first && c.fret <= last));
+  if (!spots.length) return null;
+  const spot = rng.pick(spots);
   const kind = rng.int(3);
   return {
-    string: kind === 1 ? null : rng.int(strings),
-    fret: kind === 0 ? null : first + rng.int(last - first + 1),
+    string: kind === 1 ? null : spot.string,
+    fret: kind === 0 ? null : spot.fret,
   };
 }
 
