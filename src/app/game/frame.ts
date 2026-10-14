@@ -79,7 +79,7 @@ const STREAK_MAX = 10;
 /** A streak this long or longer is said to be lost when it breaks, not only shown. */
 const STREAK_LOST_AT = 3;
 
-type Handlers = Pick<BoardOptions, 'onDown' | 'onMove' | 'onUp' | 'onWindow'>;
+type Handlers = Pick<BoardOptions, 'openStrings' | 'onDown' | 'onMove' | 'onUp' | 'onWindow'>;
 
 export function makeFrame(root: HTMLElement, ctx: ViewContext, title: string, handlers: Handlers): Frame {
   const save = getSave();
