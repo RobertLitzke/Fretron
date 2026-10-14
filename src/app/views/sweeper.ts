@@ -4,16 +4,17 @@
 
 import { blip, pluck, thud } from '../../audio/audio';
 import type { BoardTouch } from '../../board/board';
+import type { NoteRenderData } from '../../board/renderer';
 import { formatSeconds, modeById, rankSweep, rankSweepRandom, sweepTargets } from '../../core/modes';
 import { cellKey, cellMidi, pc, pcName, type Cell } from '../../core/music';
 import { promptName, Sweep, SWEEP_PENALTY, type SweepKind } from '../../core/notes';
 import { Rng } from '../../core/rng';
 import { el } from '../dom';
-import { BEAT_MS, makeFrame, readyPanel } from '../game/frame';
+import { BEAT_MS, makeFrame, panelOption, readyPanel } from '../game/frame';
 import { showResult } from '../game/results';
 import type { View } from '../router';
-import { getSave } from '../store';
-import { freshSeed } from '../ui';
+import { getSave, updateSave } from '../store';
+import { freshSeed, segmented } from '../ui';
 
 /** The beat between calls at random. Shorter than the usual one: there is one after every tap. */
 const RANDOM_BEAT_MS = 320;
@@ -27,6 +28,8 @@ export const sweeperView: View = (root, ctx) => {
   const mode = modeById(kind === 'random' ? 'sweeper-random' : 'sweeper')!;
   const rng = new Rng(freshSeed());
   const accidentals = getSave().accidentals;
+  /** Whether a cleared fret keeps its note name, as a help in learning the neck. */
+  let showNames = getSave().picks.sweepNames === 'on';
 
   const frame = makeFrame(root, ctx, mode.title, { openStrings: false, onDown });
   const { board, tuning } = frame;
@@ -45,6 +48,10 @@ export const sweeperView: View = (root, ctx) => {
   /** Frets cleared in a row. */
   let streak = 0;
   let name = '';
+  /** The names left on the cleared frets, when they are shown. */
+  const named: NoteRenderData[] = [];
+  /** The wrongly tapped fret, while its name is up. */
+  let missNote: NoteRenderData | null = null;
   /** Counts the wrong frets shown, so that a late timer clears only its own. */
   let missShown = 0;
 
@@ -81,14 +88,21 @@ export const sweeperView: View = (root, ctx) => {
     frame.later(kind === 'random' ? RANDOM_BEAT_MS : BEAT_MS, call);
   }
 
+  function showNotes(): void {
+    board.setNotes(missNote ? [...named, missNote] : named);
+  }
+
   /** Name the fret that was tapped by mistake: what it is, as well as what it is not. */
   function showMiss(cell: Cell): void {
     const danger = board.theme.danger;
     const label = pcName(pc(cellMidi(tuning, cell)), name.includes('♭') ? 'flat' : 'sharp');
-    board.setNotes([{ fret: cell.fret, stringIndex: cell.string, displayLabel: label, fillColor: board.theme.panel, strokeColor: danger, strokeWidth: 2, labelColor: danger }]);
+    missNote = { fret: cell.fret, stringIndex: cell.string, displayLabel: label, fillColor: board.theme.panel, strokeColor: danger, strokeWidth: 2, labelColor: danger };
+    showNotes();
     const mine = ++missShown;
     frame.later(MISS_SHOWN_MS, () => {
-      if (mine === missShown) board.setNotes([]);
+      if (mine !== missShown) return;
+      missNote = null;
+      showNotes();
     });
   }
 
@@ -107,7 +121,12 @@ export const sweeperView: View = (root, ctx) => {
       return;
     }
     missShown++;
-    board.setNotes([]);
+    missNote = null;
+    if (showNames) {
+      const { panel, muted, text } = board.theme;
+      named.push({ fret: cell.fret, stringIndex: cell.string, displayLabel: name, fillColor: panel, strokeColor: muted, strokeWidth: 1, labelColor: text, radiusScale: 0.85 });
+    }
+    showNotes();
     dead.add(cellKey(cell));
     board.setDead(dead);
     if (kind === 'note') {
@@ -166,6 +185,20 @@ export const sweeperView: View = (root, ctx) => {
       frame.setPrompt(el('b.call.wait', {}, '· · ·'), progress());
       frame.beat(call);
     },
+    panelOption(
+      'Names on cleared frets',
+      segmented<'off' | 'on'>(
+        [
+          { value: 'off', label: 'Off' },
+          { value: 'on', label: 'On' },
+        ],
+        showNames ? 'on' : 'off',
+        (v) => {
+          showNames = v === 'on';
+          updateSave((s) => ({ ...s, picks: { ...s.picks, sweepNames: v } }));
+        },
+      ),
+    ),
   );
 
   return frame.teardown;
