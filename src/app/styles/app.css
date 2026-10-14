@@ -139,7 +139,12 @@ p {
   gap: 4px;
 }
 
-.topbar nav a,
+.nav-drop {
+  position: relative;
+}
+
+.nav-toggle,
+.nav-menu a,
 .nav-full {
   font-family: var(--display);
   font-size: 11px;
@@ -153,15 +158,63 @@ p {
   cursor: pointer;
 }
 
+.nav-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--cyan);
+  border: 1px solid var(--cyan-dim);
+  border-radius: var(--radius);
+}
+
+.nav-toggle i {
+  font-style: normal;
+  font-size: 10px;
+  transition: transform 0.15s;
+}
+
+.nav-toggle[aria-expanded='true'] i {
+  transform: rotate(180deg);
+}
+
+.nav-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 40;
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  background: var(--panel);
+  border: 1px solid var(--cyan-dim);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.nav-menu[hidden] {
+  display: none;
+}
+
+.nav-menu a {
+  padding: 11px 12px;
+  border-radius: var(--radius);
+}
+
 .nav-full {
   font-size: 16px;
   padding: 4px 10px;
 }
 
-.topbar nav a:hover,
-.topbar nav a.here,
-.nav-full:hover {
+.nav-menu a:hover,
+.nav-menu a.here,
+.nav-full:hover,
+.nav-toggle:hover {
   color: var(--cyan);
+}
+
+.nav-menu a.here {
+  background: rgba(0, 229, 255, 0.08);
 }
 
 body.in-game .topbar {
@@ -425,6 +478,50 @@ input[type='range'] {
   font-style: normal;
   font-size: 10px;
   color: var(--gold);
+}
+
+/* --- reference ------------------------------------------------------------- */
+
+.page.reference {
+  max-width: none;
+}
+
+.ref-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ref-head h1 {
+  margin: 0 auto 0 0;
+}
+
+.ref-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.ref-controls .seg {
+  flex-wrap: wrap;
+}
+
+.ref-chord {
+  font-family: var(--display);
+  color: var(--cyan);
+  font-size: 15px;
+}
+
+.ref-board {
+  display: flex;
+  height: clamp(220px, 52vh, 420px);
+  margin-top: 8px;
+  border: 1px solid var(--hair-dim);
+  border-radius: var(--radius);
+  overflow: hidden;
 }
 
 /* --- a game screen --------------------------------------------------------- */
@@ -1454,6 +1551,29 @@ select.pick {
   .topbar {
     padding: 6px 0 5px;
     margin-bottom: 8px;
+  }
+
+  .ref-head h1,
+  .ref-hint {
+    display: none;
+  }
+
+  .ref-head {
+    margin-bottom: 6px;
+  }
+
+  .ref-controls {
+    gap: 6px;
+  }
+
+  .ref-controls .seg button,
+  .ref-head .seg button {
+    padding: 7px 10px;
+  }
+
+  .ref-board {
+    height: max(190px, calc(100vh - 190px));
+    margin-top: 6px;
   }
 
   .game-card {

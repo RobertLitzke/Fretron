@@ -9,7 +9,7 @@
 import { cellMidi, LAST_FRET, pc, pcName, type Cell, type Spelling, type Tuning } from './music';
 import type { Rng } from './rng';
 
-export type Quality = 'maj' | 'min' | 'dim';
+export type Quality = 'maj' | 'min' | 'dim' | 'aug';
 
 export interface Chord {
   /** Pitch class of the root. */
@@ -21,15 +21,17 @@ const INTERVALS: Record<Quality, readonly [number, number, number]> = {
   maj: [0, 4, 7],
   min: [0, 3, 7],
   dim: [0, 3, 6],
+  aug: [0, 4, 8],
 };
 
-const SUFFIX: Record<Quality, string> = { maj: '', min: 'm', dim: '°' };
+const SUFFIX: Record<Quality, string> = { maj: '', min: 'm', dim: '°', aug: '+' };
 
 /** The label of each chord tone, as FretFalcon's getIntervalLabel spells them. */
 const TONE_LABELS: Record<Quality, readonly [string, string, string]> = {
   maj: ['R', '3', '5'],
   min: ['R', 'b3', '5'],
   dim: ['R', 'b3', 'd5'],
+  aug: ['R', '3', '#5'],
 };
 
 export type Inversion = 'Root' | '1st' | '2nd';
