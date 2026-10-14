@@ -29,6 +29,8 @@ export interface BoardOptions {
   tuning: Tuning;
   /** How many frets the neck has. */
   frets: number;
+  /** False leaves the open strings out of play: no names beside the nut, and a tap there touches no fret. */
+  openStrings?: boolean;
   onDown?: (touch: BoardTouch) => void;
   onMove?: (touch: BoardTouch) => void;
   onUp?: (touch: BoardTouch) => void;
@@ -92,7 +94,7 @@ export class Board {
     this.root = el(`div.board.${options.hand}`, {}, this.wrap, this.rail);
 
     this.layout = this.makeLayout(700, 320);
-    this.fretboard = new Fretboard(this.layout, this.theme, options.tuning.open.map((midi) => SHARP_NAMES[pc(midi)]));
+    this.fretboard = new Fretboard(this.layout, this.theme, options.openStrings === false ? [] : options.tuning.open.map((midi) => SHARP_NAMES[pc(midi)]));
 
     this.canvas.addEventListener('pointerdown', this.onPointerDown);
     this.canvas.addEventListener('pointermove', this.onPointerMove);
@@ -347,7 +349,9 @@ export class Board {
     const x = e.clientX - box.left;
     const y = e.clientY - box.top;
     const { pos, string } = this.layout.locate(x, y, this.start);
-    return { id: e.pointerId, x, y, cell: this.layout.cellAt(x, y, this.start), string, pos, time: e.timeStamp || performance.now() };
+    const at = this.layout.cellAt(x, y, this.start);
+    const cell = at && at.fret === 0 && this.options.openStrings === false ? null : at;
+    return { id: e.pointerId, x, y, cell, string, pos, time: e.timeStamp || performance.now() };
   }
 
   private onPointerDown = (e: PointerEvent): void => {
