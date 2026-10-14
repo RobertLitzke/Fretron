@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { cleanMultipliers } from '../src/core/streak';
 import { BEND_PROMPTS, GRADE_BASE, scoreGrade } from '../src/core/bend';
-import { modeById, MODES, rankScaleBuild } from '../src/core/modes';
+import { modeById, MODES, starsScaleBuild } from '../src/core/modes';
 import { cellMidi, NECK_SIZES, pc, STANDARD_TUNING as T } from '../src/core/music';
 import { Rng } from '../src/core/rng';
 import { NO_STREAK } from '../src/core/streak';
@@ -114,10 +114,10 @@ describe('a scale builder run', () => {
   });
 
   it('takes a star for each step named wrong', () => {
-    expect(rankScaleBuild(5)).toBe('S');
-    expect(rankScaleBuild(5, 1)).toBe('A');
-    expect(rankScaleBuild(25, 1)).toBe('C');
-    expect(rankScaleBuild(5, 9)).toBe('C');
+    expect(starsScaleBuild(5)).toBe(3);
+    expect(starsScaleBuild(5, 1)).toBe(2);
+    expect(starsScaleBuild(25, 1)).toBe(0);
+    expect(starsScaleBuild(5, 9)).toBe(0);
   });
 
   it('has a table for each scale and level, off the tour', () => {

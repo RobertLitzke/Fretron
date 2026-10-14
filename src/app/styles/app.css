@@ -1169,7 +1169,7 @@ select.pick {
   margin: 0 0 14px;
 }
 
-/* What each rank takes, on one line where it fits. */
+/* What each star takes, on one line where it fits. */
 .targets {
   display: flex;
   flex-wrap: wrap;
@@ -1229,7 +1229,7 @@ select.pick {
   letter-spacing: 4px;
 }
 
-.result-stars.rank-S {
+.result-stars.full {
   text-shadow: 0 0 18px rgba(255, 209, 102, 0.8);
 }
 
@@ -1473,7 +1473,7 @@ select.pick {
     display: none;
   }
 
-  /* Room for the rank's targets, with the buttons still on the screen. */
+  /* Room for the star targets, with the buttons still on the screen. */
   .panel {
     padding: 10px 16px;
   }

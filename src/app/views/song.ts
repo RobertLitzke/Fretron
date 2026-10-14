@@ -6,7 +6,8 @@ import { Rng } from '../../core/rng';
 import { makeSongPrompt, songById } from '../../core/songs';
 import type { View } from '../router';
 import { freshSeed } from '../ui';
-import { STREAK_LINE, traceGame } from './bend';
+import { STREAK_LINE } from '../game/bendInput';
+import { traceGame } from './trace';
 
 export const songTraceView: View = (root, ctx) => {
   const song = songById(ctx.params.song);

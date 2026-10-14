@@ -7,11 +7,11 @@
 // notes but hides where they are, and on the way up asks for each step (half,
 // whole, or a step and a half) before it is played.
 
-import { BendVoice, blip, pluck, thud } from '../../audio/audio';
+import { blip, pluck, thud } from '../../audio/audio';
 import type { BoardTouch } from '../../board/board';
 import type { LineData, NoteRenderData } from '../../board/renderer';
-import { bendLabel, centsFromDrag, dragForCents, GRADE_WORDS, gradeBend, scoreGrade, semitoneTravel, type Grade } from '../../core/bend';
-import { levelWords, modeById, rankScaleBuild, scaleBuildTargets } from '../../core/modes';
+import { bendLabel, dragForCents, gradeBend, semitoneTravel, type Grade } from '../../core/bend';
+import { levelWords, modeById, starsScaleBuild, scaleBuildTargets } from '../../core/modes';
 import { sameCell } from '../../core/music';
 import { Rng } from '../../core/rng';
 import {
@@ -26,18 +26,14 @@ import {
   type Placement,
   type ScaleRun,
 } from '../../core/scaleBuilder';
-import { NO_STREAK } from '../../core/streak';
 import { el } from '../dom';
 import { BendFx } from '../game/bendFx';
+import { BendInput, BendScore, bentTo, drawLanding, gradeColor, onPuck, reviewButtons } from '../game/bendInput';
 import { makeFrame, panelOption, readyPanel } from '../game/frame';
 import { showResult } from '../game/results';
 import type { View } from '../router';
 import { updateSave } from '../store';
 import { freshSeed, segmented } from '../ui';
-import { bendStreak, bentTo, gradeColor, onPuck, popGrade, reviewButtons, signedCents } from './bend';
-
-const SLIP_MS = 300;
-const SLIP_CENTS = 8;
 const STEP_NAMES: Record<number, string> = { 1: 'Half step', 2: 'Whole step', 3: 'Step and a half' };
 
 /** How long a placed note is shown before the next comes by itself. */
@@ -52,13 +48,10 @@ export const scaleBuilderView: View = (root, ctx) => {
   // The menu's Play button comes back to the scale and level last played.
   updateSave((s) => ({ ...s, picks: { ...s.picks, scales: `${level}-${scaleId}` } }));
   const rng = new Rng(freshSeed());
-  const voice = new BendVoice();
   const fx = new BendFx();
 
   let run: ScaleRun | null = null;
   let at = 0;
-  let score = 0;
-  let streak = NO_STREAK;
   let misses: { direction: Placement['direction']; cents: number }[] = [];
   let wrongSteps = 0;
   /** The grade each note of the shape was last placed with; the root starts placed. */
@@ -66,12 +59,6 @@ export const scaleBuilderView: View = (root, ctx) => {
   /** The steps shown on the neck: from note i to note i + 1. */
   let known = new Set<number>();
   let phase: 'idle' | 'name' | 'aim' | 'bending' | 'shown' = 'idle';
-  let finger = -1;
-  let downAt = 0;
-  let downY = 0;
-  let offsetY = 0;
-  /** Signed: a bend raises the pitch, a dip lowers it. */
-  let cents = 0;
   let shown: { error: number; grade: Grade; cents: number } | null = null;
 
   const frame = makeFrame(root, ctx, mode.title, { onDown, onMove, onUp });
@@ -81,11 +68,15 @@ export const scaleBuilderView: View = (root, ctx) => {
   const current = (): Placement | null => run?.placements[at] ?? null;
   const semitonePx = () => (current()?.travel ?? 1) * board.layout.spacing;
   const sign = (p: Placement) => (p.direction === 'up' ? 1 : -1);
+  /** The pitch it holds is signed: a bend raises it, a dip lowers it. */
+  const input = new BendInput({ semitonePx, paint });
+  const tally = new BendScore(frame, fx, scale.steps.length * 2);
 
   // --- drawing ---------------------------------------------------------------
 
   function paint(held = false): void {
     if (!run) return;
+    const { offsetY } = input;
     const theme = board.theme;
     const r = run;
     const p = current();
@@ -165,25 +156,15 @@ export const scaleBuilderView: View = (root, ctx) => {
     }
     const p = current();
     if (p && shown) {
-      const centre = layout.center(r.cells[p.from], start);
-      const direction = offsetY < 0 ? -1 : 1;
-      const targetY = centre.y + direction * dragForCents(p.semis * 100, semitonePx());
-      const half = board.noteRadius * 2.1;
-      g.strokeStyle = board.theme.orange;
-      g.shadowColor = board.theme.orange;
-      g.shadowBlur = 10;
-      g.lineWidth = 3;
-      g.beginPath();
-      g.moveTo(centre.x - half, targetY);
-      g.lineTo(centre.x + half, targetY);
-      g.stroke();
-      g.shadowBlur = 0;
-      g.font = `700 26px Orbitron, sans-serif`;
-      g.fillStyle = gradeColor(frame, shown.grade);
-      g.textAlign = 'right';
-      g.fillText(signedCents(shown.error), centre.x - half - 10 + fx.shake(), centre.y + offsetY);
       g.restore();
-      fx.draw(g, centre.x, centre.y + offsetY, board.noteRadius * 1.15, gradeColor(frame, shown.grade));
+      const centre = layout.center(r.cells[p.from], start);
+      const { offsetY } = input;
+      drawLanding(g, frame, fx, centre, {
+        targetY: centre.y + (offsetY < 0 ? -1 : 1) * dragForCents(p.semis * 100, semitonePx()),
+        offsetY,
+        error: shown.error,
+        grade: shown.grade,
+      });
       return;
     }
     g.restore();
@@ -229,12 +210,8 @@ export const scaleBuilderView: View = (root, ctx) => {
   /** Mute the push being held and put the note back, unscored, to be tried again. */
   function cancel(): void {
     if (phase !== 'bending') return;
-    voice.stop();
     phase = 'aim';
-    finger = -1;
-    offsetY = 0;
-    cents = 0;
-    paint(false);
+    input.drop();
     frame.banner('Cancelled');
   }
 
@@ -262,8 +239,7 @@ export const scaleBuilderView: View = (root, ctx) => {
     if (!run || !p) return finish();
     fx.clear();
     shown = null;
-    offsetY = 0;
-    cents = 0;
+    input.reset();
     if (p.direction === 'down' && p.from === run.cells.length - 1) frame.banner('Now back down');
     frame.setAction('Hear root', hearRoot);
     if (hard && !known.has(Math.min(p.from, p.to))) {
@@ -294,8 +270,7 @@ export const scaleBuilderView: View = (root, ctx) => {
     } else {
       thud();
       wrongSteps++;
-      streak = NO_STREAK;
-      bendStreak(frame, streak, run!.placements.length);
+      tally.breakStreak();
       frame.banner(`It's a ${STEP_NAMES[p.semis].toLowerCase()}`, 'bad');
     }
     const cell = run!.cells[p.to];
@@ -307,11 +282,11 @@ export const scaleBuilderView: View = (root, ctx) => {
   function onDown(touch: BoardTouch): void {
     const p = current();
     if (phase === 'bending') {
-      if (touch.id !== finger) cancel();
+      if (!input.holds(touch)) cancel();
       return;
     }
     if (phase === 'shown' && run && p) {
-      if (onPuck(frame, run.cells[p.from], touch, offsetY)) return hearYours();
+      if (onPuck(frame, run.cells[p.from], touch, input.offsetY)) return hearYours();
       if (touch.cell && sameCell(touch.cell, run.cells[p.to])) return hearTarget();
     }
     if (frame.takeNext(true)) return;
@@ -323,52 +298,30 @@ export const scaleBuilderView: View = (root, ctx) => {
       return;
     }
     phase = 'bending';
-    finger = touch.id;
-    downAt = touch.time;
-    downY = touch.y;
-    offsetY = 0;
-    cents = 0;
-    voice.start(run.midis[p.from]);
-    paint(true);
+    input.start(touch, run.midis[p.from], p.direction);
   }
 
   function onMove(touch: BoardTouch): void {
-    const p = current();
-    if (phase !== 'bending' || touch.id !== finger || !p) return;
-    const drag = touch.y - downY;
-    const amount = centsFromDrag(drag, semitonePx());
-    cents = sign(p) * amount;
-    offsetY = Math.sign(drag) * dragForCents(amount, semitonePx());
-    voice.setCents(cents);
-    paint(true);
+    if (phase === 'bending') input.move(touch);
   }
 
   function onUp(touch: BoardTouch): void {
     const p = current();
-    if (phase !== 'bending' || touch.id !== finger || !p || !run) return;
-    if (Math.abs(cents) < SLIP_CENTS && touch.time - downAt < SLIP_MS) {
-      voice.stop();
+    if (phase !== 'bending' || !input.holds(touch) || !p || !run) return;
+    if (input.slipped(touch)) {
       phase = 'aim';
-      offsetY = 0;
-      paint(false);
+      input.drop();
       return;
     }
+    const { cents, offsetY } = input;
     const error = cents - sign(p) * p.semis * 100;
     const grade = gradeBend(error);
-    const scored = scoreGrade(grade, streak, run.placements.length);
-    if (grade === 'bullseye') voice.bloom();
-    else voice.release();
-    score += scored.points;
-    streak = scored.streak;
+    input.letGo(grade);
     misses.push({ direction: p.direction, cents: Math.abs(error) });
     placed.set(p.to, grade);
     shown = { error, grade, cents };
     phase = 'shown';
-    fx.burst(grade);
-    frame.setScore(score);
-    bendStreak(frame, streak, run.placements.length);
-    popGrade(frame, grade, scored.points, bentTo(frame, run.cells[p.from], offsetY));
-    frame.banner(GRADE_WORDS[grade], grade === 'off' ? 'bad' : 'good');
+    tally.land(grade, bentTo(frame, run.cells[p.from], offsetY));
     paint(false);
     promptLine(reviewButtons(hearTarget, hearYours));
     board.invalidate();
@@ -399,12 +352,11 @@ export const scaleBuilderView: View = (root, ctx) => {
     showResult(
       frame,
       ctx,
-      { mode, value: score, rank: rankScaleBuild(all, wrongSteps), targets: scaleBuildTargets(), stats },
+      { mode, value: tally.points, stars: starsScaleBuild(all, wrongSteps), targets: scaleBuildTargets(), stats },
       () => ctx.replace(mode.route),
     );
   }
 
-  bendStreak(frame, NO_STREAK, scale.steps.length * 2);
   frame.setPrompt(el('span.caps', {}, `${scale.name} · ${levelWords(level)}`));
   const go = (to: { level?: BuildLevel; scale?: string }) => ctx.replace(modeById(`scales-${to.level ?? level}-${to.scale ?? scaleId}`)!.route);
   readyPanel(
@@ -445,7 +397,7 @@ export const scaleBuilderView: View = (root, ctx) => {
   );
 
   return () => {
-    voice.stop();
+    input.stop();
     frame.teardown();
   };
 };

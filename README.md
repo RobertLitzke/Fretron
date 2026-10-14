@@ -128,13 +128,13 @@ src/core/    pure TypeScript, no DOM or Web Audio; everything here is unit-teste
   triads.ts    checking and listing voicings, voice-leading distance, progressions
   bend.ts      bend prompts, travel per string and fret, traces and their scoring
   scaleBend.ts the scales, the bends each offers, Scale Bends prompts
-  modes.ts     the list of games, score-table keys, ranks
+  modes.ts     the list of games, score-table keys, stars
   storage.ts   the save file and score tables
 src/board/   renderer.ts (canvas drawing, ported from FretFalcon),
              board.ts (canvas, sliding window, rail, touches)
 src/audio/   audio.ts (plucked and held strings, bends, the arcade noises)
 src/app/     dom.ts, router.ts, store.ts, ui.ts, styles/,
-             game/ (the screen frame, results, tap-and-rake input), views/
+             game/ (the screen frame, results, tap-and-rake input, bend input and scoring), views/
 tools/       icons.mjs, devkit.js (drive the board from the console; dev only)
 test/
 ```

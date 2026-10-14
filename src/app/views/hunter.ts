@@ -4,7 +4,7 @@
 import { blip, pluck, thud } from '../../audio/audio';
 import type { BoardTouch } from '../../board/board';
 import type { NoteRenderData } from '../../board/renderer';
-import { formatSeconds, hunterTargets, modeById, rankHunter } from '../../core/modes';
+import { formatSeconds, hunterTargets, modeById, starsHunter } from '../../core/modes';
 import { cellMidi, pc, pcName, sameCell, stringName, type Cell } from '../../core/music';
 import {
   HUNT_PENALTY,
@@ -181,7 +181,7 @@ export const hunterView: View = (root, ctx) => {
       {
         mode,
         value: seconds,
-        rank: rankHunter(seconds, HUNT_PROMPTS, variant === 'advanced'),
+        stars: starsHunter(seconds, HUNT_PROMPTS, variant === 'advanced'),
         targets: hunterTargets(HUNT_PROMPTS, variant === 'advanced'),
         stats: [
           ['Found', `${found} / ${HUNT_PROMPTS}`],

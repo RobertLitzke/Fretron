@@ -10,7 +10,7 @@
 
 import { blip, buzz, strum } from '../../audio/audio';
 import type { LineData, NoteRenderData } from '../../board/renderer';
-import { formatSeconds, gridTargets, modeById, rankGrid, rankTriads, triadTargets } from '../../core/modes';
+import { formatSeconds, gridTargets, modeById, starsGrid, starsTriads, triadTargets } from '../../core/modes';
 import { allCells, cellKey, cellMidi, pc, pcName, stringName, type Cell } from '../../core/music';
 import { Rng } from '../../core/rng';
 import { formatMultiplier, GREEN_STEP, NO_STREAK, stepStreak, topMultiplier } from '../../core/streak';
@@ -412,7 +412,7 @@ export const triadsView: View = (root, ctx) => {
       {
         mode,
         value: score,
-        rank: rankTriads(score, possible),
+        stars: starsTriads(score, possible),
         targets: triadTargets(possible),
         stats: [
           targets
@@ -558,7 +558,7 @@ export const gridClearView: View = (root, ctx) => {
       {
         mode,
         value: total,
-        rank: rankGrid(total, all.length),
+        stars: starsGrid(total, all.length),
         targets: gridTargets(all.length),
         stats: [
           ['Chord', name],

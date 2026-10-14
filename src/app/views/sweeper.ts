@@ -5,7 +5,7 @@
 import { blip, pluck, thud } from '../../audio/audio';
 import type { BoardTouch } from '../../board/board';
 import type { NoteRenderData } from '../../board/renderer';
-import { formatSeconds, modeById, rankSweep, rankSweepRandom, sweepTargets } from '../../core/modes';
+import { formatSeconds, modeById, starsSweep, starsSweepRandom, sweepTargets } from '../../core/modes';
 import { cellKey, cellMidi, pc, pcName, type Cell } from '../../core/music';
 import { promptName, Sweep, SWEEP_PENALTY, type SweepKind } from '../../core/notes';
 import { Rng } from '../../core/rng';
@@ -157,7 +157,7 @@ export const sweeperView: View = (root, ctx) => {
       {
         mode,
         value: total,
-        rank: (kind === 'random' ? rankSweepRandom : rankSweep)(total, sweep.total),
+        stars: (kind === 'random' ? starsSweepRandom : starsSweep)(total, sweep.total),
         targets: sweepTargets(sweep.total, kind === 'random'),
         stats: [
           ['Frets cleared', String(sweep.total)],
