@@ -58,6 +58,9 @@ const CHORDS_PER_RUN = 12;
 const GRID_PENALTY = 3;
 /** In progressions, the wrong rake at which the chord is given away. */
 const RAKES_BEFORE_ANSWER = 5;
+/** Once a progression's last chord is in, the wait before it is played back whole, and the time each chord of it gets. */
+const REPLAY_AFTER_MS = 900;
+const REPLAY_BEAT_MS = 330;
 
 /** A chord tone as it is written on a note: 'b3' is "♭3", 'd5' is "♭5". */
 function toneText(label: string): string {
@@ -127,6 +130,10 @@ export const triadsView: View = (root, ctx) => {
   /** In the Compact game: the chords played so far in this progression, and the frets wider than needed so far in the run. */
   let held: Voicing[] = [];
   let wider = 0;
+  /** The chords played so far in this progression, as they were played: heard back whole once it is done. */
+  let played: { voicing: Voicing; labels: string[] }[] = [];
+  /** Counts up whenever a playback is cut short, so its chords still to come are dropped. */
+  let replays = 0;
 
   const frame = makeFrame(root, ctx, mode.title, {
     onDown: (t) => {
@@ -371,8 +378,11 @@ export const triadsView: View = (root, ctx) => {
     paintBoard();
     board.setLines(outline(voicing, board.theme.cyan, 0.6));
     previous = { voicing, labels };
+    played.push(previous);
+    if (cIndex === progressions[pIndex].chords.length - 1) replay(played);
 
     frame.offerNext(() => {
+      replays++;
       cIndex++;
       if (cIndex >= progressions[pIndex].chords.length) {
         pIndex++;
@@ -380,6 +390,7 @@ export const triadsView: View = (root, ctx) => {
         // A new progression starts from nowhere: no move to judge.
         previous = null;
         held = [];
+        played = [];
         if (pIndex < progressions.length) blip(1760, 0.07);
       }
       if (pIndex >= progressions.length) return finish();
@@ -392,6 +403,31 @@ export const triadsView: View = (root, ctx) => {
       frame.setClock('');
       frame.setPrompt(...waiting(`${progressions[pIndex].keyName} · ${asked + 1} / ${total}`));
       frame.beat(present);
+    });
+  }
+
+  /**
+   * The progression is done: play it back, a chord a beat, each lit on the
+   * board as it sounds, so it is heard as the run of changes it is. Moving on
+   * cuts it short.
+   */
+  function replay(chords: readonly { voicing: Voicing; labels: string[] }[]): void {
+    const id = ++replays;
+    const last = chords[chords.length - 1];
+    chords.forEach((c, i) => {
+      frame.later(REPLAY_AFTER_MS + i * REPLAY_BEAT_MS, () => {
+        if (id !== replays) return;
+        const end = i === chords.length - 1;
+        strum(c.voicing.map((n) => cellMidi(tuning, n)), 0.025, { level: 0.45, ring: end ? 1.4 : 0.7 });
+        board.setNotes(playedNotes(c.voicing, c.labels));
+        board.setLines(outline(c.voicing, board.theme.cyan, 0.6));
+      });
+    });
+    // Then the board as it was left: the last chord among its rings.
+    frame.later(REPLAY_AFTER_MS + chords.length * REPLAY_BEAT_MS, () => {
+      if (id !== replays) return;
+      paintBoard();
+      board.setLines(outline(last.voicing, board.theme.cyan, 0.6));
     });
   }
 
