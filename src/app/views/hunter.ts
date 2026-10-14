@@ -28,6 +28,8 @@ const NEXT_AFTER_MS = 2000;
 const SWIPE_PX = 40;
 /** A find this quick, in seconds, has its time shown in gold. */
 const FAST_S = 1;
+/** When the next note comes at once, the gap that lets the last one fall silent first. */
+const DAMP_S = 0.08;
 
 export const hunterView: View = (root, ctx) => {
   const wanted = ctx.params.variant;
@@ -49,6 +51,13 @@ export const hunterView: View = (root, ctx) => {
   let liveSince = 0;
   /** A finger that came down between notes, and where. */
   let between: { id: number; x: number; y: number } | null = null;
+  /** Notes still ringing from the last prompt, to be damped before the next is called. */
+  let ringing: Array<() => void> = [];
+
+  function damp(): void {
+    for (const stop of ringing) stop();
+    ringing = [];
+  }
 
   const frame = makeFrame(root, ctx, mode.title, { onDown, onMove, onUp });
   const { board, tuning } = frame;
@@ -66,6 +75,8 @@ export const hunterView: View = (root, ctx) => {
    */
   async function next(counted = false): Promise<void> {
     if (asked >= HUNT_PROMPTS) return finish();
+    // The last note is random against the next: it must not ring under it.
+    damp();
     board.setNotes([]);
     board.setGlowString(null);
     board.setGlowFret(null);
@@ -78,11 +89,11 @@ export const hunterView: View = (root, ctx) => {
       await board.whenSettled();
       if (frame.gone) return;
     }
-    if (counted) present();
-    else frame.beat(present);
+    if (counted) present(DAMP_S);
+    else frame.beat(() => present());
   }
 
-  function present(): void {
+  function present(delay = 0): void {
     const { first, last } = board.windowFrets;
     prompt = makeHuntPrompt(rng, tuning, variant, first, last, accidentals, prompt);
     // Where the prompt says to look, when it says: a string, or a fret.
@@ -95,7 +106,7 @@ export const hunterView: View = (root, ctx) => {
     asked++;
     if (prompt.string !== null) board.setGlowString(prompt.string);
     if (prompt.fret !== null) board.setGlowFret(prompt.fret);
-    pluck(prompt.midi, { level: 0.5 });
+    ringing.push(pluck(prompt.midi, { level: 0.5, delay }));
     liveSince = performance.now();
   }
 
@@ -125,7 +136,7 @@ export const hunterView: View = (root, ctx) => {
     if (right) {
       found++;
       foundSeconds += seconds;
-      pluck(cellMidi(tuning, cell), { level: 0.55 });
+      ringing.push(pluck(cellMidi(tuning, cell), { level: 0.55 }));
       board.flash(cell, board.theme.good);
       frame.setStreak(++streak);
       frame.pop(`${seconds.toFixed(1)} s`, [cell], seconds < FAST_S ? 'gold' : 'good');
@@ -170,6 +181,7 @@ export const hunterView: View = (root, ctx) => {
   });
 
   function finish(): void {
+    damp();
     board.setNotes([]);
     board.setGlowString(null);
     board.setGlowFret(null);
