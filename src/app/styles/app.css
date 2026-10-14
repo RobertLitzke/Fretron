@@ -490,23 +490,12 @@ input[type='range'] {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.ref-head h1 {
-  margin: 0 auto 0 0;
-}
-
-.ref-controls {
-  display: flex;
-  flex-direction: column;
   gap: 8px;
   margin-bottom: 8px;
 }
 
-.ref-controls .seg {
-  flex-wrap: wrap;
+.ref-head h1 {
+  margin: 0 8px 0 0;
 }
 
 .ref-chord {
@@ -517,7 +506,7 @@ input[type='range'] {
 
 .ref-board {
   display: flex;
-  height: clamp(220px, 52vh, 420px);
+  height: clamp(220px, calc(100vh - 190px), 460px);
   margin-top: 8px;
   border: 1px solid var(--hair-dim);
   border-radius: var(--radius);
@@ -1558,21 +1547,12 @@ select.pick {
     display: none;
   }
 
-  .ref-head {
-    margin-bottom: 6px;
-  }
-
-  .ref-controls {
-    gap: 6px;
-  }
-
-  .ref-controls .seg button,
   .ref-head .seg button {
     padding: 7px 10px;
   }
 
   .ref-board {
-    height: max(190px, calc(100vh - 190px));
+    height: max(200px, calc(100vh - 122px));
     margin-top: 6px;
   }
 

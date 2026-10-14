@@ -165,83 +165,85 @@ export const referenceView: View = (root, ctx) => {
       spelling = s;
       keep('spelling', s);
       paint();
-      if (tab === 'notes') notesRow.replaceChildren(notesPick());
-      else rootRow.replaceChildren(rootPick());
+      // The note names in the lists are spelled the new way too.
+      for (const [select, names] of renamed) select.replaceChildren(...names().map(([v, label]) => el('option', { value: v, selected: v === select.value }, label)));
     },
   );
 
-  const notesPick = () =>
-    segmented<string>(
-      [
-        { value: 'all', label: 'All' },
-        { value: 'naturals', label: 'Naturals' },
-        ...roots.map((p) => ({ value: String(p), label: pcName(p, spelling) })),
-      ],
-      only,
-      (v) => {
-        only = v;
-        keep('notes', v);
-        paintNotes();
-      },
-    );
+  /** Lists whose option names follow the spelling, and how to name their options. */
+  const renamed: [HTMLSelectElement, () => [string, string][]][] = [];
 
-  const rootPick = () =>
-    segmented<number>(
-      roots.map((p) => ({ value: p, label: pcName(p, spelling) })),
-      chord.root,
-      (root) => {
-        chord = { ...chord, root };
-        chosen = null;
-        keep('root', String(root));
-        paintTriads();
-      },
-    );
-
-  const notesRow = el('div.row');
-  const rootRow = el('div.row');
+  /** A drop-down list: one line however many choices it holds. */
+  function choose(label: string, options: () => [string, string][], value: string, onPick: (value: string) => void, spelled = false): HTMLSelectElement {
+    const select = el(
+      'select.pick',
+      { 'aria-label': label },
+      options().map(([v, text]) => el('option', { value: v, selected: v === value }, text)),
+    ) as HTMLSelectElement;
+    select.addEventListener('change', () => onPick(select.value));
+    if (spelled) renamed.push([select, options]);
+    return select;
+  }
 
   const controls =
     tab === 'notes'
-      ? [notesRow]
-      : [
-          rootRow,
-          el(
-            'div.row',
-            {},
-            segmented<Quality>(QUALITIES, chord.quality, (quality) => {
-              chord = { ...chord, quality };
-              chosen = null;
-              keep('quality', quality);
-              paintTriads();
-            }),
-            segmented<StringSet>(STRING_SETS, set, (s) => {
-              set = s;
-              keep('strings', s);
-              paintTriads();
-            }),
+      ? [
+          choose(
+            'Notes shown',
+            () => [['all', 'All notes'], ['naturals', 'Naturals'], ...roots.map((p): [string, string] => [String(p), `Only ${pcName(p, spelling)}`])],
+            only,
+            (v) => {
+              only = v;
+              keep('notes', v);
+              paintNotes();
+            },
+            true,
           ),
+        ]
+      : [
+          choose(
+            'Root',
+            () => roots.map((p): [string, string] => [String(p), pcName(p, spelling)]),
+            String(chord.root),
+            (v) => {
+              chord = { ...chord, root: Number(v) };
+              chosen = null;
+              keep('root', v);
+              paintTriads();
+            },
+            true,
+          ),
+          choose('Quality', () => QUALITIES.map((q): [string, string] => [q.value, q.label]), chord.quality, (v) => {
+            chord = { ...chord, quality: v as Quality };
+            chosen = null;
+            keep('quality', v);
+            paintTriads();
+          }),
+          choose('Strings', () => STRING_SETS.map((o): [string, string] => [o.value, o.value === 'all' ? 'All strings' : o.label]), set, (v) => {
+            set = v as StringSet;
+            keep('strings', v);
+            paintTriads();
+          }),
         ];
-  if (tab === 'notes') notesRow.append(notesPick());
-  else rootRow.append(rootPick());
 
   const view = page(
-      el(
-        'div.ref-head',
-        {},
-        el('h1', {}, 'Reference'),
-        segmented<Tab>(
-          [
-            { value: 'notes', label: 'Notes' },
-            { value: 'triads', label: 'Triads' },
-          ],
-          tab,
-          (t) => ctx.replace(`/reference/${t}`),
-        ),
-        spellingPick,
+    el(
+      'div.ref-head',
+      {},
+      el('h1', {}, 'Reference'),
+      segmented<Tab>(
+        [
+          { value: 'notes', label: 'Notes' },
+          { value: 'triads', label: 'Triads' },
+        ],
+        tab,
+        (t) => ctx.replace(`/reference/${t}`),
       ),
-      el('div.ref-controls', {}, controls),
-      tab === 'triads' ? el('p.note.ref-hint', {}, title, ' · tap a note to play the voicing it is part of; tap again for the next one.') : el('p.note.ref-hint', {}, 'Tap a fret to hear it.'),
-      el('div.ref-board', {}, board.root),
+      controls,
+      spellingPick,
+    ),
+    tab === 'triads' ? el('p.note.ref-hint', {}, title, ' · tap a note to play its voicing; tap again for the next one.') : el('p.note.ref-hint', {}, 'Tap a fret to hear it.'),
+    el('div.ref-board', {}, board.root),
   );
   view.classList.add('reference');
   root.replaceChildren(view);
