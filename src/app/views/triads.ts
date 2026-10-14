@@ -261,10 +261,10 @@ export const triadsView: View = (root, ctx) => {
     kept = new Set();
     answers = enumerateVoicings(tuning, chord(), 0, frame.frets);
     if (targets) {
-      // A fret somewhere on the neck as it is shown, past the nut.
+      // A spot on the neck as it is shown, past the nut, where the chord can be played.
       const { first, last } = board.windowFrets;
-      target = makeTarget(rng, tuning.open.length, Math.max(1, first), last);
-      reachable = closestToTarget(target, answers);
+      target = makeTarget(rng, answers, Math.max(1, first), last);
+      reachable = target ? closestToTarget(target, answers) : 0;
       paintTarget();
     }
     input.clear();
