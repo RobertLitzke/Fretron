@@ -43,7 +43,7 @@ import {
   type TraceSample,
 } from '../../core/bend';
 import type { BoardLayout } from '../../core/geometry';
-import { asTier, bendTargets, modeById, rankBend, rankTrace, tierWords, type Mode, type Targets } from '../../core/modes';
+import { asTier, bendTargets, modeById, starsBend, starsTrace, tierWords, type Mode, type Targets } from '../../core/modes';
 import { pc, pcName, stringName, type Cell, type Tuning } from '../../core/music';
 import { Rng } from '../../core/rng';
 import { formatMultiplier, GREEN_STEP, NO_STREAK, OK_STEP, type Streak } from '../../core/streak';
@@ -323,7 +323,7 @@ export const bendView: View = (root, ctx) => {
       {
         mode,
         value: score,
-        rank: rankBend(mean),
+        stars: starsBend(mean),
         targets: bendTargets(),
         stats: [
           ['Pitch accuracy', `${mean.toFixed(1)} ¢ off`],
@@ -374,7 +374,7 @@ export interface TraceGame {
   /** What the prompt is called, above its bends: a phrase's name. */
   caption?(index: number): string | null;
   lines: readonly string[];
-  /** What each rank takes, on the ready panel and the result. */
+  /** What each star takes, on the ready panel and the result. */
   targets: Targets;
 }
 
@@ -826,7 +826,7 @@ export function traceGame(root: HTMLElement, ctx: ViewContext, game: TraceGame):
       {
         mode,
         value: score,
-        rank: rankTrace(mean),
+        stars: starsTrace(mean),
         targets: game.targets,
         stats: [
           ['Pitch accuracy', `${mean.toFixed(1)} ¢ off`],

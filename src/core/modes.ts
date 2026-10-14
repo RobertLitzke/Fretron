@@ -1,5 +1,5 @@
 // The games, as the menu, the score tables and the result card see them, and
-// the rank each run earns.
+// the stars each run earns.
 
 import { BEND_TIERS, type BendTier } from './bend';
 import { DEFAULT_FRETS } from './music';
@@ -7,14 +7,15 @@ import { SCALE_IDS, type ScaleId } from './scaleBend';
 import { BUILD_LEVELS, BUILDER_SCALES, type BuildLevel } from './scaleBuilder';
 import { SONG_GAMES, SONGS } from './songs';
 
-export type Rank = 'S' | 'A' | 'B' | 'C';
+/** What a run earns: none to three stars. */
+export type Stars = 0 | 1 | 2 | 3;
 
-/** The design document's 5.2. */
-export const RANK_WORDS: Record<Rank, string> = {
-  S: 'Master',
-  A: 'Session Pro',
-  B: 'Gigging Musician',
-  C: 'Garage Band',
+/** The title that goes with each count of stars (the design document's 5.2). */
+export const STAR_WORDS: Readonly<Record<Stars, string>> = {
+  0: 'Garage Band',
+  1: 'Gigging Musician',
+  2: 'Session Pro',
+  3: 'Master',
 };
 
 export interface Mode {
@@ -130,92 +131,95 @@ export function formatValue(mode: Mode, value: number): string {
   return mode.unit === 'seconds' ? formatSeconds(value) : Math.round(value).toLocaleString('en-US');
 }
 
-// --- ranks ---------------------------------------------------------------------
+// --- stars ---------------------------------------------------------------------
 // First guesses, to be moved once real runs show what a good one looks like.
 
-/** What S, A and B each take, in the measure a game's rank goes by. */
+/** What three, two and one stars each take, in the measure a game's stars go by. */
 export interface Bars {
-  s: number;
-  a: number;
-  b: number;
-  /** Whether the rank is for reaching the bar from below, or keeping under it. */
+  three: number;
+  two: number;
+  one: number;
+  /** Whether a star is for reaching the bar from below, or keeping under it. */
   better: 'high' | 'low';
 }
 
-export function rankBy(value: number, bars: Bars): Rank {
-  const { s, a, b } = bars;
-  if (bars.better === 'high') return value >= s ? 'S' : value >= a ? 'A' : value >= b ? 'B' : 'C';
-  return value <= s ? 'S' : value <= a ? 'A' : value <= b ? 'B' : 'C';
+export function starsBy(value: number, bars: Bars): Stars {
+  const made = (bar: number) => (bars.better === 'high' ? value >= bar : value <= bar);
+  return made(bars.three) ? 3 : made(bars.two) ? 2 : made(bars.one) ? 1 : 0;
 }
 
 /** Seconds per note, penalties included. The advanced game has one place to find, not six, and is given longer. */
-export const HUNTER_BARS: Bars = { s: 1.0, a: 1.8, b: 3.2, better: 'low' };
-export const HUNTER_ADVANCED_BARS: Bars = { s: 1.6, a: 2.6, b: 4.2, better: 'low' };
+export const HUNTER_BARS: Bars = { three: 1.0, two: 1.8, one: 3.2, better: 'low' };
+export const HUNTER_ADVANCED_BARS: Bars = { three: 1.6, two: 2.6, one: 4.2, better: 'low' };
 /** Seconds per fret cleared, penalties included. */
-export const SWEEP_BARS: Bars = { s: 1.4, a: 2.3, b: 3.6, better: 'low' };
+export const SWEEP_BARS: Bars = { three: 1.4, two: 2.3, one: 3.6, better: 'low' };
 /** The same, where every fret is a new note to find: nearer Speed Hunter's pace. */
-export const SWEEP_RANDOM_BARS: Bars = { s: 1.2, a: 2.0, b: 3.4, better: 'low' };
+export const SWEEP_RANDOM_BARS: Bars = { three: 1.2, two: 2.0, one: 3.4, better: 'low' };
 /**
  * The share of the points on offer: what instant chords with no wrong rake,
  * each at the streak's full multiplier, would have won. A perfect run, at two
  * seconds a chord, takes about 80% of it.
  */
-export const TRIAD_BARS: Bars = { s: 0.65, a: 0.42, b: 0.22, better: 'high' };
+export const TRIAD_BARS: Bars = { three: 0.65, two: 0.42, one: 0.22, better: 'high' };
 /** Seconds per voicing found, penalties included. */
-export const GRID_BARS: Bars = { s: 4, a: 7, b: 12, better: 'low' };
+export const GRID_BARS: Bars = { three: 4, two: 7, one: 12, better: 'low' };
 /** The mean miss, in cents, across the run. */
-export const BEND_BARS: Bars = { s: 8, a: 15, b: 30, better: 'low' };
-export const TRACE_BARS: Bars = { s: 12, a: 22, b: 40, better: 'low' };
+export const BEND_BARS: Bars = { three: 8, two: 15, one: 30, better: 'low' };
+export const TRACE_BARS: Bars = { three: 12, two: 22, one: 40, better: 'low' };
 /** Scale Builder's mean miss: a little wider than Bend by Ear's, as nothing is played to match. */
-export const SCALE_BUILD_BARS: Bars = { s: 10, a: 18, b: 32, better: 'low' };
+export const SCALE_BUILD_BARS: Bars = { three: 10, two: 18, one: 32, better: 'low' };
 
-export function rankHunter(seconds: number, prompts: number, advanced = false): Rank {
-  return rankBy(seconds / prompts, advanced ? HUNTER_ADVANCED_BARS : HUNTER_BARS);
+export function starsHunter(seconds: number, prompts: number, advanced = false): Stars {
+  return starsBy(seconds / prompts, advanced ? HUNTER_ADVANCED_BARS : HUNTER_BARS);
 }
 
-export function rankSweep(seconds: number, cells: number): Rank {
-  return rankBy(seconds / cells, SWEEP_BARS);
+export function starsSweep(seconds: number, cells: number): Stars {
+  return starsBy(seconds / cells, SWEEP_BARS);
 }
 
-export function rankSweepRandom(seconds: number, cells: number): Rank {
-  return rankBy(seconds / cells, SWEEP_RANDOM_BARS);
+export function starsSweepRandom(seconds: number, cells: number): Stars {
+  return starsBy(seconds / cells, SWEEP_RANDOM_BARS);
 }
 
-export function rankTriads(points: number, possible: number): Rank {
-  return rankBy(possible > 0 ? points / possible : 0, TRIAD_BARS);
+export function starsTriads(points: number, possible: number): Stars {
+  return starsBy(possible > 0 ? points / possible : 0, TRIAD_BARS);
 }
 
-export function rankGrid(seconds: number, voicings: number): Rank {
-  return rankBy(seconds / voicings, GRID_BARS);
+export function starsGrid(seconds: number, voicings: number): Stars {
+  return starsBy(seconds / voicings, GRID_BARS);
 }
 
-export function rankBend(meanCents: number): Rank {
-  return rankBy(meanCents, BEND_BARS);
+export function starsBend(meanCents: number): Stars {
+  return starsBy(meanCents, BEND_BARS);
 }
 
-export function rankTrace(meanCents: number): Rank {
-  return rankBy(meanCents, TRACE_BARS);
+export function starsTrace(meanCents: number): Stars {
+  return starsBy(meanCents, TRACE_BARS);
 }
-
-const RANKS_DOWN: readonly Rank[] = ['S', 'A', 'B', 'C'];
 
 /** By the mean miss; on Hard, each step named wrong costs a star. */
-export function rankScaleBuild(meanCents: number, wrongSteps = 0): Rank {
-  const at = RANKS_DOWN.indexOf(rankBy(meanCents, SCALE_BUILD_BARS));
-  return RANKS_DOWN[Math.min(RANKS_DOWN.length - 1, at + wrongSteps)];
+export function starsScaleBuild(meanCents: number, wrongSteps = 0): Stars {
+  return Math.max(0, starsBy(meanCents, SCALE_BUILD_BARS) - wrongSteps) as Stars;
 }
 
 // --- star targets --------------------------------------------------------------
-// What to aim for: the run each rank takes, in the numbers the game shows.
+// What to aim for: the run each count of stars takes, in the numbers the game shows.
 
-/** What S, A and B take, worded: "Finish within" 0:20.0, 0:36.0, 1:04.0. */
+/** What three, two and one stars take, worded: "Finish within" 0:20.0, 0:36.0, 1:04.0. */
 export interface Targets {
   lead: string;
-  ranks: readonly { rank: Rank; value: string }[];
+  bars: readonly { stars: Stars; value: string }[];
 }
 
 function targets(lead: string, bars: Bars, word: (bar: number) => string): Targets {
-  return { lead, ranks: (['S', 'A', 'B'] as const).map((rank) => ({ rank, value: word(bars[rank === 'S' ? 's' : rank === 'A' ? 'a' : 'b']) })) };
+  return {
+    lead,
+    bars: [
+      { stars: 3, value: word(bars.three) },
+      { stars: 2, value: word(bars.two) },
+      { stars: 1, value: word(bars.one) },
+    ],
+  };
 }
 
 /** A time rounded down to the tenth the clock shows, so that a time shown as the target makes it. */
@@ -251,7 +255,7 @@ export function scaleBuildTargets(): Targets {
   return targets('Average miss within', SCALE_BUILD_BARS, (bar) => `${bar} ¢`);
 }
 
-/** Bend ranks go by pitch, not points: the mean miss over the run. */
+/** Bend stars go by pitch, not points: the mean miss over the run. */
 export function bendTargets(trace = false): Targets {
   return targets('Average miss within', trace ? TRACE_BARS : BEND_BARS, (bar) => `${bar} ¢`);
 }

@@ -2,10 +2,10 @@
 // and the table.
 
 import { fanfare } from '../../audio/audio';
-import { formatValue, RANK_WORDS, tableKey, type Mode, type Rank, type Targets } from '../../core/modes';
+import { formatValue, STAR_WORDS, tableKey, type Mode, type Stars, type Targets } from '../../core/modes';
 import { DEFAULT_FRETS } from '../../core/music';
 import { placeFor, withScore, withTourRun, type ScoreEntry } from '../../core/storage';
-import { LAST_TOUR, legBooked, starsFor, stopFor, totalStars } from '../../core/tour';
+import { LAST_TOUR, legBooked, stopFor, totalStars } from '../../core/tour';
 import { el } from '../dom';
 import type { ViewContext } from '../router';
 import { getSave, updateSave } from '../store';
@@ -19,10 +19,10 @@ export interface RunResult {
   mode: Mode;
   /** Points, or seconds: whatever the mode's table is sorted by. */
   value: number;
-  rank: Rank;
+  stars: Stars;
   /** Label and value pairs for the card. */
   stats: readonly (readonly [string, string])[];
-  /** What each rank took on this run. */
+  /** What each star took on this run. */
   targets: Targets;
 }
 
@@ -44,7 +44,7 @@ export function scoreTable(mode: Mode, entries: readonly ScoreEntry[], highlight
         {},
         el('span.table-place.num', {}, String(i + 1)),
         el('span.table-name', {}, e.name),
-        stars(e.rank, '.table-stars'),
+        stars(e.stars, '.table-stars'),
         el('span.table-value.num', {}, formatValue(mode, e.value)),
       ),
     ),
@@ -107,12 +107,12 @@ function tourEarned(result: RunResult): HTMLElement | null {
   const at = stopFor(legs, result.mode.id);
   if (!onTour() || !at) return null;
   const before = getSave().tours[id] ?? {};
-  const after = updateSave((s) => withTourRun(s, id, result.mode.id, result.rank, result.value, result.mode.better)).tours[id];
+  const after = updateSave((s) => withTourRun(s, id, result.mode.id, result.stars, result.value, result.mode.better)).tours[id];
   const starsBefore = totalStars(legs, before);
   const starsAfter = totalStars(legs, after);
   const booked = legs.filter((leg) => !legBooked(leg, starsBefore) && legBooked(leg, starsAfter));
   const tourDone = !legBooked(legs.at(-1)!, starsBefore) && legBooked(legs.at(-1)!, starsAfter);
-  const got = starsFor(after[result.mode.id].rank);
+  const got = after[result.mode.id].stars;
   const was = before[result.mode.id]?.value;
   const newBest = was !== undefined && after[result.mode.id].value !== was;
   return el(
@@ -128,7 +128,8 @@ function tourEarned(result: RunResult): HTMLElement | null {
 }
 
 export function showResult(frame: Frame, ctx: ViewContext, result: RunResult, again: () => void): void {
-  const { mode, value, rank } = result;
+  const { mode, value } = result;
+  const earnedStars = result.stars;
   fanfare();
   frame.setAction(null);
   const earned = tourEarned(result);
@@ -147,7 +148,7 @@ export function showResult(frame: Frame, ctx: ViewContext, result: RunResult, ag
       el('h2.result-new', {}, place === 0 ? 'New best' : `On the board: no. ${place + 1}`),
       el('p.muted', {}, 'Enter your initials'),
       initialsEntry(getSave().initials, (name) => {
-        updateSave((s) => withScore(s, key, { name, value, rank, date: new Date().toISOString() }, mode.better));
+        updateSave((s) => withScore(s, key, { name, value, stars: earnedStars, date: new Date().toISOString() }, mode.better));
         showTable(place);
       }),
     );
@@ -160,15 +161,15 @@ export function showResult(frame: Frame, ctx: ViewContext, result: RunResult, ag
       el(
         'div.result-card',
         {},
-        stars(rank, `.result-stars.rank-${rank}`),
-        el('div.result-words', {}, RANK_WORDS[rank]),
+        stars(earnedStars, `.result-stars${earnedStars === 3 ? '.full' : ''}`),
+        el('div.result-words', {}, STAR_WORDS[earnedStars]),
         el('div.result-value.num', {}, formatValue(mode, value)),
         el(
           'dl.result-stats',
           {},
           result.stats.map(([label, text]) => [el('dt', {}, label), el('dd.num', {}, text)]),
         ),
-        nextTarget(result.targets, rank),
+        nextTarget(result.targets, earnedStars),
         earned,
       ),
       side,

@@ -1,12 +1,12 @@
 // World Tour: the existing games strung into tours. Each stop is one mode,
-// played as it is anywhere else; its best rank on a tour earns stars, and
+// played as it is anywhere else; its best run on a tour earns its stars, and
 // stars book the legs that follow. The first tour is fixed; each later one is
 // drawn from its number: the same climb in a shuffled order, on its own
 // continent, in its own genre and era (looks.ts). Pure data and arithmetic: the
 // view and the save live elsewhere.
 
 import { CONTINENTS, ERAS, GENRES, VENUES } from './looks';
-import { modeById, type Mode, type Rank } from './modes';
+import { modeById, type Mode, type Stars } from './modes';
 import { hash2, Rng } from './rng';
 
 export interface Stop {
@@ -49,9 +49,9 @@ export interface Tour {
   legs: readonly Leg[];
 }
 
-/** What a tour keeps of a stop: its best rank, for the stars, and its best score. */
+/** What a tour keeps of a stop: its most stars and its best score, each on its own. */
 export interface TourBest {
-  rank: Rank;
+  stars: Stars;
   /** Points or seconds, as the mode's table counts them. */
   value?: number;
 }
@@ -230,20 +230,13 @@ export function tourFor(id: number): Tour {
   return id === FIRST_TOUR ? FIRST : drawn(id);
 }
 
-/** C: you played the gig, but nobody came. */
-export function starsFor(rank: Rank | undefined): number {
-  return rank === 'S' ? 3 : rank === 'A' ? 2 : rank === 'B' ? 1 : 0;
-}
-
-const ORDER: Record<Rank, number> = { C: 0, B: 1, A: 2, S: 3 };
-
-/** The better of two ranks. */
-export function betterRank(a: Rank | undefined, b: Rank): Rank {
-  return a && ORDER[a] >= ORDER[b] ? a : b;
+/** A stop's stars on a tour; none if it has not been played, or nobody came. */
+export function starsAt(record: TourRecord, mode: string): Stars {
+  return record[mode]?.stars ?? 0;
 }
 
 export function legStars(leg: Leg, record: TourRecord): number {
-  return leg.stops.reduce((sum, stop) => sum + starsFor(record[stop.mode]?.rank), 0);
+  return leg.stops.reduce((sum, stop) => sum + starsAt(record, stop.mode), 0);
 }
 
 export function totalStars(legs: readonly Leg[], record: TourRecord): number {
@@ -254,14 +247,14 @@ export function legBooked(leg: Leg, stars: number): boolean {
   return stars >= leg.booking;
 }
 
-/** Every stop played at B or better. */
+/** Every stop played for a star or more. */
 export function legSoldOut(leg: Leg, record: TourRecord): boolean {
-  return leg.stops.every((stop) => starsFor(record[stop.mode]?.rank) >= 1);
+  return leg.stops.every((stop) => starsAt(record, stop.mode) >= 1);
 }
 
-/** Every stop at S. */
+/** Every stop at three stars. */
 export function legGold(leg: Leg, record: TourRecord): boolean {
-  return leg.stops.every((stop) => record[stop.mode]?.rank === 'S');
+  return leg.stops.every((stop) => starsAt(record, stop.mode) === 3);
 }
 
 /** The next leg not yet booked, if any. */

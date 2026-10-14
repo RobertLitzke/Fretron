@@ -1,14 +1,12 @@
-// Stars, which are all a player is shown of a run's rank, and what each takes:
+// Stars, which are all a player is shown of how a run went, and what each takes:
 // all three on the ready panel before a run, and on the result card the next
 // one up.
 
-import type { Rank, Targets } from '../../core/modes';
-import { starsFor } from '../../core/tour';
+import type { Stars, Targets } from '../../core/modes';
 import { el } from '../dom';
 
 /** ★★☆, the empty ones dimmed. */
-export function stars(rank: Rank | undefined, cls = ''): HTMLElement {
-  const n = starsFor(rank);
+export function stars(n: Stars = 0, cls = ''): HTMLElement {
   return el(`span.stars${cls}`, { 'aria-label': `${n} of 3 stars` }, '★'.repeat(n), el('em', {}, '★'.repeat(3 - n)));
 }
 
@@ -18,15 +16,14 @@ export function targetList(targets: Targets): HTMLElement {
     'div.targets',
     {},
     el('span.target-lead', {}, targets.lead),
-    targets.ranks.map(({ rank, value }) => el('span.target', {}, stars(rank), el('span.num', {}, value))),
+    targets.bars.map(({ stars: n, value }) => el('span.target', {}, stars(n), el('span.num', {}, value))),
   );
 }
 
 /** "Next ★★: finish within 0:36.0", or nothing after three stars. */
-export function nextTarget(targets: Targets, earned: Rank): HTMLElement | null {
-  const at = targets.ranks.findIndex((t) => t.rank === earned);
-  const next = at === -1 ? targets.ranks.at(-1) : targets.ranks[at - 1];
+export function nextTarget(targets: Targets, earned: Stars): HTMLElement | null {
+  const next = targets.bars.find((t) => t.stars === earned + 1);
   if (!next) return null;
   const lead = targets.lead.charAt(0).toLowerCase() + targets.lead.slice(1);
-  return el('div.target-next', {}, 'Next ', stars(next.rank), `: ${lead} ${next.value}`);
+  return el('div.target-next', {}, 'Next ', stars(next.stars), `: ${lead} ${next.value}`);
 }

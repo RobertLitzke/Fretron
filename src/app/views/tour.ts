@@ -11,7 +11,7 @@ import {
   legStars,
   MAX_STARS,
   nextBooking,
-  starsFor,
+  starsAt,
   stopMode,
   totalStars,
   tourFor,
@@ -106,14 +106,13 @@ export const tourView: View = (root) => {
     // The first stop short of three stars is the one offered.
     const stopIndex = Math.max(
       0,
-      leg.stops.findIndex((s) => starsFor(record[s.mode]?.rank) < 3),
+      leg.stops.findIndex((s) => starsAt(record, s.mode) < 3),
     );
     let chosen = stopIndex;
     const playButton = el('a.tour-play') as HTMLAnchorElement;
     const rows = leg.stops.map((stop, i) => {
       const mode = stopMode(stop);
       const best = record[stop.mode];
-      const rank = best?.rank;
       return el(
         'button.song',
         { type: 'button', disabled: !booked, onclick: () => choose(i) },
@@ -122,9 +121,9 @@ export const tourView: View = (root) => {
           'span.t',
           {},
           stop.city,
-          el('i', {}, `${mode.title} · ${mode.variant} · `, rank ? (best?.value !== undefined ? `best ${formatValue(mode, best.value)}` : 'played') : 'not played yet'),
+          el('i', {}, `${mode.title} · ${mode.variant} · `, best ? (best.value !== undefined ? `best ${formatValue(mode, best.value)}` : 'played') : 'not played yet'),
         ),
-        starRow(starsFor(rank)),
+        starRow(best?.stars ?? 0),
       );
     });
     const choose = (i: number) => {

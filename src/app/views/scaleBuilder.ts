@@ -11,7 +11,7 @@ import { BendVoice, blip, pluck, thud } from '../../audio/audio';
 import type { BoardTouch } from '../../board/board';
 import type { LineData, NoteRenderData } from '../../board/renderer';
 import { bendLabel, centsFromDrag, dragForCents, GRADE_WORDS, gradeBend, scoreGrade, semitoneTravel, type Grade } from '../../core/bend';
-import { levelWords, modeById, rankScaleBuild, scaleBuildTargets } from '../../core/modes';
+import { levelWords, modeById, starsScaleBuild, scaleBuildTargets } from '../../core/modes';
 import { sameCell } from '../../core/music';
 import { Rng } from '../../core/rng';
 import {
@@ -399,7 +399,7 @@ export const scaleBuilderView: View = (root, ctx) => {
     showResult(
       frame,
       ctx,
-      { mode, value: score, rank: rankScaleBuild(all, wrongSteps), targets: scaleBuildTargets(), stats },
+      { mode, value: score, stars: starsScaleBuild(all, wrongSteps), targets: scaleBuildTargets(), stats },
       () => ctx.replace(mode.route),
     );
   }

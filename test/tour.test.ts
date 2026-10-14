@@ -3,7 +3,6 @@ import { CONTINENTS, ERAS, GENRES } from '../src/core/looks';
 import { modeById, MODES } from '../src/core/modes';
 import { emptySave, migrate, withTourRun } from '../src/core/storage';
 import {
-  betterRank,
   CLASSIC,
   currentLeg,
   FIRST_TOUR,
@@ -15,7 +14,7 @@ import {
   LEG_SIZES,
   MAX_STARS,
   nextBooking,
-  starsFor,
+  starsAt,
   stopFor,
   totalStars,
   tourFor,
@@ -86,15 +85,13 @@ describe('the tours', () => {
     }
   });
 
-  it('turn ranks into stars', () => {
-    expect([starsFor('S'), starsFor('A'), starsFor('B'), starsFor('C'), starsFor(undefined)]).toEqual([3, 2, 1, 0, 0]);
-    expect(betterRank('A', 'B')).toBe('A');
-    expect(betterRank('B', 'S')).toBe('S');
-    expect(betterRank(undefined, 'C')).toBe('C');
+  it('read a stop\'s stars, none when it has not been played', () => {
+    expect(starsAt({ sweeper: { stars: 2 } }, 'sweeper')).toBe(2);
+    expect(starsAt({ sweeper: { stars: 2 } }, 'triads')).toBe(0);
   });
 
   it('count stars and book legs', () => {
-    const record: TourRecord = { 'hunter-name': { rank: 'S' }, sweeper: { rank: 'B' }, triads: { rank: 'C' } };
+    const record: TourRecord = { 'hunter-name': { stars: 3 }, sweeper: { stars: 1 }, triads: { stars: 0 } };
     const stars = totalStars(CLASSIC, record);
     expect(stars).toBe(4);
     expect(legBooked(CLASSIC[1], stars)).toBe(true);
@@ -102,14 +99,14 @@ describe('the tours', () => {
     expect(nextBooking(CLASSIC, stars)).toBe(CLASSIC[2]);
     expect(currentLeg(CLASSIC, stars)).toBe(1);
     expect(legSoldOut(CLASSIC[0], record)).toBe(false);
-    expect(legSoldOut(CLASSIC[0], { ...record, triads: { rank: 'B' } })).toBe(true);
+    expect(legSoldOut(CLASSIC[0], { ...record, triads: { stars: 1 } })).toBe(true);
     expect(stopFor(CLASSIC, 'gridclear')?.stop.city).toBe('Philadelphia');
   });
 
   it('open a tour once the last leg of the one before is booked', () => {
     expect(tourOpen(FIRST_TOUR, {})).toBe(true);
     expect(tourOpen(2, {})).toBe(false);
-    const all: TourRecord = Object.fromEntries(MODES.map((m) => [m.id, { rank: 'A' as const }]));
+    const all: TourRecord = Object.fromEntries(MODES.map((m) => [m.id, { stars: 2 as const }]));
     expect(tourOpen(2, { 1: all })).toBe(true);
     expect(tourOpen(3, { 1: all })).toBe(false);
     expect(tourOpen(LAST_TOUR + 1, {})).toBe(false);
@@ -117,21 +114,26 @@ describe('the tours', () => {
 });
 
 describe('a tour in the save', () => {
-  it('keeps the best rank and the best score, each on its own', () => {
-    let save = withTourRun(emptySave(), 1, 'sweeper', 'A', 80, 'low');
-    save = withTourRun(save, 1, 'sweeper', 'C', 70, 'low');
-    expect(save.tours[1]).toEqual({ sweeper: { rank: 'A', value: 70 } });
-    expect(withTourRun(save, 1, 'sweeper', 'B', 90, 'low')).toBe(save);
-    save = withTourRun(save, 2, 'triads', 'B', 9000, 'high');
-    save = withTourRun(save, 2, 'triads', 'B', 12000, 'high');
-    expect(save.tours[2]).toEqual({ triads: { rank: 'B', value: 12000 } });
+  it('keeps the most stars and the best score, each on its own', () => {
+    let save = withTourRun(emptySave(), 1, 'sweeper', 2, 80, 'low');
+    save = withTourRun(save, 1, 'sweeper', 0, 70, 'low');
+    expect(save.tours[1]).toEqual({ sweeper: { stars: 2, value: 70 } });
+    expect(withTourRun(save, 1, 'sweeper', 1, 90, 'low')).toBe(save);
+    save = withTourRun(save, 2, 'triads', 1, 9000, 'high');
+    save = withTourRun(save, 2, 'triads', 1, 12000, 'high');
+    expect(save.tours[2]).toEqual({ triads: { stars: 1, value: 12000 } });
     expect(save.tours[1].triads).toBeUndefined();
     expect(migrate(JSON.parse(JSON.stringify(save)))).toEqual(save);
   });
 
   it('repairs what it cannot read, and moves the first tour\'s ranks over', () => {
-    expect(migrate({ tours: { 1: { sweeper: { rank: 'Z' }, triads: { rank: 'S', value: 'x' } }, 2: 'x' } }).tours).toEqual({ 1: { triads: { rank: 'S' } } });
-    expect(migrate({ tour: { sweeper: 'A', triads: 'Q' } }).tours).toEqual({ 1: { sweeper: { rank: 'A' } } });
+    expect(migrate({ tours: { 1: { sweeper: { stars: 4 }, triads: { stars: 3, value: 'x' } }, 2: 'x' } }).tours).toEqual({ 1: { triads: { stars: 3 } } });
+    expect(migrate({ tour: { sweeper: 'A', triads: 'Q' } }).tours).toEqual({ 1: { sweeper: { stars: 2 } } });
+  });
+
+  it('turns the rank letters of an older save into stars', () => {
+    const old = migrate({ tours: { 1: { sweeper: { rank: 'S', value: 80 }, triads: { rank: 'C' }, hunter: { rank: 'Z' } } } });
+    expect(old.tours).toEqual({ 1: { sweeper: { stars: 3, value: 80 }, triads: { stars: 0 } } });
   });
 });
 

@@ -7,7 +7,7 @@ import { BendVoice, blip, pluck } from '../../audio/audio';
 import type { BoardTouch } from '../../board/board';
 import type { NoteRenderData } from '../../board/renderer';
 import { BEND_PROMPTS, bendLabel, centsFromDrag, dragForCents, GRADE_WORDS, gradeBend, scoreGrade, type Grade } from '../../core/bend';
-import { bendTargets, modeById, rankBend, scaleWords } from '../../core/modes';
+import { bendTargets, modeById, starsBend, scaleWords } from '../../core/modes';
 import { cellMidi, pc, pcName, sameCell, stringName, type Cell } from '../../core/music';
 import { Rng } from '../../core/rng';
 import { asScale, degreeOf, makeScaleBendPrompt, SCALE_IDS, SCALES, scaleCells, type ScaleBendPrompt, type ScaleId } from '../../core/scaleBend';
@@ -277,7 +277,7 @@ export const scaleBendView: View = (root, ctx) => {
       {
         mode,
         value: score,
-        rank: rankBend(mean),
+        stars: starsBend(mean),
         targets: bendTargets(),
         stats: [
           ['Pitch accuracy', `${mean.toFixed(1)} ¢ off`],

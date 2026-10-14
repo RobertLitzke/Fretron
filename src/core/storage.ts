@@ -3,10 +3,10 @@
 // SaveData back. A sync backend later only has to move the same blob.
 
 import type { Hand } from './geometry';
-import type { Rank } from './modes';
+import type { Stars } from './modes';
 import { DEFAULT_FRETS, NECK_SIZES } from './music';
 import type { Accidentals } from './notes';
-import { betterRank, FIRST_TOUR, type TourBest } from './tour';
+import { FIRST_TOUR, type TourBest } from './tour';
 
 export const SAVE_VERSION = 1;
 
@@ -21,7 +21,7 @@ export interface ScoreEntry {
   /** Three letters. */
   name: string;
   value: number;
-  rank: Rank;
+  stars: Stars;
   /** ISO date. */
   date: string;
 }
@@ -67,8 +67,7 @@ export function cleanInitials(text: unknown): string {
 
 function cleanEntry(x: unknown): ScoreEntry | null {
   if (!isObject(x) || typeof x.value !== 'number' || !Number.isFinite(x.value)) return null;
-  const rank = isRank(x.rank) ? x.rank : 'C';
-  return { name: cleanInitials(x.name), value: x.value, rank, date: typeof x.date === 'string' ? x.date : '' };
+  return { name: cleanInitials(x.name), value: x.value, stars: readStars(x) ?? 0, date: typeof x.date === 'string' ? x.date : '' };
 }
 
 /** Turn whatever was stored into a SaveData, dropping what cannot be read. */
@@ -97,33 +96,43 @@ export function migrate(raw: unknown): SaveData {
       if (!isObject(record)) continue;
       const kept: Record<string, TourBest> = {};
       for (const [mode, best] of Object.entries(record)) {
-        if (!isObject(best) || !isRank(best.rank)) continue;
-        kept[mode] = typeof best.value === 'number' && Number.isFinite(best.value) ? { rank: best.rank, value: best.value } : { rank: best.rank };
+        if (!isObject(best)) continue;
+        const stars = readStars(best);
+        if (stars === undefined) continue;
+        kept[mode] = typeof best.value === 'number' && Number.isFinite(best.value) ? { stars, value: best.value } : { stars };
       }
       if (Object.keys(kept).length) save.tours[year] = kept;
     }
   } else if (isObject(raw.tour)) {
-    // The first tour kept only ranks, under `tour`.
+    // The first tour kept only rank letters, under `tour`.
     const kept: Record<string, TourBest> = {};
-    for (const [mode, rank] of Object.entries(raw.tour)) if (isRank(rank)) kept[mode] = { rank };
+    for (const [mode, rank] of Object.entries(raw.tour)) {
+      const stars = readStars({ rank });
+      if (stars !== undefined) kept[mode] = { stars };
+    }
     if (Object.keys(kept).length) save.tours[FIRST_TOUR] = kept;
   }
   return save;
 }
 
-function isRank(x: unknown): x is Rank {
-  return x === 'S' || x === 'A' || x === 'B' || x === 'C';
+/** Saves before stars were kept as a count held rank letters: S for three stars down to C for none. */
+const LETTER_STARS: Readonly<Record<string, Stars>> = { S: 3, A: 2, B: 1, C: 0 };
+
+/** The stars kept on a score or a tour best, read from `stars` or from an older save's `rank` letter. */
+function readStars(x: Record<string, unknown>): Stars | undefined {
+  if (x.stars === 0 || x.stars === 1 || x.stars === 2 || x.stars === 3) return x.stars;
+  return typeof x.rank === 'string' ? LETTER_STARS[x.rank] : undefined;
 }
 
-/** Keep what a run on a tour beat of that stop's bests: the rank and the score each on its own. */
-export function withTourRun(save: SaveData, year: number, mode: string, rank: Rank, value: number, better: 'high' | 'low'): SaveData {
+/** Keep what a run on a tour beat of that stop's bests: the stars and the score each on its own. */
+export function withTourRun(save: SaveData, year: number, mode: string, stars: Stars, value: number, better: 'high' | 'low'): SaveData {
   const record = save.tours[year] ?? {};
   const was = record[mode];
   const next: TourBest = {
-    rank: betterRank(was?.rank, rank),
+    stars: Math.max(was?.stars ?? 0, stars) as Stars,
     value: was?.value === undefined || beats(value, was.value, better) ? value : was.value,
   };
-  if (was && next.rank === was.rank && next.value === was.value) return save;
+  if (was && next.stars === was.stars && next.value === was.value) return save;
   return { ...save, tours: { ...save.tours, [year]: { ...record, [mode]: next } } };
 }
 
