@@ -160,7 +160,7 @@
   text-shadow: none;
 }
 
-[data-skin='tour'] :is(.result-stars.rank-S, .result-value) {
+[data-skin='tour'] :is(.result-stars.full, .result-value) {
   text-shadow: 2px 2px 0 color-mix(in srgb, var(--ink) 25%, transparent);
 }
 

@@ -6,12 +6,12 @@ import {
   hunterTargets,
   modeById,
   MODES,
-  rankBend,
-  rankGrid,
-  rankHunter,
-  rankSweep,
-  rankSweepRandom,
-  rankTriads,
+  starsBend,
+  starsGrid,
+  starsHunter,
+  starsSweep,
+  starsSweepRandom,
+  starsTriads,
   sweepTargets,
   tableKey,
   triadTargets,
@@ -19,7 +19,7 @@ import {
 } from '../src/core/modes';
 import { cleanInitials, emptySave, migrate, placeFor, TABLE_SIZE, withScore, type SaveData, type ScoreEntry } from '../src/core/storage';
 
-const entry = (value: number, name = 'AAA'): ScoreEntry => ({ name, value, rank: 'B', date: '2026-10-10T00:00:00.000Z' });
+const entry = (value: number, name = 'AAA'): ScoreEntry => ({ name, value, stars: 1, date: '2026-10-10T00:00:00.000Z' });
 
 describe('the save', () => {
   it('starts right-handed', () => {
@@ -40,7 +40,9 @@ describe('the save', () => {
     expect(save.accidentals).toBe('mixed');
     expect(save.frets).toBe(12);
     expect(save.initials).toBe('QAA');
-    expect(save.scores).toEqual({ sweeper: [{ name: 'ABA', value: 90, rank: 'C', date: '' }] });
+    expect(save.scores).toEqual({ sweeper: [{ name: 'ABA', value: 90, stars: 0, date: '' }] });
+    // An older save's rank letters come across as stars.
+    expect(migrate({ scores: { bend: [{ name: 'ROB', value: 9, rank: 'A', date: 'd' }] } }).scores.bend[0].stars).toBe(2);
     expect(migrate(null)).toEqual(emptySave());
     expect(migrate('nonsense')).toEqual(emptySave());
   });
@@ -107,15 +109,15 @@ describe('modes', () => {
     expect(formatSeconds(599.96)).toBe('10:00.0');
   });
 
-  it('ranks from S down to C', () => {
-    expect(rankHunter(18, 20)).toBe('S');
-    expect(rankHunter(200, 20)).toBe('C');
-    expect(rankSweep(150, 132)).toBe('S');
-    expect(rankSweep(900, 132)).toBe('C');
-    expect(rankBend(4)).toBe('S');
-    expect(rankBend(12)).toBe('A');
-    expect(rankBend(25)).toBe('B');
-    expect(rankBend(80)).toBe('C');
+  it('gives three stars down to none', () => {
+    expect(starsHunter(18, 20)).toBe(3);
+    expect(starsHunter(200, 20)).toBe(0);
+    expect(starsSweep(150, 132)).toBe(3);
+    expect(starsSweep(900, 132)).toBe(0);
+    expect(starsBend(4)).toBe(3);
+    expect(starsBend(12)).toBe(2);
+    expect(starsBend(25)).toBe(1);
+    expect(starsBend(80)).toBe(0);
   });
 });
 
@@ -126,34 +128,34 @@ describe('star targets', () => {
     return Number(m) * 60 + Number(sec);
   };
 
-  it('name a time that earns the rank it is shown for, and a slower one that does not', () => {
-    const cases: [Targets, (s: number) => string][] = [
-      [hunterTargets(20), (s) => rankHunter(s, 20)],
-      [hunterTargets(20, true), (s) => rankHunter(s, 20, true)],
-      [sweepTargets(133), (s) => rankSweep(s, 133)],
-      [sweepTargets(133, true), (s) => rankSweepRandom(s, 133)],
-      [gridTargets(15), (s) => rankGrid(s, 15)],
+  it('name a time that earns the stars it is shown for, and a slower one that does not', () => {
+    const cases: [Targets, (s: number) => number][] = [
+      [hunterTargets(20), (s) => starsHunter(s, 20)],
+      [hunterTargets(20, true), (s) => starsHunter(s, 20, true)],
+      [sweepTargets(133), (s) => starsSweep(s, 133)],
+      [sweepTargets(133, true), (s) => starsSweepRandom(s, 133)],
+      [gridTargets(15), (s) => starsGrid(s, 15)],
     ];
-    for (const [targets, rank] of cases) {
-      expect(targets.ranks.map((t) => t.rank)).toEqual(['S', 'A', 'B']);
-      for (const t of targets.ranks) {
-        expect(rank(secondsIn(t.value))).toBe(t.rank);
-        expect(rank(secondsIn(t.value) + 0.2)).not.toBe(t.rank);
+    for (const [targets, starsFor] of cases) {
+      expect(targets.bars.map((t) => t.stars)).toEqual([3, 2, 1]);
+      for (const t of targets.bars) {
+        expect(starsFor(secondsIn(t.value))).toBe(t.stars);
+        expect(starsFor(secondsIn(t.value) + 0.2)).not.toBe(t.stars);
       }
     }
-    expect(hunterTargets(20).ranks.map((t) => t.value)).toEqual(['0:20.0', '0:36.0', '1:04.0']);
+    expect(hunterTargets(20).bars.map((t) => t.value)).toEqual(['0:20.0', '0:36.0', '1:04.0']);
   });
 
   it('give triads as a share before a run and as points after it', () => {
-    expect(triadTargets().ranks[0].value).toBe('65%');
+    expect(triadTargets().bars[0].value).toBe('65%');
     expect(triadTargets().lead).toBe('Share of the points to score');
-    expect(triadTargets(120000).ranks.map((t) => t.value)).toEqual(['78,000', '50,400', '26,400']);
-    expect(rankTriads(78000, 120000)).toBe('S');
-    expect(rankTriads(77999, 120000)).toBe('A');
+    expect(triadTargets(120000).bars.map((t) => t.value)).toEqual(['78,000', '50,400', '26,400']);
+    expect(starsTriads(78000, 120000)).toBe(3);
+    expect(starsTriads(77999, 120000)).toBe(2);
   });
 
   it('give bends in cents', () => {
-    expect(bendTargets().ranks.map((t) => t.value)).toEqual(['8 ¢', '15 ¢', '30 ¢']);
-    expect(rankBend(8)).toBe('S');
+    expect(bendTargets().bars.map((t) => t.value)).toEqual(['8 ¢', '15 ¢', '30 ¢']);
+    expect(starsBend(8)).toBe(3);
   });
 });

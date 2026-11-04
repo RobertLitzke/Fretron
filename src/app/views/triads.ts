@@ -10,7 +10,7 @@
 
 import { blip, buzz, strum } from '../../audio/audio';
 import type { LineData, NoteRenderData } from '../../board/renderer';
-import { formatSeconds, gridTargets, modeById, rankGrid, rankTriads, triadTargets } from '../../core/modes';
+import { formatSeconds, gridTargets, modeById, starsGrid, starsTriads, triadTargets } from '../../core/modes';
 import { allCells, cellKey, cellMidi, pc, pcName, stringName, type Cell } from '../../core/music';
 import { Rng } from '../../core/rng';
 import { formatMultiplier, GREEN_STEP, NO_STREAK, stepStreak, topMultiplier } from '../../core/streak';
@@ -38,6 +38,7 @@ import {
   targetPoints,
   timePoints,
   toneLabel,
+  toneText,
   TRIAD_BASE_POINTS,
   voicingKey,
   type Chord,
@@ -49,8 +50,8 @@ import { makeFrame, panelOption, readyPanel, waiting } from '../game/frame';
 import { showResult } from '../game/results';
 import { TriadInput } from '../game/triadInput';
 import type { View } from '../router';
-import { updateSave } from '../store';
-import { freshSeed, segmented } from '../ui';
+import { keep } from '../store';
+import { runSeed, segmented } from '../ui';
 
 /** A run of progressions ends once this many chords have been asked. */
 const CHORDS_PER_RUN = 12;
@@ -61,11 +62,6 @@ const RAKES_BEFORE_ANSWER = 5;
 /** Once a progression's last chord is in, the wait before it is played back whole, and the time each chord of it gets. */
 const REPLAY_AFTER_MS = 900;
 const REPLAY_BEAT_MS = 330;
-
-/** A chord tone as it is written on a note: 'b3' is "♭3", 'd5' is "♭5". */
-function toneText(label: string): string {
-  return label.replace('b', '♭').replace('d5', '♭5');
-}
 
 /** The three notes of a voicing that has been played, labelled and coloured by chord tone. */
 function playedNotes(voicing: readonly Cell[], labels: readonly string[], opacity = 1): NoteRenderData[] {
@@ -91,8 +87,8 @@ export const triadsView: View = (root, ctx) => {
   const compact = variant === 'compact';
   const mode = modeById(variant === 'standard' ? 'triads' : `triads-${variant}`)!;
   // The menu's Play button comes back to the game last played.
-  updateSave((s) => ({ ...s, picks: { ...s.picks, triads: variant } }));
-  const rng = new Rng(freshSeed());
+  keep('triads', variant);
+  const rng = new Rng(runSeed(ctx));
 
   const progressions = makeRun(rng, CHORDS_PER_RUN);
   const total = CHORDS_PER_RUN;
@@ -448,7 +444,7 @@ export const triadsView: View = (root, ctx) => {
       {
         mode,
         value: score,
-        rank: rankTriads(score, possible),
+        stars: starsTriads(score, possible),
         targets: triadTargets(possible),
         stats: [
           targets
@@ -508,7 +504,7 @@ export const triadsView: View = (root, ctx) => {
 
 export const gridClearView: View = (root, ctx) => {
   const mode = modeById('gridclear')!;
-  const rng = new Rng(freshSeed());
+  const rng = new Rng(runSeed(ctx));
 
   const frame = makeFrame(root, ctx, mode.title, {
     onDown: (t) => input.down(t),
@@ -594,7 +590,7 @@ export const gridClearView: View = (root, ctx) => {
       {
         mode,
         value: total,
-        rank: rankGrid(total, all.length),
+        stars: starsGrid(total, all.length),
         targets: gridTargets(all.length),
         stats: [
           ['Chord', name],

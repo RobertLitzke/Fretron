@@ -11,7 +11,7 @@ import {
   legStars,
   MAX_STARS,
   nextBooking,
-  starsFor,
+  starsAt,
   stopMode,
   totalStars,
   tourFor,
@@ -19,7 +19,7 @@ import {
 } from '../../core/tour';
 import { el } from '../dom';
 import type { View } from '../router';
-import { getSave, updateSave } from '../store';
+import { getSave, keep } from '../store';
 import { applyLook, currentTour, openTours } from '../tour/current';
 import { sleeveSvg } from '../tour/sleeves';
 import { GENRES } from '../../core/looks';
@@ -57,18 +57,18 @@ export const tourView: View = (root) => {
     const stars = totalStars(legs, record);
     const next = nextBooking(legs, stars);
     const now = currentLeg(legs, stars);
-    const legKey = `tour${id}`;
+    const legKey = `tour${id}` as const;
     const picked = Number(save.picks[legKey]);
     const legIndex = Number.isInteger(picked) && picked >= 0 && picked < legs.length ? picked : now;
     const leg = legs[legIndex];
     const booked = legBooked(leg, stars);
 
     const pick = (i: number) => {
-      updateSave((s) => ({ ...s, picks: { ...s.picks, [legKey]: String(i) } }));
+      keep(legKey, String(i));
       render();
     };
     const toTour = (to: number) => {
-      updateSave((s) => ({ ...s, picks: { ...s.picks, tour: String(to) } }));
+      keep('tour', String(to));
       // The look changes with the tour.
       applyLook(tour.id === to ? tour : tourFor(to));
       render();
@@ -106,14 +106,13 @@ export const tourView: View = (root) => {
     // The first stop short of three stars is the one offered.
     const stopIndex = Math.max(
       0,
-      leg.stops.findIndex((s) => starsFor(record[s.mode]?.rank) < 3),
+      leg.stops.findIndex((s) => starsAt(record, s.mode) < 3),
     );
     let chosen = stopIndex;
     const playButton = el('a.tour-play') as HTMLAnchorElement;
     const rows = leg.stops.map((stop, i) => {
       const mode = stopMode(stop);
       const best = record[stop.mode];
-      const rank = best?.rank;
       return el(
         'button.song',
         { type: 'button', disabled: !booked, onclick: () => choose(i) },
@@ -122,9 +121,9 @@ export const tourView: View = (root) => {
           'span.t',
           {},
           stop.city,
-          el('i', {}, `${mode.title} · ${mode.variant} · `, rank ? (best?.value !== undefined ? `best ${formatValue(mode, best.value)}` : 'played') : 'not played yet'),
+          el('i', {}, `${mode.title} · ${mode.variant} · `, best ? (best.value !== undefined ? `best ${formatValue(mode, best.value)}` : 'played') : 'not played yet'),
         ),
-        starRow(starsFor(rank)),
+        starRow(best?.stars ?? 0),
       );
     });
     const choose = (i: number) => {

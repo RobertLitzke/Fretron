@@ -36,11 +36,14 @@ the top if anything on a page is wider than the screen.
 |---|---|---|
 | Speed Hunter, by name | A note name is called; tap any fret that plays it | 20 notes; total time, +3 s for a wrong fret |
 | Speed Hunter, advanced | A note name is called with a string or a fret to find it on; only there will do | the same |
+| Name That Fret | A fret lights; tap its note on the row of keys under the board (either spelling counts) | 20 frets; total time, +3 s for a wrong name |
 | Fret Sweeper, by note | A note is called; tap every fret that plays it, then the next note is called, until the neck is clear | time with a note up, +3 s for a wrong tap |
 | Fret Sweeper, random | A note is called; tap one fret that plays it, and a new note is called, until the neck is clear | the same |
+| Scale Run | A scale shape is drawn; tap it up to the octave and back, one note a beat, after a bar counted in | 3 rounds at 72, 92 and 112 bpm, each in a new position; points by how close to the beat each tap lands |
 | Triads, progressions | Tap three frets on neighbouring strings, then drag anywhere on the board to play the chord | about 12 chords; points for speed and for staying close to the last chord; none for a chord that had to be shown |
 | Triads, grid clear | Find every close voicing of one chord on the neck | total time, +3 s for a wrong rake |
 | Bend by Ear | Hear a target pitch, push the string until your note matches, let go | 10 bends; points by how many cents off |
+| Unison Bends | Hold a note on one string so it rings, and bend the string below up to meet it; the beating between the two stops when they match | 10 bends; points as in Bend by Ear |
 | Bend Trace | Hear and see a bend that changes over time, then play it back from memory | 10 bends; points by the mean distance from the prompt |
 | Scale Bends | A scale is drawn around the bend, the root in gold and the target note filled in (tap it to hear it); bend from one scale note up to the next | 10 bends; points as in Bend by Ear |
 
@@ -76,6 +79,17 @@ tour's `data-genre`, `data-era` and `data-continent` on `<html>` beside
 `data-skin="tour"` on the `/tour` routes; `src/app/styles/looks.css` holds the
 layers and `tour.css` turns them into the app's tokens, the board's included,
 which the canvas reads as it is built.
+
+Every run is drawn from a seed, and the result card's Share button gives a link
+that replays the same run, prompt for prompt, on another phone (`#/play/...?seed=`).
+The **Daily run** at the top of the menu is one of the tour's games with a seed
+drawn from the date: the same run for everyone that day.
+
+Speed Hunter and Fret Sweeper can be kept to part of the neck from the ready
+panel: the naturals only, or one string (the string glows for the run; the rest
+of the neck is shown as cleared in Sweeper). Each keeps its own score table,
+listed on the Scores page once played, and the menu's button comes back to the
+last choice.
 
 The note and triad games take the open strings too: tap on the nut, or in the
 ring beside it that carries the string's name. Bends need a fretted note.
@@ -124,17 +138,19 @@ that and serves it from nginx.
 src/core/    pure TypeScript, no DOM or Web Audio; everything here is unit-tested
   music.ts     pitches, note names, the neck, neck sizes
   geometry.ts  where the neck sits on screen and back again (both hands)
-  notes.ts     Speed Hunter prompts, Fret Sweeper state
+  notes.ts     Speed Hunter and Name That Fret prompts, Fret Sweeper state
   triads.ts    checking and listing voicings, voice-leading distance, progressions
   bend.ts      bend prompts, travel per string and fret, traces and their scoring
   scaleBend.ts the scales, the bends each offers, Scale Bends prompts
-  modes.ts     the list of games, score-table keys, ranks
+  scaleBuilder.ts the twelve scales, their spelling and one-position shapes, Scale Builder runs
+  scaleRun.ts  Scale Run rounds, tap grading by distance from the beat
+  modes.ts     the list of games, score-table keys, stars
   storage.ts   the save file and score tables
 src/board/   renderer.ts (canvas drawing, ported from FretFalcon),
              board.ts (canvas, sliding window, rail, touches)
 src/audio/   audio.ts (plucked and held strings, bends, the arcade noises)
 src/app/     dom.ts, router.ts, store.ts, ui.ts, styles/,
-             game/ (the screen frame, results, tap-and-rake input), views/
+             game/ (the screen frame, results, tap-and-rake input, bend input and scoring), views/
 tools/       icons.mjs, devkit.js (drive the board from the console; dev only)
 test/
 ```

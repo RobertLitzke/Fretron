@@ -310,3 +310,26 @@ describe('runs of other lengths', () => {
     expect(Math.abs(perfect(14) - perfect(BEND_PROMPTS))).toBeLessThan(100);
   });
 });
+
+describe('unison bends', () => {
+  it('put the held note on the string above, sounding the target, within reach', async () => {
+    const { makeUnisonPrompt } = await import('../src/core/bend');
+    const { cellMidi, STANDARD_TUNING: T } = await import('../src/core/music');
+    const { Rng } = await import('../src/core/rng');
+    const rng = new Rng(21);
+    for (const frets of [12, 22]) {
+      for (let i = 0; i < 200; i++) {
+        const p = makeUnisonPrompt(rng, T, frets);
+        expect(p.ref.string).toBe(p.cell.string + 1);
+        expect(cellMidi(T, p.ref)).toBe(p.to);
+        expect(p.to - p.from).toBe(p.semis);
+        expect([1, 2, 3]).toContain(p.semis);
+        expect(Math.abs(p.ref.fret - p.cell.fret)).toBeLessThanOrEqual(4);
+        expect(p.ref.fret).toBeGreaterThanOrEqual(1);
+        expect(p.ref.fret).toBeLessThanOrEqual(frets);
+        expect(p.cell.fret).toBeGreaterThanOrEqual(5);
+        expect(p.cell.fret).toBeLessThanOrEqual(Math.min(17, frets));
+      }
+    }
+  });
+});

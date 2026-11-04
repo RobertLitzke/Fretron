@@ -1,7 +1,7 @@
 // Finding single notes: Speed Hunter's prompts and points, and Fret Sweeper's
 // board-clearing state.
 
-import { allCells, cellKey, cellMidi, isNatural, pc, pcName, type Cell, type Spelling, type Tuning } from './music';
+import { allCells, cellKey, cellMidi, isNatural, pc, pcName, stringName, type Cell, type Spelling, type Tuning } from './music';
 import type { Rng } from './rng';
 
 export type Accidentals = 'mixed' | 'sharp' | 'flat';
@@ -10,6 +10,46 @@ export type Accidentals = 'mixed' | 'sharp' | 'flat';
 export function promptName(rng: Rng, pitchClass: number, accidentals: Accidentals): string {
   const spelling: Spelling = accidentals === 'mixed' ? (rng.next() < 0.5 ? 'sharp' : 'flat') : accidentals;
   return pcName(pitchClass, isNatural(pitchClass) ? 'sharp' : spelling);
+}
+
+/** The pitch a called note is sounded at: in the middle of the guitar's range, not at one of the answers. */
+export function soundedMidi(pitchClass: number): number {
+  return 52 + pc(pitchClass - 4);
+}
+
+// --- scopes ----------------------------------------------------------------------
+// A note game can be kept to a part of the neck: the naturals (the first pass
+// most players make), or one string (the oldest way of learning the neck).
+
+export type Scope = 'all' | 'naturals' | `string-${number}`;
+
+export const SCOPES: readonly Scope[] = ['all', 'naturals', 'string-0', 'string-1', 'string-2', 'string-3', 'string-4', 'string-5'];
+
+export function asScope(text: string | undefined): Scope {
+  return (SCOPES as readonly string[]).includes(text ?? '') ? (text as Scope) : 'all';
+}
+
+/** The string a scope is kept to, or null. */
+export function scopeString(scope: Scope): number | null {
+  return scope.startsWith('string-') ? Number(scope.slice('string-'.length)) : null;
+}
+
+export function inScope(tuning: Tuning, cell: Cell, scope: Scope): boolean {
+  if (scope === 'all') return true;
+  if (scope === 'naturals') return isNatural(cellMidi(tuning, cell));
+  return cell.string === scopeString(scope);
+}
+
+/** The cells from fret `first` to `last` that a scope keeps. */
+export function scopeCells(tuning: Tuning, first: number, last: number, scope: Scope): Cell[] {
+  return allCells(tuning, first, last).filter((cell) => inScope(tuning, cell, scope));
+}
+
+/** "Whole neck", "Naturals", "Low E string". */
+export function scopeName(tuning: Tuning, scope: Scope): string {
+  const string = scopeString(scope);
+  if (string !== null) return `${stringName(tuning, string)} string`;
+  return scope === 'naturals' ? 'Naturals' : 'Whole neck';
 }
 
 // --- Speed Hunter (design document 4.2) ---------------------------------------
@@ -53,22 +93,48 @@ export function makeHuntPrompt(
   last: number,
   accidentals: Accidentals,
   previous: HuntPrompt | null,
+  scope: Scope = 'all',
 ): HuntPrompt {
-  const cells = allCells(tuning, first, last);
+  const cells = scopeCells(tuning, first, last, scope);
   for (;;) {
     const cell = rng.pick(cells);
     const pitchClass = pc(cellMidi(tuning, cell));
-    if (previous && previous.pitchClass === pitchClass) continue;
+    if (previous && previous.pitchClass === pitchClass && cells.length > 1) continue;
     const name = promptName(rng, pitchClass, accidentals);
     const everywhere = cells.filter((c) => pc(cellMidi(tuning, c)) === pitchClass);
-    // Sound the name in the middle of the guitar's range, not at one of the answers.
-    const sounded = 52 + ((pitchClass - 4 + 12) % 12);
+    const sounded = soundedMidi(pitchClass);
     if (variant === 'name') return { pitchClass, name, midi: sounded, string: null, fret: null, answers: everywhere };
     // An open string is not "at a fret": it is asked for by its string.
     if (cell.fret === 0 || rng.next() < 0.5) {
       return { pitchClass, name, midi: sounded, string: cell.string, fret: null, answers: everywhere.filter((c) => c.string === cell.string) };
     }
     return { pitchClass, name, midi: sounded, string: null, fret: cell.fret, answers: everywhere.filter((c) => c.fret === cell.fret) };
+  }
+}
+
+// --- Name That Fret ------------------------------------------------------------
+// The other way round: a fret lights, and its note is named. Any spelling of the
+// right pitch class will do, so the answer is the pitch class alone.
+
+export const NAME_PROMPTS = 20;
+/** Seconds added for a wrong name. */
+export const NAME_PENALTY = 3;
+
+export interface NamePrompt {
+  cell: Cell;
+  pitchClass: number;
+  midi: number;
+}
+
+/** A fret from `first` to `last` that does not play the note just named. */
+export function makeNamePrompt(rng: Rng, tuning: Tuning, first: number, last: number, previous: NamePrompt | null): NamePrompt {
+  const cells = allCells(tuning, first, last);
+  for (;;) {
+    const cell = rng.pick(cells);
+    const midi = cellMidi(tuning, cell);
+    const pitchClass = pc(midi);
+    if (previous && previous.pitchClass === pitchClass && cells.length > 1) continue;
+    return { cell, pitchClass, midi };
   }
 }
 
@@ -105,9 +171,10 @@ export class Sweep {
     first: number,
     last: number,
     readonly kind: SweepKind = 'note',
+    readonly scope: Scope = 'all',
   ) {
     this.tuning = tuning;
-    for (const cell of allCells(tuning, first, last)) this.live.set(cellKey(cell), cell);
+    for (const cell of scopeCells(tuning, first, last, scope)) this.live.set(cellKey(cell), cell);
     this.total = this.live.size;
     this.order = kind === 'random' ? this.randomOrder(rng) : rng.shuffle([...Array(12).keys()]).filter((p) => this.count(p) > 0);
   }

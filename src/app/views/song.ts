@@ -5,14 +5,15 @@ import { bendTargets, modeById } from '../../core/modes';
 import { Rng } from '../../core/rng';
 import { makeSongPrompt, songById } from '../../core/songs';
 import type { View } from '../router';
-import { freshSeed } from '../ui';
-import { STREAK_LINE, traceGame } from './bend';
+import { runSeed } from '../ui';
+import { STREAK_LINE } from '../game/bendInput';
+import { traceGame } from './trace';
 
 export const songTraceView: View = (root, ctx) => {
   const song = songById(ctx.params.song);
   const trace = song.trace;
   if (!trace) return void ctx.replace('/home');
-  const rng = new Rng(freshSeed());
+  const rng = new Rng(runSeed(ctx));
   const count = trace.phrases.length;
   return traceGame(root, ctx, {
     mode: modeById(`song-${song.id}-trace`)!,

@@ -2,19 +2,23 @@ import './app/styles/app.css';
 import { setVoice, setVolume } from './audio/audio';
 import { el } from './app/dom';
 import { Router } from './app/router';
-import { getSave } from './app/store';
+import { getSave, pick } from './app/store';
 import { canFullscreen, toggleFullscreen } from './app/ui';
 import { applyLook, clearLook, currentTour } from './app/tour/current';
 import { inTour, tourRewrite } from './app/tour/route';
 import { watchForUpdates } from './app/update';
-import { bendView, traceView } from './app/views/bend';
+import { bendView } from './app/views/bend';
+import { unisonView } from './app/views/unison';
+import { traceView } from './app/views/trace';
 import { songTraceView } from './app/views/song';
 import { homeView } from './app/views/home';
 import { hunterView } from './app/views/hunter';
+import { namerView } from './app/views/namer';
 import { referenceView } from './app/views/reference';
 import { scoresView } from './app/views/scores';
 import { scaleBendView } from './app/views/scaleBend';
 import { scaleBuilderView } from './app/views/scaleBuilder';
+import { scaleRunView } from './app/views/scaleRun';
 import { settingsView } from './app/views/settings';
 import { sweeperView } from './app/views/sweeper';
 import { tourView } from './app/views/tour';
@@ -85,18 +89,23 @@ function boot(): void {
   for (const base of ['', '/tour']) {
     router
       .add(`${base}/play/hunter/:variant`, hunterView)
+      .add(`${base}/play/hunter/:variant/:scope`, hunterView)
+      .add(`${base}/play/namer`, namerView)
       .add(`${base}/play/sweeper/:variant`, sweeperView)
+      .add(`${base}/play/sweeper/:variant/:scope`, sweeperView)
       .add(`${base}/play/triads`, triadsView)
       .add(`${base}/play/triads/:variant`, triadsView)
       .add(`${base}/play/gridclear`, gridClearView)
       .add(`${base}/play/bend/:tier`, bendView)
+      .add(`${base}/play/unison`, unisonView)
       .add(`${base}/play/trace/:tier`, traceView)
       .add(`${base}/play/song/:song/trace`, songTraceView)
       .add(`${base}/play/scalebend/:scale`, scaleBendView)
-      .add(`${base}/play/scales/:level/:scale`, scaleBuilderView);
+      .add(`${base}/play/scales/:level/:scale`, scaleBuilderView)
+      .add(`${base}/play/scalerun/:scale`, scaleRunView);
   }
   router
-    .add('/reference', (_root, ctx) => ctx.replace(`/reference/${getSave().picks['ref-tab'] === 'triads' ? 'triads' : 'notes'}`))
+    .add('/reference', (_root, ctx) => ctx.replace(`/reference/${pick('ref-tab') === 'triads' ? 'triads' : 'notes'}`))
     .add('/reference/:tab', referenceView)
     .add('/scores', scoresView)
     .add('/settings', settingsView)

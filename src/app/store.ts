@@ -35,6 +35,21 @@ export function updateSave(change: (save: SaveData) => SaveData): SaveData {
   return next;
 }
 
+/**
+ * The choices screens remember between visits, each under a key of its own:
+ * the variant or scale a game's Play button comes back to, the tour and leg
+ * last looked at, and what the Reference screen was showing.
+ */
+export type PickKey = 'triads' | 'sweepNames' | 'scalebend' | 'scales' | 'scalerun' | 'tour' | `tour${number}` | `ref-${string}` | `scope-${string}`;
+
+export function pick(key: PickKey): string | undefined {
+  return getSave().picks[key];
+}
+
+export function keep(key: PickKey, value: string): void {
+  updateSave((s) => ({ ...s, picks: { ...s.picks, [key]: value } }));
+}
+
 export function exportSave(): string {
   return JSON.stringify(getSave(), null, 2);
 }

@@ -4,7 +4,11 @@
 import { el } from './dom';
 
 export interface ViewContext {
+  /** The route as matched, without its query. */
+  path: string;
   params: Record<string, string>;
+  /** What came after a ? in the hash: a shared run's seed, for one. */
+  query: Record<string, string>;
   navigate: (path: string) => void;
   /** Go somewhere without leaving a history step behind. */
   replace: (path: string) => void;
@@ -76,11 +80,15 @@ export class Router {
     return null;
   }
 
-  private resolve(path: string): void {
+  private resolve(full: string): void {
     if (this.teardown) {
       this.teardown();
       this.teardown = undefined;
     }
+    const at = full.indexOf('?');
+    const path = at === -1 ? full : full.slice(0, at);
+    const query: Record<string, string> = {};
+    if (at !== -1) new URLSearchParams(full.slice(at + 1)).forEach((value, key) => (query[key] = value));
     this.here = path;
     this.hooks.before?.(path);
     this.outlet.replaceChildren();
@@ -93,7 +101,9 @@ export class Router {
       return;
     }
     const result = matched.route.view(this.outlet, {
+      path,
       params: matched.params,
+      query,
       navigate: (p) => this.navigate(p),
       replace: (p) => this.navigate(p, true),
     });

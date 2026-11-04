@@ -5,16 +5,18 @@
 import { blip, pluck, thud } from '../../audio/audio';
 import type { BoardTouch } from '../../board/board';
 import type { NoteRenderData } from '../../board/renderer';
-import { formatSeconds, modeById, rankSweep, rankSweepRandom, sweepTargets } from '../../core/modes';
+import { formatSeconds, modeById, scopedMode, starsSweep, starsSweepRandom, sweepTargets } from '../../core/modes';
 import { cellKey, cellMidi, pc, pcName, type Cell } from '../../core/music';
-import { promptName, Sweep, SWEEP_PENALTY, type SweepKind } from '../../core/notes';
+import { asScope, inScope, promptName, scopeString, soundedMidi, Sweep, SWEEP_PENALTY, type SweepKind } from '../../core/notes';
+import { allCells } from '../../core/music';
 import { Rng } from '../../core/rng';
 import { el } from '../dom';
 import { BEAT_MS, makeFrame, panelOption, readyPanel } from '../game/frame';
+import { scopePicker } from '../game/scopePick';
 import { showResult } from '../game/results';
 import type { View } from '../router';
-import { getSave, updateSave } from '../store';
-import { freshSeed, segmented } from '../ui';
+import { getSave, keep, pick } from '../store';
+import { runSeed, segmented } from '../ui';
 
 /** The beat between calls at random. Shorter than the usual one: there is one after every tap. */
 const RANDOM_BEAT_MS = 320;
@@ -25,18 +27,23 @@ const SWEEP_STREAK_MAX = 20;
 
 export const sweeperView: View = (root, ctx) => {
   const kind: SweepKind = ctx.params.variant === 'random' ? 'random' : 'note';
-  const mode = modeById(kind === 'random' ? 'sweeper-random' : 'sweeper')!;
-  const rng = new Rng(freshSeed());
+  const scope = asScope(ctx.params.scope);
+  const base = modeById(kind === 'random' ? 'sweeper-random' : 'sweeper')!;
+  const mode = scopedMode(base, scope);
+  const rng = new Rng(runSeed(ctx));
   const accidentals = getSave().accidentals;
   /** Whether a cleared fret keeps its note name, as a help in learning the neck. */
-  let showNames = getSave().picks.sweepNames === 'on';
+  let showNames = pick('sweepNames') === 'on';
 
   const frame = makeFrame(root, ctx, mode.title, { openStrings: false, onDown });
   const { board, tuning } = frame;
   // From fret 1: an open string is the same note as a fret on the string below
   // it, so the open strings are left out of play.
-  const sweep = new Sweep(rng, tuning, 1, frame.frets, kind);
-  const dead = new Set<string>();
+  const sweep = new Sweep(rng, tuning, 1, frame.frets, kind, scope);
+  // What the scope leaves out is shown as already gone.
+  const dead = new Set(allCells(tuning, 1, frame.frets).filter((c) => !inScope(tuning, c, scope)).map(cellKey));
+  board.setDead(dead);
+  board.setGlowString(scopeString(scope));
   /** The frets of the called note already cleared: tinted, by note, so it shows what is left of it. */
   const cleared = new Set<string>();
 
@@ -61,8 +68,7 @@ export const sweeperView: View = (root, ctx) => {
     name = promptName(rng, sweep.target, accidentals);
     cleared.clear();
     board.setTinted(cleared);
-    // The called note, in the middle of the guitar's range.
-    pluck(52 + ((sweep.target - 4 + 12) % 12), { level: 0.5 });
+    pluck(soundedMidi(sweep.target), { level: 0.5 });
     paint(true);
     liveSince = performance.now();
   }
@@ -157,7 +163,7 @@ export const sweeperView: View = (root, ctx) => {
       {
         mode,
         value: total,
-        rank: (kind === 'random' ? rankSweepRandom : rankSweep)(total, sweep.total),
+        stars: (kind === 'random' ? starsSweepRandom : starsSweep)(total, sweep.total),
         targets: sweepTargets(sweep.total, kind === 'random'),
         stats: [
           ['Frets cleared', String(sweep.total)],
@@ -185,8 +191,12 @@ export const sweeperView: View = (root, ctx) => {
       frame.setPrompt(el('b.call.wait', {}, '· · ·'), progress());
       frame.beat(call);
     },
-    panelOption(
-      'Names on cleared frets',
+    el(
+      'div',
+      {},
+      scopePicker(tuning, 'sweeper', scope, (to) => ctx.replace(scopedMode(base, to).route)),
+      panelOption(
+        'Names on cleared frets',
       segmented<'off' | 'on'>(
         [
           { value: 'off', label: 'Off' },
@@ -195,8 +205,9 @@ export const sweeperView: View = (root, ctx) => {
         showNames ? 'on' : 'off',
         (v) => {
           showNames = v === 'on';
-          updateSave((s) => ({ ...s, picks: { ...s.picks, sweepNames: v } }));
+          keep('sweepNames', v);
         },
+      ),
       ),
     ),
   );

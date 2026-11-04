@@ -1,25 +1,51 @@
 // The games, as the menu, the score tables and the result card see them, and
-// the rank each run earns.
+// the stars each run earns.
 
 import { BEND_TIERS, type BendTier } from './bend';
-import { DEFAULT_FRETS } from './music';
+import { DEFAULT_FRETS, STANDARD_TUNING } from './music';
+import { SCOPES, scopeName, type Scope } from './notes';
 import { SCALE_IDS, type ScaleId } from './scaleBend';
 import { BUILD_LEVELS, BUILDER_SCALES, type BuildLevel } from './scaleBuilder';
 import { SONG_GAMES, SONGS } from './songs';
 
-export type Rank = 'S' | 'A' | 'B' | 'C';
+/** What a run earns: none to three stars. */
+export type Stars = 0 | 1 | 2 | 3;
 
-/** The design document's 5.2. */
-export const RANK_WORDS: Record<Rank, string> = {
-  S: 'Master',
-  A: 'Session Pro',
-  B: 'Gigging Musician',
-  C: 'Garage Band',
+/** The title that goes with each count of stars (the design document's 5.2). */
+export const STAR_WORDS: Readonly<Record<Stars, string>> = {
+  0: 'Garage Band',
+  1: 'Gigging Musician',
+  2: 'Session Pro',
+  3: 'Master',
+};
+
+/** The games, as the menu and the routes know them. */
+export type Game = 'hunter' | 'namer' | 'sweeper' | 'scalerun' | 'triads' | 'gridclear' | 'bend' | 'unison' | 'trace' | 'scalebend' | 'scales';
+/** What a game teaches, as the World Tour cycles them. */
+export type Kind = 'notes' | 'triads' | 'bends';
+
+export const GAME_KIND: Readonly<Record<Game, Kind>> = {
+  hunter: 'notes',
+  namer: 'notes',
+  sweeper: 'notes',
+  scalerun: 'notes',
+  triads: 'triads',
+  gridclear: 'triads',
+  bend: 'bends',
+  unison: 'bends',
+  trace: 'bends',
+  scalebend: 'bends',
+  scales: 'bends',
 };
 
 export interface Mode {
   /** The key its score table is stored under. */
   id: string;
+  game: Game;
+  /** A song's own version of a game: the song's id. */
+  song?: string;
+  /** A note game kept to part of the neck: see notes.ts. */
+  scope?: Scope;
   title: string;
   /** Shown under the title where there is more than one of a kind. */
   variant: string;
@@ -39,26 +65,49 @@ const TIER_WORDS: Record<BendTier, string> = { standard: 'Standard', advanced: '
 const SCALE_WORDS: Record<ScaleId, string> = { blues: 'Blues', major: 'Major', minor: 'Minor' };
 const LEVEL_WORDS: Record<BuildLevel, string> = { easy: 'Easy', hard: 'Hard' };
 
+/** The note games that can be kept to part of the neck, over the whole of it. */
+const NOTE_GAMES: readonly Mode[] = [
+  { id: 'hunter-name', game: 'hunter', title: 'Speed Hunter', variant: 'By name', route: '/play/hunter/name', better: 'low', unit: 'seconds' },
+  { id: 'hunter-advanced', game: 'hunter', title: 'Speed Hunter', variant: 'Advanced', route: '/play/hunter/advanced', better: 'low', unit: 'seconds' },
+  { id: 'sweeper', game: 'sweeper', title: 'Fret Sweeper', variant: 'By note', route: '/play/sweeper/note', better: 'low', unit: 'seconds' },
+  { id: 'sweeper-random', game: 'sweeper', title: 'Fret Sweeper', variant: 'Random', route: '/play/sweeper/random', better: 'low', unit: 'seconds' },
+];
+
 export const MODES: readonly Mode[] = [
-  { id: 'hunter-name', title: 'Speed Hunter', variant: 'By name', route: '/play/hunter/name', better: 'low', unit: 'seconds' },
-  { id: 'hunter-advanced', title: 'Speed Hunter', variant: 'Advanced', route: '/play/hunter/advanced', better: 'low', unit: 'seconds' },
-  { id: 'sweeper', title: 'Fret Sweeper', variant: 'By note', route: '/play/sweeper/note', better: 'low', unit: 'seconds' },
-  { id: 'sweeper-random', title: 'Fret Sweeper', variant: 'Random', route: '/play/sweeper/random', better: 'low', unit: 'seconds' },
-  { id: 'triads', title: 'Triads', variant: 'Progressions', route: '/play/triads', better: 'high', unit: 'points', table: 'triads.2' },
-  { id: 'triads-target', title: 'Triads', variant: 'Targets', route: '/play/triads/target', better: 'high', unit: 'points', table: 'triads-target.2' },
-  { id: 'triads-compact', title: 'Triads', variant: 'Compact', route: '/play/triads/compact', better: 'high', unit: 'points', table: 'triads-compact.2' },
-  { id: 'gridclear', title: 'Triads', variant: 'Grid clear', route: '/play/gridclear', better: 'low', unit: 'seconds' },
-  ...BEND_TIERS.map(
-    (tier): Mode => ({ id: `bend-${tier}`, title: 'Bend by Ear', variant: TIER_WORDS[tier], route: `/play/bend/${tier}`, better: 'high', unit: 'points', table: `bend-${tier}.3` }),
+  ...NOTE_GAMES,
+  { id: 'namer', game: 'namer', title: 'Name That Fret', variant: 'By fret', route: '/play/namer', better: 'low', unit: 'seconds', offTour: true },
+  // The same games kept to the naturals or to one string: a table each, off the tour, and off the Scores page until played.
+  ...SCOPES.filter((scope) => scope !== 'all').flatMap((scope) =>
+    NOTE_GAMES.map(
+      (base): Mode => ({
+        ...base,
+        id: `${base.id}-${scope}`,
+        scope,
+        variant: `${base.variant} · ${scopeName(STANDARD_TUNING, scope)}`,
+        route: `${base.route}/${scope}`,
+        offTour: true,
+        listOncePlayed: true,
+      }),
+    ),
   ),
+  { id: 'triads', game: 'triads', title: 'Triads', variant: 'Progressions', route: '/play/triads', better: 'high', unit: 'points', table: 'triads.2' },
+  { id: 'triads-target', game: 'triads', title: 'Triads', variant: 'Targets', route: '/play/triads/target', better: 'high', unit: 'points', table: 'triads-target.2' },
+  { id: 'triads-compact', game: 'triads', title: 'Triads', variant: 'Compact', route: '/play/triads/compact', better: 'high', unit: 'points', table: 'triads-compact.2' },
+  { id: 'gridclear', game: 'gridclear', title: 'Triads', variant: 'Grid clear', route: '/play/gridclear', better: 'low', unit: 'seconds' },
   ...BEND_TIERS.map(
-    (tier): Mode => ({ id: `trace-${tier}`, title: 'Bend Trace', variant: TIER_WORDS[tier], route: `/play/trace/${tier}`, better: 'high', unit: 'points', table: `trace-${tier}.4` }),
+    (tier): Mode => ({ id: `bend-${tier}`, game: 'bend', title: 'Bend by Ear', variant: TIER_WORDS[tier], route: `/play/bend/${tier}`, better: 'high', unit: 'points', table: `bend-${tier}.3` }),
+  ),
+  { id: 'unison', game: 'unison', title: 'Unison Bends', variant: 'Standard', route: '/play/unison', better: 'high', unit: 'points', offTour: true },
+  ...BEND_TIERS.map(
+    (tier): Mode => ({ id: `trace-${tier}`, game: 'trace', title: 'Bend Trace', variant: TIER_WORDS[tier], route: `/play/trace/${tier}`, better: 'high', unit: 'points', table: `trace-${tier}.4` }),
   ),
   // Each song's own versions of the games: titled by the song, named by the game.
   ...SONGS.flatMap((song) =>
     SONG_GAMES.filter((game) => game.has(song)).map(
       (game): Mode => ({
         id: `song-${song.id}-${game.kind}`,
+        game: game.kind,
+        song: song.id,
         title: song.title,
         variant: game.name,
         route: `/play/song/${song.id}/${game.kind}`,
@@ -70,13 +119,28 @@ export const MODES: readonly Mode[] = [
     ),
   ),
   ...SCALE_IDS.map(
-    (scale): Mode => ({ id: `scalebend-${scale}`, title: 'Scale Bends', variant: SCALE_WORDS[scale], route: `/play/scalebend/${scale}`, better: 'high', unit: 'points', table: `scalebend-${scale}.3` }),
+    (scale): Mode => ({ id: `scalebend-${scale}`, game: 'scalebend', title: 'Scale Bends', variant: SCALE_WORDS[scale], route: `/play/scalebend/${scale}`, better: 'high', unit: 'points', table: `scalebend-${scale}.3` }),
+  ),
+  // Scale Run: a table for each scale, kept off the tour, and off the Scores page until played.
+  ...BUILDER_SCALES.map(
+    (scale): Mode => ({
+      id: `scalerun-${scale.id}`,
+      game: 'scalerun',
+      title: 'Scale Run',
+      variant: scale.name,
+      route: `/play/scalerun/${scale.id}`,
+      better: 'high',
+      unit: 'points',
+      offTour: true,
+      listOncePlayed: true,
+    }),
   ),
   // A table for each scale at each level: kept off the tour, and off the Scores page until played.
   ...BUILD_LEVELS.flatMap((level) =>
     BUILDER_SCALES.map(
       (scale): Mode => ({
         id: `scales-${level}-${scale.id}`,
+        game: 'scales',
         title: 'Scale Builder',
         variant: `${scale.name} · ${LEVEL_WORDS[level]}`,
         route: `/play/scales/${level}/${scale.id}`,
@@ -91,6 +155,21 @@ export const MODES: readonly Mode[] = [
 
 export function modeById(id: string): Mode | undefined {
   return MODES.find((m) => m.id === id);
+}
+
+/** A game's modes, in the menu's order: a song's own versions of it, and its scoped versions, are left out. */
+export function modesOf(game: Game): Mode[] {
+  return MODES.filter((m) => m.game === game && !m.song && !m.scope);
+}
+
+/** A note game kept to `scope`, or the game itself over the whole neck. */
+export function scopedMode(base: Mode, scope: Scope): Mode {
+  return scope === 'all' ? base : (modeById(`${base.id}-${scope}`) ?? base);
+}
+
+/** What a mode teaches: notes, triads or bends. */
+export function kindOf(mode: Mode): Kind {
+  return GAME_KIND[mode.game];
 }
 
 /**
@@ -130,92 +209,107 @@ export function formatValue(mode: Mode, value: number): string {
   return mode.unit === 'seconds' ? formatSeconds(value) : Math.round(value).toLocaleString('en-US');
 }
 
-// --- ranks ---------------------------------------------------------------------
+// --- stars ---------------------------------------------------------------------
 // First guesses, to be moved once real runs show what a good one looks like.
 
-/** What S, A and B each take, in the measure a game's rank goes by. */
+/** What three, two and one stars each take, in the measure a game's stars go by. */
 export interface Bars {
-  s: number;
-  a: number;
-  b: number;
-  /** Whether the rank is for reaching the bar from below, or keeping under it. */
+  three: number;
+  two: number;
+  one: number;
+  /** Whether a star is for reaching the bar from below, or keeping under it. */
   better: 'high' | 'low';
 }
 
-export function rankBy(value: number, bars: Bars): Rank {
-  const { s, a, b } = bars;
-  if (bars.better === 'high') return value >= s ? 'S' : value >= a ? 'A' : value >= b ? 'B' : 'C';
-  return value <= s ? 'S' : value <= a ? 'A' : value <= b ? 'B' : 'C';
+export function starsBy(value: number, bars: Bars): Stars {
+  const made = (bar: number) => (bars.better === 'high' ? value >= bar : value <= bar);
+  return made(bars.three) ? 3 : made(bars.two) ? 2 : made(bars.one) ? 1 : 0;
 }
 
 /** Seconds per note, penalties included. The advanced game has one place to find, not six, and is given longer. */
-export const HUNTER_BARS: Bars = { s: 1.0, a: 1.8, b: 3.2, better: 'low' };
-export const HUNTER_ADVANCED_BARS: Bars = { s: 1.6, a: 2.6, b: 4.2, better: 'low' };
+export const HUNTER_BARS: Bars = { three: 1.0, two: 1.8, one: 3.2, better: 'low' };
+export const HUNTER_ADVANCED_BARS: Bars = { three: 1.6, two: 2.6, one: 4.2, better: 'low' };
+/** Seconds per fret named, penalties included: reading a fret is a shade slower than finding a note. */
+export const NAMER_BARS: Bars = { three: 1.2, two: 2.0, one: 3.4, better: 'low' };
 /** Seconds per fret cleared, penalties included. */
-export const SWEEP_BARS: Bars = { s: 1.4, a: 2.3, b: 3.6, better: 'low' };
+export const SWEEP_BARS: Bars = { three: 1.4, two: 2.3, one: 3.6, better: 'low' };
 /** The same, where every fret is a new note to find: nearer Speed Hunter's pace. */
-export const SWEEP_RANDOM_BARS: Bars = { s: 1.2, a: 2.0, b: 3.4, better: 'low' };
+export const SWEEP_RANDOM_BARS: Bars = { three: 1.2, two: 2.0, one: 3.4, better: 'low' };
 /**
  * The share of the points on offer: what instant chords with no wrong rake,
  * each at the streak's full multiplier, would have won. A perfect run, at two
  * seconds a chord, takes about 80% of it.
  */
-export const TRIAD_BARS: Bars = { s: 0.65, a: 0.42, b: 0.22, better: 'high' };
+export const TRIAD_BARS: Bars = { three: 0.65, two: 0.42, one: 0.22, better: 'high' };
 /** Seconds per voicing found, penalties included. */
-export const GRID_BARS: Bars = { s: 4, a: 7, b: 12, better: 'low' };
+export const GRID_BARS: Bars = { three: 4, two: 7, one: 12, better: 'low' };
 /** The mean miss, in cents, across the run. */
-export const BEND_BARS: Bars = { s: 8, a: 15, b: 30, better: 'low' };
-export const TRACE_BARS: Bars = { s: 12, a: 22, b: 40, better: 'low' };
+export const BEND_BARS: Bars = { three: 8, two: 15, one: 30, better: 'low' };
+export const TRACE_BARS: Bars = { three: 12, two: 22, one: 40, better: 'low' };
+/** Scale Run's mean miss from the beat, in milliseconds, wrong and unplayed notes counted at MISSED_TAP_MS. */
+export const SCALE_RUN_BARS: Bars = { three: 45, two: 80, one: 130, better: 'low' };
 /** Scale Builder's mean miss: a little wider than Bend by Ear's, as nothing is played to match. */
-export const SCALE_BUILD_BARS: Bars = { s: 10, a: 18, b: 32, better: 'low' };
+export const SCALE_BUILD_BARS: Bars = { three: 10, two: 18, one: 32, better: 'low' };
 
-export function rankHunter(seconds: number, prompts: number, advanced = false): Rank {
-  return rankBy(seconds / prompts, advanced ? HUNTER_ADVANCED_BARS : HUNTER_BARS);
+export function starsHunter(seconds: number, prompts: number, advanced = false): Stars {
+  return starsBy(seconds / prompts, advanced ? HUNTER_ADVANCED_BARS : HUNTER_BARS);
 }
 
-export function rankSweep(seconds: number, cells: number): Rank {
-  return rankBy(seconds / cells, SWEEP_BARS);
+export function starsNamer(seconds: number, prompts: number): Stars {
+  return starsBy(seconds / prompts, NAMER_BARS);
 }
 
-export function rankSweepRandom(seconds: number, cells: number): Rank {
-  return rankBy(seconds / cells, SWEEP_RANDOM_BARS);
+export function starsSweep(seconds: number, cells: number): Stars {
+  return starsBy(seconds / cells, SWEEP_BARS);
 }
 
-export function rankTriads(points: number, possible: number): Rank {
-  return rankBy(possible > 0 ? points / possible : 0, TRIAD_BARS);
+export function starsSweepRandom(seconds: number, cells: number): Stars {
+  return starsBy(seconds / cells, SWEEP_RANDOM_BARS);
 }
 
-export function rankGrid(seconds: number, voicings: number): Rank {
-  return rankBy(seconds / voicings, GRID_BARS);
+export function starsTriads(points: number, possible: number): Stars {
+  return starsBy(possible > 0 ? points / possible : 0, TRIAD_BARS);
 }
 
-export function rankBend(meanCents: number): Rank {
-  return rankBy(meanCents, BEND_BARS);
+export function starsGrid(seconds: number, voicings: number): Stars {
+  return starsBy(seconds / voicings, GRID_BARS);
 }
 
-export function rankTrace(meanCents: number): Rank {
-  return rankBy(meanCents, TRACE_BARS);
+export function starsBend(meanCents: number): Stars {
+  return starsBy(meanCents, BEND_BARS);
 }
 
-const RANKS_DOWN: readonly Rank[] = ['S', 'A', 'B', 'C'];
+export function starsTrace(meanCents: number): Stars {
+  return starsBy(meanCents, TRACE_BARS);
+}
+
+export function starsScaleRun(meanMs: number): Stars {
+  return starsBy(meanMs, SCALE_RUN_BARS);
+}
 
 /** By the mean miss; on Hard, each step named wrong costs a star. */
-export function rankScaleBuild(meanCents: number, wrongSteps = 0): Rank {
-  const at = RANKS_DOWN.indexOf(rankBy(meanCents, SCALE_BUILD_BARS));
-  return RANKS_DOWN[Math.min(RANKS_DOWN.length - 1, at + wrongSteps)];
+export function starsScaleBuild(meanCents: number, wrongSteps = 0): Stars {
+  return Math.max(0, starsBy(meanCents, SCALE_BUILD_BARS) - wrongSteps) as Stars;
 }
 
 // --- star targets --------------------------------------------------------------
-// What to aim for: the run each rank takes, in the numbers the game shows.
+// What to aim for: the run each count of stars takes, in the numbers the game shows.
 
-/** What S, A and B take, worded: "Finish within" 0:20.0, 0:36.0, 1:04.0. */
+/** What three, two and one stars take, worded: "Finish within" 0:20.0, 0:36.0, 1:04.0. */
 export interface Targets {
   lead: string;
-  ranks: readonly { rank: Rank; value: string }[];
+  bars: readonly { stars: Stars; value: string }[];
 }
 
 function targets(lead: string, bars: Bars, word: (bar: number) => string): Targets {
-  return { lead, ranks: (['S', 'A', 'B'] as const).map((rank) => ({ rank, value: word(bars[rank === 'S' ? 's' : rank === 'A' ? 'a' : 'b']) })) };
+  return {
+    lead,
+    bars: [
+      { stars: 3, value: word(bars.three) },
+      { stars: 2, value: word(bars.two) },
+      { stars: 1, value: word(bars.one) },
+    ],
+  };
 }
 
 /** A time rounded down to the tenth the clock shows, so that a time shown as the target makes it. */
@@ -226,6 +320,10 @@ function within(seconds: number): string {
 /** For a run of `prompts` notes. */
 export function hunterTargets(prompts: number, advanced = false): Targets {
   return targets('Finish within', advanced ? HUNTER_ADVANCED_BARS : HUNTER_BARS, (bar) => within(bar * prompts));
+}
+
+export function namerTargets(prompts: number): Targets {
+  return targets('Finish within', NAMER_BARS, (bar) => within(bar * prompts));
 }
 
 /** For a neck of `cells` frets. */
@@ -247,11 +345,15 @@ export function triadTargets(possible?: number): Targets {
     : targets('Share of the points to score', TRIAD_BARS, (bar) => `${Math.round(bar * 100)}%`);
 }
 
+export function scaleRunTargets(): Targets {
+  return targets('Average miss within', SCALE_RUN_BARS, (bar) => `${bar} ms`);
+}
+
 export function scaleBuildTargets(): Targets {
   return targets('Average miss within', SCALE_BUILD_BARS, (bar) => `${bar} ¢`);
 }
 
-/** Bend ranks go by pitch, not points: the mean miss over the run. */
+/** Bend stars go by pitch, not points: the mean miss over the run. */
 export function bendTargets(trace = false): Targets {
   return targets('Average miss within', trace ? TRACE_BARS : BEND_BARS, (bar) => `${bar} ¢`);
 }
