@@ -78,6 +78,12 @@ tour's `data-genre`, `data-era` and `data-continent` on `<html>` beside
 layers and `tour.css` turns them into the app's tokens, the board's included,
 which the canvas reads as it is built.
 
+Speed Hunter and Fret Sweeper can be kept to part of the neck from the ready
+panel: the naturals only, or one string (the string glows for the run; the rest
+of the neck is shown as cleared in Sweeper). Each keeps its own score table,
+listed on the Scores page once played, and the menu's button comes back to the
+last choice.
+
 The note and triad games take the open strings too: tap on the nut, or in the
 ring beside it that carries the string's name. Bends need a fretted note.
 

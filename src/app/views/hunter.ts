@@ -4,19 +4,22 @@
 import { blip, pluck, thud } from '../../audio/audio';
 import type { BoardTouch } from '../../board/board';
 import type { NoteRenderData } from '../../board/renderer';
-import { formatSeconds, hunterTargets, modeById, starsHunter } from '../../core/modes';
+import { formatSeconds, hunterTargets, modeById, scopedMode, starsHunter } from '../../core/modes';
 import { cellMidi, pc, pcName, sameCell, stringName, type Cell } from '../../core/music';
 import {
+  asScope,
   HUNT_PENALTY,
   HUNT_PROMPTS,
   HUNT_PROMPTS_PER_WINDOW,
   makeHuntPrompt,
+  scopeString,
   type HuntPrompt,
   type HuntVariant,
 } from '../../core/notes';
 import { Rng } from '../../core/rng';
 import { el } from '../dom';
 import { makeFrame, readyPanel, waiting } from '../game/frame';
+import { scopePicker } from '../game/scopePick';
 import { showResult } from '../game/results';
 import type { View } from '../router';
 import { getSave } from '../store';
@@ -34,7 +37,8 @@ const DAMP_S = 0.08;
 export const hunterView: View = (root, ctx) => {
   const wanted = ctx.params.variant;
   const variant: HuntVariant = wanted === 'advanced' ? wanted : 'name';
-  const mode = modeById(`hunter-${variant}`)!;
+  const scope = asScope(ctx.params.scope);
+  const mode = scopedMode(modeById(`hunter-${variant}`)!, scope);
   const rng = new Rng(freshSeed());
   const accidentals = getSave().accidentals;
 
@@ -62,6 +66,10 @@ export const hunterView: View = (root, ctx) => {
   const frame = makeFrame(root, ctx, mode.title, { onDown, onMove, onUp });
   const { board, tuning } = frame;
   board.panLocked = true;
+  /** The string the run is kept to, lit the whole way, or null. */
+  const onlyString = scopeString(scope);
+  const lightScope = () => board.setGlowString(onlyString);
+  lightScope();
 
   const count = () => `${Math.min(asked + 1, HUNT_PROMPTS)} / ${HUNT_PROMPTS}`;
 
@@ -78,7 +86,7 @@ export const hunterView: View = (root, ctx) => {
     // The last note is random against the next: it must not ring under it.
     damp();
     board.setNotes([]);
-    board.setGlowString(null);
+    lightScope();
     board.setGlowFret(null);
     frame.setPrompt(...waiting(count()));
     if (board.scrolls && asked % HUNT_PROMPTS_PER_WINDOW === 0) {
@@ -95,7 +103,7 @@ export const hunterView: View = (root, ctx) => {
 
   function present(delay = 0): void {
     const { first, last } = board.windowFrets;
-    prompt = makeHuntPrompt(rng, tuning, variant, first, last, accidentals, prompt);
+    prompt = makeHuntPrompt(rng, tuning, variant, first, last, accidentals, prompt, scope);
     // Where the prompt says to look, when it says: a string, or a fret.
     const where = prompt.string !== null ? `on the ${stringName(tuning, prompt.string)} string` : prompt.fret !== null ? `at fret ${prompt.fret}` : null;
     frame.setPrompt(
@@ -222,6 +230,7 @@ export const hunterView: View = (root, ctx) => {
       blip();
       void next();
     },
+    scopePicker(tuning, 'hunter', scope, (to) => ctx.replace(scopedMode(modeById(`hunter-${variant}`)!, to).route)),
   );
 
   return frame.teardown;

@@ -5,12 +5,14 @@
 import { blip, pluck, thud } from '../../audio/audio';
 import type { BoardTouch } from '../../board/board';
 import type { NoteRenderData } from '../../board/renderer';
-import { formatSeconds, modeById, starsSweep, starsSweepRandom, sweepTargets } from '../../core/modes';
+import { formatSeconds, modeById, scopedMode, starsSweep, starsSweepRandom, sweepTargets } from '../../core/modes';
 import { cellKey, cellMidi, pc, pcName, type Cell } from '../../core/music';
-import { promptName, soundedMidi, Sweep, SWEEP_PENALTY, type SweepKind } from '../../core/notes';
+import { asScope, inScope, promptName, scopeString, soundedMidi, Sweep, SWEEP_PENALTY, type SweepKind } from '../../core/notes';
+import { allCells } from '../../core/music';
 import { Rng } from '../../core/rng';
 import { el } from '../dom';
 import { BEAT_MS, makeFrame, panelOption, readyPanel } from '../game/frame';
+import { scopePicker } from '../game/scopePick';
 import { showResult } from '../game/results';
 import type { View } from '../router';
 import { getSave, keep, pick } from '../store';
@@ -25,7 +27,9 @@ const SWEEP_STREAK_MAX = 20;
 
 export const sweeperView: View = (root, ctx) => {
   const kind: SweepKind = ctx.params.variant === 'random' ? 'random' : 'note';
-  const mode = modeById(kind === 'random' ? 'sweeper-random' : 'sweeper')!;
+  const scope = asScope(ctx.params.scope);
+  const base = modeById(kind === 'random' ? 'sweeper-random' : 'sweeper')!;
+  const mode = scopedMode(base, scope);
   const rng = new Rng(freshSeed());
   const accidentals = getSave().accidentals;
   /** Whether a cleared fret keeps its note name, as a help in learning the neck. */
@@ -35,8 +39,11 @@ export const sweeperView: View = (root, ctx) => {
   const { board, tuning } = frame;
   // From fret 1: an open string is the same note as a fret on the string below
   // it, so the open strings are left out of play.
-  const sweep = new Sweep(rng, tuning, 1, frame.frets, kind);
-  const dead = new Set<string>();
+  const sweep = new Sweep(rng, tuning, 1, frame.frets, kind, scope);
+  // What the scope leaves out is shown as already gone.
+  const dead = new Set(allCells(tuning, 1, frame.frets).filter((c) => !inScope(tuning, c, scope)).map(cellKey));
+  board.setDead(dead);
+  board.setGlowString(scopeString(scope));
   /** The frets of the called note already cleared: tinted, by note, so it shows what is left of it. */
   const cleared = new Set<string>();
 
@@ -184,8 +191,12 @@ export const sweeperView: View = (root, ctx) => {
       frame.setPrompt(el('b.call.wait', {}, '· · ·'), progress());
       frame.beat(call);
     },
-    panelOption(
-      'Names on cleared frets',
+    el(
+      'div',
+      {},
+      scopePicker(tuning, 'sweeper', scope, (to) => ctx.replace(scopedMode(base, to).route)),
+      panelOption(
+        'Names on cleared frets',
       segmented<'off' | 'on'>(
         [
           { value: 'off', label: 'Off' },
@@ -196,6 +207,7 @@ export const sweeperView: View = (root, ctx) => {
           showNames = v === 'on';
           keep('sweepNames', v);
         },
+      ),
       ),
     ),
   );

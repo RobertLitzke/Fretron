@@ -40,7 +40,7 @@ export function updateSave(change: (save: SaveData) => SaveData): SaveData {
  * the variant or scale a game's Play button comes back to, the tour and leg
  * last looked at, and what the Reference screen was showing.
  */
-export type PickKey = 'triads' | 'sweepNames' | 'scalebend' | 'scales' | 'tour' | `tour${number}` | `ref-${string}`;
+export type PickKey = 'triads' | 'sweepNames' | 'scalebend' | 'scales' | 'tour' | `tour${number}` | `ref-${string}` | `scope-${string}`;
 
 export function pick(key: PickKey): string | undefined {
   return getSave().picks[key];

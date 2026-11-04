@@ -1,7 +1,8 @@
 // The menu: three cabinets, one for each thing the arcade teaches.
 
 import { unlock } from '../../audio/audio';
-import { formatValue, MODES, modesOf, tableKey, type Mode } from '../../core/modes';
+import { formatValue, MODES, modesOf, scopedMode, tableKey, type Mode } from '../../core/modes';
+import { asScope } from '../../core/notes';
 import { SONGS } from '../../core/songs';
 import { el } from '../dom';
 import type { View } from '../router';
@@ -48,13 +49,15 @@ const CABINETS: Cabinet[] = [
   },
 ];
 
-function playButton(mode: Mode, single: boolean): HTMLElement {
+function playButton(base: Mode, single: boolean): HTMLElement {
   const save = getSave();
+  // A note game opens where it was last kept to: the whole neck, the naturals or one string.
+  const mode = base.game === 'hunter' || base.game === 'sweeper' ? scopedMode(base, asScope(pick(`scope-${base.game}`))) : base;
   const best = save.scores[tableKey(mode, save.frets)]?.[0];
   return el(
     'a.play',
     { href: `#${mode.route}`, onclick: () => unlock() },
-    el('b', {}, single ? 'Play' : mode.variant),
+    el('b', {}, single ? 'Play' : base.variant),
     best ? el('i.num', {}, formatValue(mode, best.value)) : null,
   );
 }

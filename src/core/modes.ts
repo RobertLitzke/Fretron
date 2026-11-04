@@ -2,7 +2,8 @@
 // the stars each run earns.
 
 import { BEND_TIERS, type BendTier } from './bend';
-import { DEFAULT_FRETS } from './music';
+import { DEFAULT_FRETS, STANDARD_TUNING } from './music';
+import { SCOPES, scopeName, type Scope } from './notes';
 import { SCALE_IDS, type ScaleId } from './scaleBend';
 import { BUILD_LEVELS, BUILDER_SCALES, type BuildLevel } from './scaleBuilder';
 import { SONG_GAMES, SONGS } from './songs';
@@ -41,6 +42,8 @@ export interface Mode {
   game: Game;
   /** A song's own version of a game: the song's id. */
   song?: string;
+  /** A note game kept to part of the neck: see notes.ts. */
+  scope?: Scope;
   title: string;
   /** Shown under the title where there is more than one of a kind. */
   variant: string;
@@ -60,12 +63,31 @@ const TIER_WORDS: Record<BendTier, string> = { standard: 'Standard', advanced: '
 const SCALE_WORDS: Record<ScaleId, string> = { blues: 'Blues', major: 'Major', minor: 'Minor' };
 const LEVEL_WORDS: Record<BuildLevel, string> = { easy: 'Easy', hard: 'Hard' };
 
-export const MODES: readonly Mode[] = [
+/** The note games that can be kept to part of the neck, over the whole of it. */
+const NOTE_GAMES: readonly Mode[] = [
   { id: 'hunter-name', game: 'hunter', title: 'Speed Hunter', variant: 'By name', route: '/play/hunter/name', better: 'low', unit: 'seconds' },
   { id: 'hunter-advanced', game: 'hunter', title: 'Speed Hunter', variant: 'Advanced', route: '/play/hunter/advanced', better: 'low', unit: 'seconds' },
-  { id: 'namer', game: 'namer', title: 'Name That Fret', variant: 'By fret', route: '/play/namer', better: 'low', unit: 'seconds', offTour: true },
   { id: 'sweeper', game: 'sweeper', title: 'Fret Sweeper', variant: 'By note', route: '/play/sweeper/note', better: 'low', unit: 'seconds' },
   { id: 'sweeper-random', game: 'sweeper', title: 'Fret Sweeper', variant: 'Random', route: '/play/sweeper/random', better: 'low', unit: 'seconds' },
+];
+
+export const MODES: readonly Mode[] = [
+  ...NOTE_GAMES,
+  { id: 'namer', game: 'namer', title: 'Name That Fret', variant: 'By fret', route: '/play/namer', better: 'low', unit: 'seconds', offTour: true },
+  // The same games kept to the naturals or to one string: a table each, off the tour, and off the Scores page until played.
+  ...SCOPES.filter((scope) => scope !== 'all').flatMap((scope) =>
+    NOTE_GAMES.map(
+      (base): Mode => ({
+        ...base,
+        id: `${base.id}-${scope}`,
+        scope,
+        variant: `${base.variant} · ${scopeName(STANDARD_TUNING, scope)}`,
+        route: `${base.route}/${scope}`,
+        offTour: true,
+        listOncePlayed: true,
+      }),
+    ),
+  ),
   { id: 'triads', game: 'triads', title: 'Triads', variant: 'Progressions', route: '/play/triads', better: 'high', unit: 'points', table: 'triads.2' },
   { id: 'triads-target', game: 'triads', title: 'Triads', variant: 'Targets', route: '/play/triads/target', better: 'high', unit: 'points', table: 'triads-target.2' },
   { id: 'triads-compact', game: 'triads', title: 'Triads', variant: 'Compact', route: '/play/triads/compact', better: 'high', unit: 'points', table: 'triads-compact.2' },
@@ -118,9 +140,14 @@ export function modeById(id: string): Mode | undefined {
   return MODES.find((m) => m.id === id);
 }
 
-/** A game's modes, in the menu's order: a song's own versions of it are left out. */
+/** A game's modes, in the menu's order: a song's own versions of it, and its scoped versions, are left out. */
 export function modesOf(game: Game): Mode[] {
-  return MODES.filter((m) => m.game === game && !m.song);
+  return MODES.filter((m) => m.game === game && !m.song && !m.scope);
+}
+
+/** A note game kept to `scope`, or the game itself over the whole neck. */
+export function scopedMode(base: Mode, scope: Scope): Mode {
+  return scope === 'all' ? base : (modeById(`${base.id}-${scope}`) ?? base);
 }
 
 /** What a mode teaches: notes, triads or bends. */

@@ -205,3 +205,49 @@ describe('Name That Fret', () => {
     }
   });
 });
+
+describe('scopes', () => {
+  it('keep the naturals, or one string', async () => {
+    const { scopeCells, inScope, scopeName, asScope } = await import('../src/core/notes');
+    const { isNatural, cellMidi, STANDARD_TUNING: T } = await import('../src/core/music');
+    expect(scopeCells(T, 0, 12, 'all')).toHaveLength(6 * 13);
+    const naturals = scopeCells(T, 0, 12, 'naturals');
+    // Frets 0 to 12 on a string hold each of the seven naturals once, and the open note again at the octave.
+    expect(naturals).toHaveLength(6 * 8);
+    for (const c of naturals) expect(isNatural(cellMidi(T, c))).toBe(true);
+    const a = scopeCells(T, 1, 12, 'string-1');
+    expect(a).toHaveLength(12);
+    for (const c of a) expect(c.string).toBe(1);
+    expect(inScope(T, { string: 2, fret: 3 }, 'string-1')).toBe(false);
+    expect(scopeName(T, 'string-0')).toBe('low E string');
+    expect(scopeName(T, 'string-3')).toBe('G string');
+    expect(scopeName(T, 'naturals')).toBe('Naturals');
+    expect(asScope('string-9')).toBe('all');
+    expect(asScope('naturals')).toBe('naturals');
+  });
+
+  it('keep Speed Hunter and Fret Sweeper inside the scope', async () => {
+    const { makeHuntPrompt, Sweep } = await import('../src/core/notes');
+    const { cellMidi, isNatural, STANDARD_TUNING: T } = await import('../src/core/music');
+    const { Rng } = await import('../src/core/rng');
+    const rng = new Rng(11);
+    let previous = null as ReturnType<typeof makeHuntPrompt> | null;
+    for (let i = 0; i < 100; i++) {
+      const p = makeHuntPrompt(rng, T, 'name', 0, 12, 'mixed', previous, 'string-4');
+      for (const c of p.answers) expect(c.string).toBe(4);
+      previous = p;
+    }
+    for (let i = 0; i < 100; i++) {
+      const p = makeHuntPrompt(rng, T, 'advanced', 0, 12, 'mixed', previous, 'naturals');
+      expect(isNatural(p.pitchClass)).toBe(true);
+      for (const c of p.answers) expect(isNatural(cellMidi(T, c))).toBe(true);
+      previous = p;
+    }
+    const sweep = new Sweep(new Rng(3), T, 1, 12, 'note', 'string-5');
+    expect(sweep.total).toBe(12);
+    expect(sweep.tap({ string: 4, fret: 1 })).toBe('dead');
+    const random = new Sweep(new Rng(3), T, 1, 12, 'random', 'naturals');
+    expect(random.order).toHaveLength(random.total);
+    for (const p of random.order) expect(isNatural(p)).toBe(true);
+  });
+});

@@ -87,8 +87,10 @@ function boot(): void {
   for (const base of ['', '/tour']) {
     router
       .add(`${base}/play/hunter/:variant`, hunterView)
+      .add(`${base}/play/hunter/:variant/:scope`, hunterView)
       .add(`${base}/play/namer`, namerView)
       .add(`${base}/play/sweeper/:variant`, sweeperView)
+      .add(`${base}/play/sweeper/:variant/:scope`, sweeperView)
       .add(`${base}/play/triads`, triadsView)
       .add(`${base}/play/triads/:variant`, triadsView)
       .add(`${base}/play/gridclear`, gridClearView)
