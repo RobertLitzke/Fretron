@@ -43,6 +43,7 @@ the top if anything on a page is wider than the screen.
 | Triads, progressions | Tap three frets on neighbouring strings, then drag anywhere on the board to play the chord | about 12 chords; points for speed and for staying close to the last chord; none for a chord that had to be shown |
 | Triads, grid clear | Find every close voicing of one chord on the neck | total time, +3 s for a wrong rake |
 | Bend by Ear | Hear a target pitch, push the string until your note matches, let go | 10 bends; points by how many cents off |
+| Unison Bends | Hold a note on one string so it rings, and bend the string below up to meet it; the beating between the two stops when they match | 10 bends; points as in Bend by Ear |
 | Bend Trace | Hear and see a bend that changes over time, then play it back from memory | 10 bends; points by the mean distance from the prompt |
 | Scale Bends | A scale is drawn around the bend, the root in gold and the target note filled in (tap it to hear it); bend from one scale note up to the next | 10 bends; points as in Bend by Ear |
 

@@ -38,6 +38,7 @@ const CABINETS: Cabinet[] = [
     title: 'Bends',
     games: [
       { name: 'Bend by Ear', blurb: 'Push the string to the pitch you heard. No meter.', modes: modesOf('bend') },
+      { name: 'Unison Bends', blurb: 'Hold a note on one string and bend the string below up to meet it. Listen for the beating to stop.', modes: modesOf('unison') },
       { name: 'Bend Trace', blurb: 'Hear a bend that moves over time, and play it back from memory.', modes: modesOf('trace') },
       { name: 'Scale Bends', blurb: 'Bend from one note of a scale to the next, with the shape drawn around you.', modes: modesOf('scalebend'), pick: 'scalebend' },
       { name: 'Scale Builder', blurb: 'Pick a scale, hear the root, and bend it into place by ear, up and back down.', modes: modesOf('scales'), pick: 'scales' },

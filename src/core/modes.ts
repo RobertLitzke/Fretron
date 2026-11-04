@@ -20,7 +20,7 @@ export const STAR_WORDS: Readonly<Record<Stars, string>> = {
 };
 
 /** The games, as the menu and the routes know them. */
-export type Game = 'hunter' | 'namer' | 'sweeper' | 'scalerun' | 'triads' | 'gridclear' | 'bend' | 'trace' | 'scalebend' | 'scales';
+export type Game = 'hunter' | 'namer' | 'sweeper' | 'scalerun' | 'triads' | 'gridclear' | 'bend' | 'unison' | 'trace' | 'scalebend' | 'scales';
 /** What a game teaches, as the World Tour cycles them. */
 export type Kind = 'notes' | 'triads' | 'bends';
 
@@ -32,6 +32,7 @@ export const GAME_KIND: Readonly<Record<Game, Kind>> = {
   triads: 'triads',
   gridclear: 'triads',
   bend: 'bends',
+  unison: 'bends',
   trace: 'bends',
   scalebend: 'bends',
   scales: 'bends',
@@ -96,6 +97,7 @@ export const MODES: readonly Mode[] = [
   ...BEND_TIERS.map(
     (tier): Mode => ({ id: `bend-${tier}`, game: 'bend', title: 'Bend by Ear', variant: TIER_WORDS[tier], route: `/play/bend/${tier}`, better: 'high', unit: 'points', table: `bend-${tier}.3` }),
   ),
+  { id: 'unison', game: 'unison', title: 'Unison Bends', variant: 'Standard', route: '/play/unison', better: 'high', unit: 'points', offTour: true },
   ...BEND_TIERS.map(
     (tier): Mode => ({ id: `trace-${tier}`, game: 'trace', title: 'Bend Trace', variant: TIER_WORDS[tier], route: `/play/trace/${tier}`, better: 'high', unit: 'points', table: `trace-${tier}.4` }),
   ),

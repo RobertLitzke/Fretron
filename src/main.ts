@@ -8,6 +8,7 @@ import { applyLook, clearLook, currentTour } from './app/tour/current';
 import { inTour, tourRewrite } from './app/tour/route';
 import { watchForUpdates } from './app/update';
 import { bendView } from './app/views/bend';
+import { unisonView } from './app/views/unison';
 import { traceView } from './app/views/trace';
 import { songTraceView } from './app/views/song';
 import { homeView } from './app/views/home';
@@ -96,6 +97,7 @@ function boot(): void {
       .add(`${base}/play/triads/:variant`, triadsView)
       .add(`${base}/play/gridclear`, gridClearView)
       .add(`${base}/play/bend/:tier`, bendView)
+      .add(`${base}/play/unison`, unisonView)
       .add(`${base}/play/trace/:tier`, traceView)
       .add(`${base}/play/song/:song/trace`, songTraceView)
       .add(`${base}/play/scalebend/:scale`, scaleBendView)

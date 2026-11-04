@@ -113,6 +113,38 @@ export function makeBendPrompt(rng: Rng, tuning: Tuning, tier: BendTier, frets: 
   return { cell, travel: semitoneTravel(rng, tuning, cell), semis, from, to: from + semis };
 }
 
+// --- a unison bend -------------------------------------------------------------
+// The note is bent up to meet the same pitch fretted on the next string up,
+// which rings under it: the player tunes the bend by the beating between the
+// two slowing to nothing, as on a guitar.
+
+export interface UnisonPrompt extends BendPrompt {
+  /** The note on the string above that sounds `to`, to be held while bending. */
+  ref: Cell;
+}
+
+/** Semitones a unison bend can be asked for, and how often: whole steps mostly, as the lick is usually played. */
+const UNISON_SEMIS: readonly (readonly [number, number])[] = [[1, 2], [2, 4], [3, 1]];
+/** How far below or above the bent fret the held fret may lie: a hand's span. */
+const UNISON_REACH = 4;
+
+/** A bend on one string whose target is fretted on the string above, within reach. */
+export function makeUnisonPrompt(rng: Rng, tuning: Tuning, frets: number): UnisonPrompt {
+  const last = Math.max(FIRST_BEND_FRET, Math.min(LAST_BEND_FRET, frets));
+  for (;;) {
+    const semis = UNISON_SEMIS[rng.weighted(UNISON_SEMIS.map(([, w]) => w))][0];
+    // Any string but the top one, the high strings favoured as in Bend by Ear.
+    const top = tuning.open.length - 1;
+    const string = rng.weighted(tuning.open.map((_, s) => (s === top ? 0 : top - s <= 3 ? 3 : 1)));
+    const cell = { string, fret: FIRST_BEND_FRET + rng.int(last - FIRST_BEND_FRET + 1) };
+    const from = cellMidi(tuning, cell);
+    const to = from + semis;
+    const refFret = to - tuning.open[string + 1];
+    if (refFret < 1 || refFret > frets || Math.abs(refFret - cell.fret) > UNISON_REACH) continue;
+    return { cell, travel: semitoneTravel(rng, tuning, cell), semis, from, to, ref: { string: string + 1, fret: refFret } };
+  }
+}
+
 export type Grade = 'bullseye' | 'intune' | 'acceptable' | 'off';
 
 export const GRADE_WORDS: Record<Grade, string> = {
