@@ -20,7 +20,7 @@ export const STAR_WORDS: Readonly<Record<Stars, string>> = {
 };
 
 /** The games, as the menu and the routes know them. */
-export type Game = 'hunter' | 'namer' | 'sweeper' | 'triads' | 'gridclear' | 'bend' | 'trace' | 'scalebend' | 'scales';
+export type Game = 'hunter' | 'namer' | 'sweeper' | 'scalerun' | 'triads' | 'gridclear' | 'bend' | 'trace' | 'scalebend' | 'scales';
 /** What a game teaches, as the World Tour cycles them. */
 export type Kind = 'notes' | 'triads' | 'bends';
 
@@ -28,6 +28,7 @@ export const GAME_KIND: Readonly<Record<Game, Kind>> = {
   hunter: 'notes',
   namer: 'notes',
   sweeper: 'notes',
+  scalerun: 'notes',
   triads: 'triads',
   gridclear: 'triads',
   bend: 'bends',
@@ -117,6 +118,20 @@ export const MODES: readonly Mode[] = [
   ),
   ...SCALE_IDS.map(
     (scale): Mode => ({ id: `scalebend-${scale}`, game: 'scalebend', title: 'Scale Bends', variant: SCALE_WORDS[scale], route: `/play/scalebend/${scale}`, better: 'high', unit: 'points', table: `scalebend-${scale}.3` }),
+  ),
+  // Scale Run: a table for each scale, kept off the tour, and off the Scores page until played.
+  ...BUILDER_SCALES.map(
+    (scale): Mode => ({
+      id: `scalerun-${scale.id}`,
+      game: 'scalerun',
+      title: 'Scale Run',
+      variant: scale.name,
+      route: `/play/scalerun/${scale.id}`,
+      better: 'high',
+      unit: 'points',
+      offTour: true,
+      listOncePlayed: true,
+    }),
   ),
   // A table for each scale at each level: kept off the tour, and off the Scores page until played.
   ...BUILD_LEVELS.flatMap((level) =>
@@ -229,6 +244,8 @@ export const GRID_BARS: Bars = { three: 4, two: 7, one: 12, better: 'low' };
 /** The mean miss, in cents, across the run. */
 export const BEND_BARS: Bars = { three: 8, two: 15, one: 30, better: 'low' };
 export const TRACE_BARS: Bars = { three: 12, two: 22, one: 40, better: 'low' };
+/** Scale Run's mean miss from the beat, in milliseconds, wrong and unplayed notes counted at MISSED_TAP_MS. */
+export const SCALE_RUN_BARS: Bars = { three: 45, two: 80, one: 130, better: 'low' };
 /** Scale Builder's mean miss: a little wider than Bend by Ear's, as nothing is played to match. */
 export const SCALE_BUILD_BARS: Bars = { three: 10, two: 18, one: 32, better: 'low' };
 
@@ -262,6 +279,10 @@ export function starsBend(meanCents: number): Stars {
 
 export function starsTrace(meanCents: number): Stars {
   return starsBy(meanCents, TRACE_BARS);
+}
+
+export function starsScaleRun(meanMs: number): Stars {
+  return starsBy(meanMs, SCALE_RUN_BARS);
 }
 
 /** By the mean miss; on Hard, each step named wrong costs a star. */
@@ -320,6 +341,10 @@ export function triadTargets(possible?: number): Targets {
   return possible
     ? targets('Score at least', TRIAD_BARS, (bar) => Math.ceil(bar * possible - 1e-9).toLocaleString('en-US'))
     : targets('Share of the points to score', TRIAD_BARS, (bar) => `${Math.round(bar * 100)}%`);
+}
+
+export function scaleRunTargets(): Targets {
+  return targets('Average miss within', SCALE_RUN_BARS, (bar) => `${bar} ms`);
 }
 
 export function scaleBuildTargets(): Targets {

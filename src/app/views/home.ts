@@ -24,6 +24,7 @@ const CABINETS: Cabinet[] = [
       { name: 'Speed Hunter', blurb: 'A note is called. Find it, against the clock.', modes: modesOf('hunter') },
       { name: 'Name That Fret', blurb: 'A fret lights up. Name the note, against the clock.', modes: modesOf('namer') },
       { name: 'Fret Sweeper', blurb: 'Clear the whole neck: one note at a time, or a new note every tap.', modes: modesOf('sweeper') },
+      { name: 'Scale Run', blurb: 'Play a scale shape up and down on the beat, faster each round, in a new position each time.', modes: modesOf('scalerun'), pick: 'scalerun' },
     ],
   },
   {

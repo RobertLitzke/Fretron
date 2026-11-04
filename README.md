@@ -39,6 +39,7 @@ the top if anything on a page is wider than the screen.
 | Name That Fret | A fret lights; tap its note on the row of keys under the board (either spelling counts) | 20 frets; total time, +3 s for a wrong name |
 | Fret Sweeper, by note | A note is called; tap every fret that plays it, then the next note is called, until the neck is clear | time with a note up, +3 s for a wrong tap |
 | Fret Sweeper, random | A note is called; tap one fret that plays it, and a new note is called, until the neck is clear | the same |
+| Scale Run | A scale shape is drawn; tap it up to the octave and back, one note a beat, after a bar counted in | 3 rounds at 72, 92 and 112 bpm, each in a new position; points by how close to the beat each tap lands |
 | Triads, progressions | Tap three frets on neighbouring strings, then drag anywhere on the board to play the chord | about 12 chords; points for speed and for staying close to the last chord; none for a chord that had to be shown |
 | Triads, grid clear | Find every close voicing of one chord on the neck | total time, +3 s for a wrong rake |
 | Bend by Ear | Hear a target pitch, push the string until your note matches, let go | 10 bends; points by how many cents off |
@@ -135,6 +136,8 @@ src/core/    pure TypeScript, no DOM or Web Audio; everything here is unit-teste
   triads.ts    checking and listing voicings, voice-leading distance, progressions
   bend.ts      bend prompts, travel per string and fret, traces and their scoring
   scaleBend.ts the scales, the bends each offers, Scale Bends prompts
+  scaleBuilder.ts the twelve scales, their spelling and one-position shapes, Scale Builder runs
+  scaleRun.ts  Scale Run rounds, tap grading by distance from the beat
   modes.ts     the list of games, score-table keys, stars
   storage.ts   the save file and score tables
 src/board/   renderer.ts (canvas drawing, ported from FretFalcon),

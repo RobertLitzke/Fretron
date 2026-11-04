@@ -17,6 +17,7 @@ import { referenceView } from './app/views/reference';
 import { scoresView } from './app/views/scores';
 import { scaleBendView } from './app/views/scaleBend';
 import { scaleBuilderView } from './app/views/scaleBuilder';
+import { scaleRunView } from './app/views/scaleRun';
 import { settingsView } from './app/views/settings';
 import { sweeperView } from './app/views/sweeper';
 import { tourView } from './app/views/tour';
@@ -98,7 +99,8 @@ function boot(): void {
       .add(`${base}/play/trace/:tier`, traceView)
       .add(`${base}/play/song/:song/trace`, songTraceView)
       .add(`${base}/play/scalebend/:scale`, scaleBendView)
-      .add(`${base}/play/scales/:level/:scale`, scaleBuilderView);
+      .add(`${base}/play/scales/:level/:scale`, scaleBuilderView)
+      .add(`${base}/play/scalerun/:scale`, scaleRunView);
   }
   router
     .add('/reference', (_root, ctx) => ctx.replace(`/reference/${pick('ref-tab') === 'triads' ? 'triads' : 'notes'}`))
