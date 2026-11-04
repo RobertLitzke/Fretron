@@ -12,6 +12,8 @@ import { getSave, updateSave } from '../store';
 import { currentTour } from '../tour/current';
 import { onTour } from '../tour/route';
 import { starRow } from '../views/tour';
+import { runFrom, shareRun } from '../ui';
+import { dayWords } from '../../core/daily';
 import { replay, type Frame } from './frame';
 import { nextTarget, stars } from './targets';
 
@@ -134,6 +136,7 @@ export function showResult(frame: Frame, ctx: ViewContext, result: RunResult, ag
   frame.setAction(null);
   const earned = tourEarned(result);
 
+  const from = runFrom();
   const key = tableKey(mode, frame.frets);
   const entries = () => getSave().scores[key] ?? [];
   const place = placeFor(entries(), value, mode.better);
@@ -161,6 +164,7 @@ export function showResult(frame: Frame, ctx: ViewContext, result: RunResult, ag
       el(
         'div.result-card',
         {},
+        from.daily ? el('div.result-from', {}, `Daily run · ${dayWords(from.daily)}`) : from.shared ? el('div.result-from', {}, 'Challenge run') : null,
         stars(earnedStars, `.result-stars${earnedStars === 3 ? '.full' : ''}`),
         el('div.result-words', {}, STAR_WORDS[earnedStars]),
         el('div.result-value.num', {}, formatValue(mode, value)),
@@ -179,6 +183,7 @@ export function showResult(frame: Frame, ctx: ViewContext, result: RunResult, ag
       {},
       el('button.btn.btn-primary', { type: 'button', onclick: () => replay(again) }, 'Again'),
       el('button.btn', { type: 'button', onclick: () => ctx.navigate('/scores') }, 'Scores'),
+      el('button.btn', { type: 'button', onclick: () => void shareRun(`${tableTitle(mode, frame.frets)}: ${formatValue(mode, value)}. Same run, same prompts:`) }, 'Share run'),
       el('button.btn', { type: 'button', onclick: () => ctx.navigate('/home') }, earned ? 'Tour' : 'Menu'),
     ),
   );

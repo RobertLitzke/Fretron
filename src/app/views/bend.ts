@@ -18,12 +18,12 @@ import { BendInput, BendScore, bentTo, drawLanding, onPuck, paintPuck, reviewBut
 import { makeFrame, readyPanel, waiting } from '../game/frame';
 import { showResult } from '../game/results';
 import type { View } from '../router';
-import { freshSeed } from '../ui';
+import { runSeed } from '../ui';
 
 export const bendView: View = (root, ctx) => {
   const tier = asTier(ctx.params.tier);
   const mode = modeById(`bend-${tier}`)!;
-  const rng = new Rng(freshSeed());
+  const rng = new Rng(runSeed(ctx));
   const fx = new BendFx();
 
   let asked = 0;

@@ -21,7 +21,7 @@ import { makeFrame, panelOption, readyPanel, waiting } from '../game/frame';
 import { showResult } from '../game/results';
 import type { View } from '../router';
 import { getSave, keep, updateSave } from '../store';
-import { freshSeed, segmented } from '../ui';
+import { runSeed, segmented } from '../ui';
 
 /** The pause after a round's last note before the next round is counted in. */
 const REST_MS = 1400;
@@ -35,7 +35,7 @@ export const scaleRunView: View = (root, ctx) => {
   const scale = builderScale(scaleId);
   const mode = modeById(`scalerun-${scaleId}`)!;
   keep('scalerun', scaleId);
-  const rng = new Rng(freshSeed());
+  const rng = new Rng(runSeed(ctx));
   const beatStyle = (): Exclude<BeatStyle, 'off'> => (getSave().beat === 'click' ? 'click' : 'kit');
   let metro = new Metronome(beatStyle());
 

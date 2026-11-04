@@ -3,6 +3,7 @@
 import { unlock } from '../../audio/audio';
 import { formatValue, MODES, modesOf, scopedMode, tableKey, type Mode } from '../../core/modes';
 import { asScope } from '../../core/notes';
+import { dailyPick, dayKey, dayWords } from '../../core/daily';
 import { SONGS } from '../../core/songs';
 import { el } from '../dom';
 import type { View } from '../router';
@@ -70,11 +71,28 @@ function picked(modes: Mode[], key: PickKey): Mode {
   return modes.find((m) => m.id === `${key}-${choice}`) ?? modes[0];
 }
 
+/** Today's run: one of the tour's games, the same run for everyone who plays it today. */
+function dailyCard(): HTMLElement {
+  const day = dayKey();
+  const choices = MODES.filter((m) => !m.offTour);
+  const { index, seed } = dailyPick(day, choices.length);
+  const mode = choices[index];
+  const save = getSave();
+  const best = save.scores[tableKey(mode, save.frets)]?.[0];
+  return el(
+    'section.daily',
+    {},
+    el('div.daily-words', {}, el('h2', {}, 'Daily run'), el('p', {}, `${dayWords(day)} · ${mode.title} · ${mode.variant}. One run, the same for everyone today; share yours from the result card.`)),
+    el('a.play', { href: `#${mode.route}?seed=${seed}&daily=${day}`, onclick: () => unlock() }, el('b', {}, 'Play'), best ? el('i.num', {}, formatValue(mode, best.value)) : null),
+  );
+}
+
 export const homeView: View = (root) => {
   root.replaceChildren(
     el(
       'div.home',
       {},
+      dailyCard(),
       el(
         'div.cabinets',
         {},

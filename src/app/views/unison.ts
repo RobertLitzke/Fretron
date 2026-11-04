@@ -17,11 +17,11 @@ import { BendInput, BendScore, bentTo, drawLanding, onPuck, reviewButtons, STREA
 import { makeFrame, readyPanel, waiting } from '../game/frame';
 import { showResult } from '../game/results';
 import type { View } from '../router';
-import { freshSeed } from '../ui';
+import { runSeed } from '../ui';
 
 export const unisonView: View = (root, ctx) => {
   const mode = modeById('unison')!;
-  const rng = new Rng(freshSeed());
+  const rng = new Rng(runSeed(ctx));
   const fx = new BendFx();
 
   let asked = 0;

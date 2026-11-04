@@ -80,6 +80,11 @@ tour's `data-genre`, `data-era` and `data-continent` on `<html>` beside
 layers and `tour.css` turns them into the app's tokens, the board's included,
 which the canvas reads as it is built.
 
+Every run is drawn from a seed, and the result card's Share button gives a link
+that replays the same run, prompt for prompt, on another phone (`#/play/...?seed=`).
+The **Daily run** at the top of the menu is one of the tour's games with a seed
+drawn from the date: the same run for everyone that day.
+
 Speed Hunter and Fret Sweeper can be kept to part of the neck from the ready
 panel: the naturals only, or one string (the string glows for the run; the rest
 of the neck is shown as cleared in Sweeper). Each keeps its own score table,

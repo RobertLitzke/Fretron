@@ -51,7 +51,7 @@ import { showResult } from '../game/results';
 import { TriadInput } from '../game/triadInput';
 import type { View } from '../router';
 import { keep } from '../store';
-import { freshSeed, segmented } from '../ui';
+import { runSeed, segmented } from '../ui';
 
 /** A run of progressions ends once this many chords have been asked. */
 const CHORDS_PER_RUN = 12;
@@ -88,7 +88,7 @@ export const triadsView: View = (root, ctx) => {
   const mode = modeById(variant === 'standard' ? 'triads' : `triads-${variant}`)!;
   // The menu's Play button comes back to the game last played.
   keep('triads', variant);
-  const rng = new Rng(freshSeed());
+  const rng = new Rng(runSeed(ctx));
 
   const progressions = makeRun(rng, CHORDS_PER_RUN);
   const total = CHORDS_PER_RUN;
@@ -504,7 +504,7 @@ export const triadsView: View = (root, ctx) => {
 
 export const gridClearView: View = (root, ctx) => {
   const mode = modeById('gridclear')!;
-  const rng = new Rng(freshSeed());
+  const rng = new Rng(runSeed(ctx));
 
   const frame = makeFrame(root, ctx, mode.title, {
     onDown: (t) => input.down(t),

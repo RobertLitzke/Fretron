@@ -33,7 +33,7 @@ import { makeFrame, panelOption, readyPanel } from '../game/frame';
 import { showResult } from '../game/results';
 import type { View } from '../router';
 import { keep } from '../store';
-import { freshSeed, segmented } from '../ui';
+import { runSeed, segmented } from '../ui';
 const STEP_NAMES: Record<number, string> = { 1: 'Half step', 2: 'Whole step', 3: 'Step and a half' };
 
 /** How long a placed note is shown before the next comes by itself. */
@@ -47,7 +47,7 @@ export const scaleBuilderView: View = (root, ctx) => {
   const hard = level === 'hard';
   // The menu's Play button comes back to the scale and level last played.
   keep('scales', `${level}-${scaleId}`);
-  const rng = new Rng(freshSeed());
+  const rng = new Rng(runSeed(ctx));
   const fx = new BendFx();
 
   let run: ScaleRun | null = null;

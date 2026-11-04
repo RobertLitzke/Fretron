@@ -16,7 +16,7 @@ import { scopePicker } from '../game/scopePick';
 import { showResult } from '../game/results';
 import type { View } from '../router';
 import { getSave, keep, pick } from '../store';
-import { freshSeed, segmented } from '../ui';
+import { runSeed, segmented } from '../ui';
 
 /** The beat between calls at random. Shorter than the usual one: there is one after every tap. */
 const RANDOM_BEAT_MS = 320;
@@ -30,7 +30,7 @@ export const sweeperView: View = (root, ctx) => {
   const scope = asScope(ctx.params.scope);
   const base = modeById(kind === 'random' ? 'sweeper-random' : 'sweeper')!;
   const mode = scopedMode(base, scope);
-  const rng = new Rng(freshSeed());
+  const rng = new Rng(runSeed(ctx));
   const accidentals = getSave().accidentals;
   /** Whether a cleared fret keeps its note name, as a help in learning the neck. */
   let showNames = pick('sweepNames') === 'on';

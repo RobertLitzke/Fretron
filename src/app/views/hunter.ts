@@ -23,7 +23,7 @@ import { scopePicker } from '../game/scopePick';
 import { showResult } from '../game/results';
 import type { View } from '../router';
 import { getSave } from '../store';
-import { freshSeed } from '../ui';
+import { runSeed } from '../ui';
 
 /** How long an answer stays up before the next note comes by itself. */
 const NEXT_AFTER_MS = 2000;
@@ -39,7 +39,7 @@ export const hunterView: View = (root, ctx) => {
   const variant: HuntVariant = wanted === 'advanced' ? wanted : 'name';
   const scope = asScope(ctx.params.scope);
   const mode = scopedMode(modeById(`hunter-${variant}`)!, scope);
-  const rng = new Rng(freshSeed());
+  const rng = new Rng(runSeed(ctx));
   const accidentals = getSave().accidentals;
 
   let asked = 0;

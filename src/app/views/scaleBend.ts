@@ -18,7 +18,7 @@ import { makeFrame, panelOption, readyPanel, waiting } from '../game/frame';
 import { showResult } from '../game/results';
 import type { View } from '../router';
 import { keep } from '../store';
-import { freshSeed, segmented } from '../ui';
+import { runSeed, segmented } from '../ui';
 
 /** How many frets of the scale are drawn either side of the bend: about one position. */
 const SHAPE_REACH = 4;
@@ -29,7 +29,7 @@ export const scaleBendView: View = (root, ctx) => {
   const mode = modeById(`scalebend-${scaleId}`)!;
   // The menu's Play button comes back to the scale last played.
   keep('scalebend', scaleId);
-  const rng = new Rng(freshSeed());
+  const rng = new Rng(runSeed(ctx));
   const fx = new BendFx();
 
   let asked = 0;

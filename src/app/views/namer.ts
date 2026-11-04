@@ -14,7 +14,7 @@ import { makeFrame, readyPanel, waiting } from '../game/frame';
 import { showResult } from '../game/results';
 import type { View } from '../router';
 import { getSave } from '../store';
-import { freshSeed } from '../ui';
+import { runSeed } from '../ui';
 
 /** How long an answer stays up before the next fret comes by itself. */
 const NEXT_AFTER_MS = 1600;
@@ -25,7 +25,7 @@ const DAMP_S = 0.08;
 
 export const namerView: View = (root, ctx) => {
   const mode = modeById('namer')!;
-  const rng = new Rng(freshSeed());
+  const rng = new Rng(runSeed(ctx));
   const accidentals = getSave().accidentals;
   /** How the answer is written once it is given: the setting's spelling, sharps where it says both. */
   const spelling: Spelling = accidentals === 'flat' ? 'flat' : 'sharp';

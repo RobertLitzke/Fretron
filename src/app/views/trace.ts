@@ -38,7 +38,7 @@ import { makeFrame, panelOption, readyPanel, waiting } from '../game/frame';
 import { showResult } from '../game/results';
 import type { View, ViewContext } from '../router';
 import { getSave, updateSave } from '../store';
-import { freshSeed, segmented } from '../ui';
+import { runSeed, segmented } from '../ui';
 
 /** How much of the board's width the graph takes, on whichever side the note is not. */
 const GRAPH_WIDTH = 0.44;
@@ -61,7 +61,7 @@ export interface TraceGame {
 
 export const traceView: View = (root, ctx) => {
   const tier = asTier(ctx.params.tier);
-  const rng = new Rng(freshSeed());
+  const rng = new Rng(runSeed(ctx));
   return traceGame(root, ctx, {
     mode: modeById(`trace-${tier}`)!,
     subtitle: tierWords(tier),
