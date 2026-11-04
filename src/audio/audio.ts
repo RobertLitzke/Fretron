@@ -140,11 +140,23 @@ export interface PluckOptions {
   chord?: boolean;
 }
 
-export function pluck(midi: number, options: PluckOptions = {}): void {
+/** Returns a way to damp the note early, as a hand laid on the string would. */
+export function pluck(midi: number, options: PluckOptions = {}): () => void {
   const c = context();
   const when = c.currentTime + (options.delay ?? 0);
   const ring = options.ring ?? 0.45;
-  strike(midi, when, options.level ?? 0.5, ring, 0, options.chord).stop(when + ring * 7);
+  const nodes = strike(midi, when, options.level ?? 0.5, ring, 0, options.chord);
+  const end = when + ring * 7;
+  nodes.stop(end);
+  let damped = false;
+  return () => {
+    const t = c.currentTime;
+    if (damped || t >= end) return;
+    damped = true;
+    nodes.gain.gain.cancelScheduledValues(t);
+    nodes.gain.gain.setTargetAtTime(0, Math.max(t, when), 0.015);
+    nodes.stop(Math.max(t, when) + 0.12);
+  };
 }
 
 /** Several strings struck one after another, low to high: a chord. */
