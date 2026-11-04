@@ -7,13 +7,13 @@ import type { BoardTouch } from '../../board/board';
 import type { NoteRenderData } from '../../board/renderer';
 import { formatSeconds, modeById, starsSweep, starsSweepRandom, sweepTargets } from '../../core/modes';
 import { cellKey, cellMidi, pc, pcName, type Cell } from '../../core/music';
-import { promptName, Sweep, SWEEP_PENALTY, type SweepKind } from '../../core/notes';
+import { promptName, soundedMidi, Sweep, SWEEP_PENALTY, type SweepKind } from '../../core/notes';
 import { Rng } from '../../core/rng';
 import { el } from '../dom';
 import { BEAT_MS, makeFrame, panelOption, readyPanel } from '../game/frame';
 import { showResult } from '../game/results';
 import type { View } from '../router';
-import { getSave, updateSave } from '../store';
+import { getSave, keep, pick } from '../store';
 import { freshSeed, segmented } from '../ui';
 
 /** The beat between calls at random. Shorter than the usual one: there is one after every tap. */
@@ -29,7 +29,7 @@ export const sweeperView: View = (root, ctx) => {
   const rng = new Rng(freshSeed());
   const accidentals = getSave().accidentals;
   /** Whether a cleared fret keeps its note name, as a help in learning the neck. */
-  let showNames = getSave().picks.sweepNames === 'on';
+  let showNames = pick('sweepNames') === 'on';
 
   const frame = makeFrame(root, ctx, mode.title, { openStrings: false, onDown });
   const { board, tuning } = frame;
@@ -61,8 +61,7 @@ export const sweeperView: View = (root, ctx) => {
     name = promptName(rng, sweep.target, accidentals);
     cleared.clear();
     board.setTinted(cleared);
-    // The called note, in the middle of the guitar's range.
-    pluck(52 + ((sweep.target - 4 + 12) % 12), { level: 0.5 });
+    pluck(soundedMidi(sweep.target), { level: 0.5 });
     paint(true);
     liveSince = performance.now();
   }
@@ -195,7 +194,7 @@ export const sweeperView: View = (root, ctx) => {
         showNames ? 'on' : 'off',
         (v) => {
           showNames = v === 'on';
-          updateSave((s) => ({ ...s, picks: { ...s.picks, sweepNames: v } }));
+          keep('sweepNames', v);
         },
       ),
     ),

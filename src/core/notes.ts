@@ -12,6 +12,11 @@ export function promptName(rng: Rng, pitchClass: number, accidentals: Accidental
   return pcName(pitchClass, isNatural(pitchClass) ? 'sharp' : spelling);
 }
 
+/** The pitch a called note is sounded at: in the middle of the guitar's range, not at one of the answers. */
+export function soundedMidi(pitchClass: number): number {
+  return 52 + pc(pitchClass - 4);
+}
+
 // --- Speed Hunter (design document 4.2) ---------------------------------------
 
 /**
@@ -61,8 +66,7 @@ export function makeHuntPrompt(
     if (previous && previous.pitchClass === pitchClass) continue;
     const name = promptName(rng, pitchClass, accidentals);
     const everywhere = cells.filter((c) => pc(cellMidi(tuning, c)) === pitchClass);
-    // Sound the name in the middle of the guitar's range, not at one of the answers.
-    const sounded = 52 + ((pitchClass - 4 + 12) % 12);
+    const sounded = soundedMidi(pitchClass);
     if (variant === 'name') return { pitchClass, name, midi: sounded, string: null, fret: null, answers: everywhere };
     // An open string is not "at a fret": it is asked for by its string.
     if (cell.fret === 0 || rng.next() < 0.5) {

@@ -2,7 +2,7 @@ import './app/styles/app.css';
 import { setVoice, setVolume } from './audio/audio';
 import { el } from './app/dom';
 import { Router } from './app/router';
-import { getSave } from './app/store';
+import { getSave, pick } from './app/store';
 import { canFullscreen, toggleFullscreen } from './app/ui';
 import { applyLook, clearLook, currentTour } from './app/tour/current';
 import { inTour, tourRewrite } from './app/tour/route';
@@ -97,7 +97,7 @@ function boot(): void {
       .add(`${base}/play/scales/:level/:scale`, scaleBuilderView);
   }
   router
-    .add('/reference', (_root, ctx) => ctx.replace(`/reference/${getSave().picks['ref-tab'] === 'triads' ? 'triads' : 'notes'}`))
+    .add('/reference', (_root, ctx) => ctx.replace(`/reference/${pick('ref-tab') === 'triads' ? 'triads' : 'notes'}`))
     .add('/reference/:tab', referenceView)
     .add('/scores', scoresView)
     .add('/settings', settingsView)

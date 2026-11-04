@@ -6,7 +6,7 @@
 // view and the save live elsewhere.
 
 import { CONTINENTS, ERAS, GENRES, VENUES } from './looks';
-import { modeById, type Mode, type Stars } from './modes';
+import { kindOf, modeById, type Kind, type Mode, type Stars } from './modes';
 import { hash2, Rng } from './rng';
 
 export interface Stop {
@@ -139,10 +139,9 @@ export const LAST_TOUR = 13;
 
 const BOOKINGS = CLASSIC.map((leg) => leg.booking);
 
-export type Kind = 'notes' | 'triads' | 'bends';
-
-export function kindOf(mode: string): Kind {
-  return /^(hunter|sweeper)/.test(mode) ? 'notes' : /^(triads|gridclear)/.test(mode) ? 'triads' : 'bends';
+/** What a stop teaches, by its mode id. */
+function kindOfId(mode: string): Kind {
+  return kindOf(modeById(mode)!);
 }
 
 /** The climb every tour keeps: each round has some of each kind, a step harder than the last. */
@@ -165,7 +164,7 @@ export function longestRun(modes: readonly string[]): number {
   let best = 0;
   let run = 0;
   modes.forEach((m, i) => {
-    run = i > 0 && kindOf(m) === kindOf(modes[i - 1]) ? run + 1 : 1;
+    run = i > 0 && kindOfId(m) === kindOfId(modes[i - 1]) ? run + 1 : 1;
     best = Math.max(best, run);
   });
   return best;

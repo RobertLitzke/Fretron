@@ -19,7 +19,7 @@ import {
 } from '../../core/tour';
 import { el } from '../dom';
 import type { View } from '../router';
-import { getSave, updateSave } from '../store';
+import { getSave, keep } from '../store';
 import { applyLook, currentTour, openTours } from '../tour/current';
 import { sleeveSvg } from '../tour/sleeves';
 import { GENRES } from '../../core/looks';
@@ -57,18 +57,18 @@ export const tourView: View = (root) => {
     const stars = totalStars(legs, record);
     const next = nextBooking(legs, stars);
     const now = currentLeg(legs, stars);
-    const legKey = `tour${id}`;
+    const legKey = `tour${id}` as const;
     const picked = Number(save.picks[legKey]);
     const legIndex = Number.isInteger(picked) && picked >= 0 && picked < legs.length ? picked : now;
     const leg = legs[legIndex];
     const booked = legBooked(leg, stars);
 
     const pick = (i: number) => {
-      updateSave((s) => ({ ...s, picks: { ...s.picks, [legKey]: String(i) } }));
+      keep(legKey, String(i));
       render();
     };
     const toTour = (to: number) => {
-      updateSave((s) => ({ ...s, picks: { ...s.picks, tour: String(to) } }));
+      keep('tour', String(to));
       // The look changes with the tour.
       applyLook(tour.id === to ? tour : tourFor(to));
       render();

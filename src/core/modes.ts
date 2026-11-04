@@ -18,9 +18,28 @@ export const STAR_WORDS: Readonly<Record<Stars, string>> = {
   3: 'Master',
 };
 
+/** The games, as the menu and the routes know them. */
+export type Game = 'hunter' | 'sweeper' | 'triads' | 'gridclear' | 'bend' | 'trace' | 'scalebend' | 'scales';
+/** What a game teaches, as the World Tour cycles them. */
+export type Kind = 'notes' | 'triads' | 'bends';
+
+export const GAME_KIND: Readonly<Record<Game, Kind>> = {
+  hunter: 'notes',
+  sweeper: 'notes',
+  triads: 'triads',
+  gridclear: 'triads',
+  bend: 'bends',
+  trace: 'bends',
+  scalebend: 'bends',
+  scales: 'bends',
+};
+
 export interface Mode {
   /** The key its score table is stored under. */
   id: string;
+  game: Game;
+  /** A song's own version of a game: the song's id. */
+  song?: string;
   title: string;
   /** Shown under the title where there is more than one of a kind. */
   variant: string;
@@ -41,25 +60,27 @@ const SCALE_WORDS: Record<ScaleId, string> = { blues: 'Blues', major: 'Major', m
 const LEVEL_WORDS: Record<BuildLevel, string> = { easy: 'Easy', hard: 'Hard' };
 
 export const MODES: readonly Mode[] = [
-  { id: 'hunter-name', title: 'Speed Hunter', variant: 'By name', route: '/play/hunter/name', better: 'low', unit: 'seconds' },
-  { id: 'hunter-advanced', title: 'Speed Hunter', variant: 'Advanced', route: '/play/hunter/advanced', better: 'low', unit: 'seconds' },
-  { id: 'sweeper', title: 'Fret Sweeper', variant: 'By note', route: '/play/sweeper/note', better: 'low', unit: 'seconds' },
-  { id: 'sweeper-random', title: 'Fret Sweeper', variant: 'Random', route: '/play/sweeper/random', better: 'low', unit: 'seconds' },
-  { id: 'triads', title: 'Triads', variant: 'Progressions', route: '/play/triads', better: 'high', unit: 'points', table: 'triads.2' },
-  { id: 'triads-target', title: 'Triads', variant: 'Targets', route: '/play/triads/target', better: 'high', unit: 'points', table: 'triads-target.2' },
-  { id: 'triads-compact', title: 'Triads', variant: 'Compact', route: '/play/triads/compact', better: 'high', unit: 'points', table: 'triads-compact.2' },
-  { id: 'gridclear', title: 'Triads', variant: 'Grid clear', route: '/play/gridclear', better: 'low', unit: 'seconds' },
+  { id: 'hunter-name', game: 'hunter', title: 'Speed Hunter', variant: 'By name', route: '/play/hunter/name', better: 'low', unit: 'seconds' },
+  { id: 'hunter-advanced', game: 'hunter', title: 'Speed Hunter', variant: 'Advanced', route: '/play/hunter/advanced', better: 'low', unit: 'seconds' },
+  { id: 'sweeper', game: 'sweeper', title: 'Fret Sweeper', variant: 'By note', route: '/play/sweeper/note', better: 'low', unit: 'seconds' },
+  { id: 'sweeper-random', game: 'sweeper', title: 'Fret Sweeper', variant: 'Random', route: '/play/sweeper/random', better: 'low', unit: 'seconds' },
+  { id: 'triads', game: 'triads', title: 'Triads', variant: 'Progressions', route: '/play/triads', better: 'high', unit: 'points', table: 'triads.2' },
+  { id: 'triads-target', game: 'triads', title: 'Triads', variant: 'Targets', route: '/play/triads/target', better: 'high', unit: 'points', table: 'triads-target.2' },
+  { id: 'triads-compact', game: 'triads', title: 'Triads', variant: 'Compact', route: '/play/triads/compact', better: 'high', unit: 'points', table: 'triads-compact.2' },
+  { id: 'gridclear', game: 'gridclear', title: 'Triads', variant: 'Grid clear', route: '/play/gridclear', better: 'low', unit: 'seconds' },
   ...BEND_TIERS.map(
-    (tier): Mode => ({ id: `bend-${tier}`, title: 'Bend by Ear', variant: TIER_WORDS[tier], route: `/play/bend/${tier}`, better: 'high', unit: 'points', table: `bend-${tier}.3` }),
+    (tier): Mode => ({ id: `bend-${tier}`, game: 'bend', title: 'Bend by Ear', variant: TIER_WORDS[tier], route: `/play/bend/${tier}`, better: 'high', unit: 'points', table: `bend-${tier}.3` }),
   ),
   ...BEND_TIERS.map(
-    (tier): Mode => ({ id: `trace-${tier}`, title: 'Bend Trace', variant: TIER_WORDS[tier], route: `/play/trace/${tier}`, better: 'high', unit: 'points', table: `trace-${tier}.4` }),
+    (tier): Mode => ({ id: `trace-${tier}`, game: 'trace', title: 'Bend Trace', variant: TIER_WORDS[tier], route: `/play/trace/${tier}`, better: 'high', unit: 'points', table: `trace-${tier}.4` }),
   ),
   // Each song's own versions of the games: titled by the song, named by the game.
   ...SONGS.flatMap((song) =>
     SONG_GAMES.filter((game) => game.has(song)).map(
       (game): Mode => ({
         id: `song-${song.id}-${game.kind}`,
+        game: game.kind,
+        song: song.id,
         title: song.title,
         variant: game.name,
         route: `/play/song/${song.id}/${game.kind}`,
@@ -71,13 +92,14 @@ export const MODES: readonly Mode[] = [
     ),
   ),
   ...SCALE_IDS.map(
-    (scale): Mode => ({ id: `scalebend-${scale}`, title: 'Scale Bends', variant: SCALE_WORDS[scale], route: `/play/scalebend/${scale}`, better: 'high', unit: 'points', table: `scalebend-${scale}.3` }),
+    (scale): Mode => ({ id: `scalebend-${scale}`, game: 'scalebend', title: 'Scale Bends', variant: SCALE_WORDS[scale], route: `/play/scalebend/${scale}`, better: 'high', unit: 'points', table: `scalebend-${scale}.3` }),
   ),
   // A table for each scale at each level: kept off the tour, and off the Scores page until played.
   ...BUILD_LEVELS.flatMap((level) =>
     BUILDER_SCALES.map(
       (scale): Mode => ({
         id: `scales-${level}-${scale.id}`,
+        game: 'scales',
         title: 'Scale Builder',
         variant: `${scale.name} · ${LEVEL_WORDS[level]}`,
         route: `/play/scales/${level}/${scale.id}`,
@@ -92,6 +114,16 @@ export const MODES: readonly Mode[] = [
 
 export function modeById(id: string): Mode | undefined {
   return MODES.find((m) => m.id === id);
+}
+
+/** A game's modes, in the menu's order: a song's own versions of it are left out. */
+export function modesOf(game: Game): Mode[] {
+  return MODES.filter((m) => m.game === game && !m.song);
+}
+
+/** What a mode teaches: notes, triads or bends. */
+export function kindOf(mode: Mode): Kind {
+  return GAME_KIND[mode.game];
 }
 
 /**

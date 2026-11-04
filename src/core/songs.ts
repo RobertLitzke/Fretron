@@ -32,6 +32,7 @@ export interface Song {
 export const SONGS: readonly Song[] = [NUMB];
 
 /** The games a song can have, as the menu names them and the route ends. */
+/** The games a song can have its own version of: a subset of modes.ts's Game. */
 export type SongGameKind = 'trace';
 
 export const SONG_GAMES: readonly { kind: SongGameKind; name: string; has: (song: Song) => boolean }[] = [

@@ -1,11 +1,11 @@
 // The menu: three cabinets, one for each thing the arcade teaches.
 
 import { unlock } from '../../audio/audio';
-import { formatValue, MODES, tableKey, type Mode } from '../../core/modes';
+import { formatValue, MODES, modesOf, tableKey, type Mode } from '../../core/modes';
 import { SONGS } from '../../core/songs';
 import { el } from '../dom';
 import type { View } from '../router';
-import { getSave } from '../store';
+import { getSave, pick, type PickKey } from '../store';
 
 interface Cabinet {
   title: string;
@@ -13,41 +13,37 @@ interface Cabinet {
    * `pick`: the game asks for a choice before a run, kept under this name, and has one Play button for the last one chosen.
    * `named`: its buttons always say which game they are, even when there is one.
    */
-  games: { name: string; blurb: string; modes: Mode[]; pick?: string; named?: boolean }[];
-}
-
-function modesTitled(title: string): Mode[] {
-  return MODES.filter((m) => m.title === title);
+  games: { name: string; blurb: string; modes: Mode[]; pick?: PickKey; named?: boolean }[];
 }
 
 const CABINETS: Cabinet[] = [
   {
     title: 'Notes',
     games: [
-      { name: 'Speed Hunter', blurb: 'A note is called. Find it, against the clock.', modes: modesTitled('Speed Hunter') },
-      { name: 'Fret Sweeper', blurb: 'Clear the whole neck: one note at a time, or a new note every tap.', modes: modesTitled('Fret Sweeper') },
+      { name: 'Speed Hunter', blurb: 'A note is called. Find it, against the clock.', modes: modesOf('hunter') },
+      { name: 'Fret Sweeper', blurb: 'Clear the whole neck: one note at a time, or a new note every tap.', modes: modesOf('sweeper') },
     ],
   },
   {
     title: 'Triads',
     games: [
-      { name: 'Progressions', blurb: 'Tap three frets, rake the chord, stay close to the last one.', modes: MODES.filter((m) => m.id === 'triads' || m.id.startsWith('triads-')), pick: 'triads' },
-      { name: 'Grid Clear', blurb: 'Find every inversion of one chord on the neck.', modes: MODES.filter((m) => m.id === 'gridclear') },
+      { name: 'Progressions', blurb: 'Tap three frets, rake the chord, stay close to the last one.', modes: modesOf('triads'), pick: 'triads' },
+      { name: 'Grid Clear', blurb: 'Find every inversion of one chord on the neck.', modes: modesOf('gridclear') },
     ],
   },
   {
     title: 'Bends',
     games: [
-      { name: 'Bend by Ear', blurb: 'Push the string to the pitch you heard. No meter.', modes: modesTitled('Bend by Ear') },
-      { name: 'Bend Trace', blurb: 'Hear a bend that moves over time, and play it back from memory.', modes: modesTitled('Bend Trace') },
-      { name: 'Scale Bends', blurb: 'Bend from one note of a scale to the next, with the shape drawn around you.', modes: modesTitled('Scale Bends'), pick: 'scalebend' },
-      { name: 'Scale Builder', blurb: 'Pick a scale, hear the root, and bend it into place by ear, up and back down.', modes: modesTitled('Scale Builder'), pick: 'scales' },
+      { name: 'Bend by Ear', blurb: 'Push the string to the pitch you heard. No meter.', modes: modesOf('bend') },
+      { name: 'Bend Trace', blurb: 'Hear a bend that moves over time, and play it back from memory.', modes: modesOf('trace') },
+      { name: 'Scale Bends', blurb: 'Bend from one note of a scale to the next, with the shape drawn around you.', modes: modesOf('scalebend'), pick: 'scalebend' },
+      { name: 'Scale Builder', blurb: 'Pick a scale, hear the root, and bend it into place by ear, up and back down.', modes: modesOf('scales'), pick: 'scales' },
     ],
   },
   {
     // A card for each song, with a button for each game it has its own version of.
     title: 'Songs',
-    games: SONGS.map((song) => ({ name: song.title, blurb: `Games inspired by the song: ${song.about}.`, modes: modesTitled(song.title), named: true })),
+    games: SONGS.map((song) => ({ name: song.title, blurb: `Games inspired by the song: ${song.about}.`, modes: MODES.filter((m) => m.song === song.id), named: true })),
   },
 ];
 
@@ -63,9 +59,9 @@ function playButton(mode: Mode, single: boolean): HTMLElement {
 }
 
 /** The mode last chosen for a game that asks before a run, or its first. */
-function picked(modes: Mode[], pick: string): Mode {
-  const choice = getSave().picks[pick];
-  return modes.find((m) => m.id === `${pick}-${choice}`) ?? modes[0];
+function picked(modes: Mode[], key: PickKey): Mode {
+  const choice = pick(key);
+  return modes.find((m) => m.id === `${key}-${choice}`) ?? modes[0];
 }
 
 export const homeView: View = (root) => {

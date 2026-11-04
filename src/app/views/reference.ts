@@ -7,10 +7,10 @@ import { pluck, strum } from '../../audio/audio';
 import { Board, type BoardTouch } from '../../board/board';
 import type { LineData, NoteRenderData } from '../../board/renderer';
 import { cellMidi, isNatural, pc, pcName, sameCell, STANDARD_TUNING, type Cell, type Spelling } from '../../core/music';
-import { chordName, enumerateVoicings, toneLabel, type Chord, type Quality, type Voicing } from '../../core/triads';
+import { chordName, enumerateVoicings, toneLabel, toneText, type Chord, type Quality, type Voicing } from '../../core/triads';
 import { el } from '../dom';
 import type { View } from '../router';
-import { getSave, updateSave } from '../store';
+import { getSave, keep as keepOf, pick as pickOf } from '../store';
 import { page, segmented } from '../ui';
 
 type Tab = 'notes' | 'triads';
@@ -33,17 +33,12 @@ const STRING_SETS: readonly { value: StringSet; label: string }[] = [
   { value: '3', label: 'G B E' },
 ];
 
-/** A chord tone as it is written on a note: 'b3' is "♭3", 'd5' is "♭5", '#5' is "♯5". */
-function toneText(label: string): string {
-  return label.replace('b', '♭').replace('d5', '♭5').replace('#', '♯');
-}
-
 function pick(name: string, fallback: string): string {
-  return getSave().picks[`ref-${name}`] ?? fallback;
+  return pickOf(`ref-${name}`) ?? fallback;
 }
 
 function keep(name: string, value: string): void {
-  updateSave((s) => ({ ...s, picks: { ...s.picks, [`ref-${name}`]: value } }));
+  keepOf(`ref-${name}`, value);
 }
 
 export const referenceView: View = (root, ctx) => {

@@ -124,6 +124,11 @@ export function voicingKey(voicing: readonly Cell[]): string {
 }
 
 /** What a pitch class is to a chord: 'R', 'b3', '5' and so on, or null if it is not in it. */
+/** A chord tone as it is written on a note: 'b3' is "♭3", 'd5' is "♭5", '#5' is "♯5". */
+export function toneText(label: string): string {
+  return label.replace('b', '♭').replace('d5', '♭5').replace('#', '♯');
+}
+
 export function toneLabel(chord: Chord, pitchClass: number): string | null {
   const which = chordTones(chord).indexOf(pc(pitchClass));
   return which < 0 ? null : TONE_LABELS[chord.quality][which];

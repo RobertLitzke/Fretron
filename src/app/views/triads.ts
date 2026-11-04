@@ -38,6 +38,7 @@ import {
   targetPoints,
   timePoints,
   toneLabel,
+  toneText,
   TRIAD_BASE_POINTS,
   voicingKey,
   type Chord,
@@ -49,7 +50,7 @@ import { makeFrame, panelOption, readyPanel, waiting } from '../game/frame';
 import { showResult } from '../game/results';
 import { TriadInput } from '../game/triadInput';
 import type { View } from '../router';
-import { updateSave } from '../store';
+import { keep } from '../store';
 import { freshSeed, segmented } from '../ui';
 
 /** A run of progressions ends once this many chords have been asked. */
@@ -61,11 +62,6 @@ const RAKES_BEFORE_ANSWER = 5;
 /** Once a progression's last chord is in, the wait before it is played back whole, and the time each chord of it gets. */
 const REPLAY_AFTER_MS = 900;
 const REPLAY_BEAT_MS = 330;
-
-/** A chord tone as it is written on a note: 'b3' is "♭3", 'd5' is "♭5". */
-function toneText(label: string): string {
-  return label.replace('b', '♭').replace('d5', '♭5');
-}
 
 /** The three notes of a voicing that has been played, labelled and coloured by chord tone. */
 function playedNotes(voicing: readonly Cell[], labels: readonly string[], opacity = 1): NoteRenderData[] {
@@ -91,7 +87,7 @@ export const triadsView: View = (root, ctx) => {
   const compact = variant === 'compact';
   const mode = modeById(variant === 'standard' ? 'triads' : `triads-${variant}`)!;
   // The menu's Play button comes back to the game last played.
-  updateSave((s) => ({ ...s, picks: { ...s.picks, triads: variant } }));
+  keep('triads', variant);
   const rng = new Rng(freshSeed());
 
   const progressions = makeRun(rng, CHORDS_PER_RUN);

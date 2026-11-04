@@ -17,7 +17,7 @@ import { BendInput, BendScore, bentTo, drawLanding, onPuck, reviewButtons, STREA
 import { makeFrame, panelOption, readyPanel, waiting } from '../game/frame';
 import { showResult } from '../game/results';
 import type { View } from '../router';
-import { updateSave } from '../store';
+import { keep } from '../store';
 import { freshSeed, segmented } from '../ui';
 
 /** How many frets of the scale are drawn either side of the bend: about one position. */
@@ -28,7 +28,7 @@ export const scaleBendView: View = (root, ctx) => {
   const scale = SCALES[scaleId];
   const mode = modeById(`scalebend-${scaleId}`)!;
   // The menu's Play button comes back to the scale last played.
-  updateSave((s) => ({ ...s, picks: { ...s.picks, scalebend: scaleId } }));
+  keep('scalebend', scaleId);
   const rng = new Rng(freshSeed());
   const fx = new BendFx();
 

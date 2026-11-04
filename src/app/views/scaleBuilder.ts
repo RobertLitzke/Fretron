@@ -32,7 +32,7 @@ import { BendInput, BendScore, bentTo, drawLanding, gradeColor, onPuck, reviewBu
 import { makeFrame, panelOption, readyPanel } from '../game/frame';
 import { showResult } from '../game/results';
 import type { View } from '../router';
-import { updateSave } from '../store';
+import { keep } from '../store';
 import { freshSeed, segmented } from '../ui';
 const STEP_NAMES: Record<number, string> = { 1: 'Half step', 2: 'Whole step', 3: 'Step and a half' };
 
@@ -46,7 +46,7 @@ export const scaleBuilderView: View = (root, ctx) => {
   const mode = modeById(`scales-${level}-${scaleId}`)!;
   const hard = level === 'hard';
   // The menu's Play button comes back to the scale and level last played.
-  updateSave((s) => ({ ...s, picks: { ...s.picks, scales: `${level}-${scaleId}` } }));
+  keep('scales', `${level}-${scaleId}`);
   const rng = new Rng(freshSeed());
   const fx = new BendFx();
 
