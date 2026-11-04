@@ -186,3 +186,22 @@ describe('Fret Sweeper at random', () => {
     expect(twins.order).toEqual([5, 5]);
   });
 });
+
+describe('Name That Fret', () => {
+  it('lights a fret in range and names its pitch class', async () => {
+    const { makeNamePrompt } = await import('../src/core/notes');
+    const { cellMidi, pc, STANDARD_TUNING } = await import('../src/core/music');
+    const { Rng } = await import('../src/core/rng');
+    const rng = new Rng(7);
+    let previous = null as ReturnType<typeof makeNamePrompt> | null;
+    for (let i = 0; i < 200; i++) {
+      const p = makeNamePrompt(rng, STANDARD_TUNING, 0, 12, previous);
+      expect(p.cell.fret).toBeGreaterThanOrEqual(0);
+      expect(p.cell.fret).toBeLessThanOrEqual(12);
+      expect(p.midi).toBe(cellMidi(STANDARD_TUNING, p.cell));
+      expect(p.pitchClass).toBe(pc(p.midi));
+      if (previous) expect(p.pitchClass).not.toBe(previous.pitchClass);
+      previous = p;
+    }
+  });
+});

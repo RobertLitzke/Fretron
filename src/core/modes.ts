@@ -19,12 +19,13 @@ export const STAR_WORDS: Readonly<Record<Stars, string>> = {
 };
 
 /** The games, as the menu and the routes know them. */
-export type Game = 'hunter' | 'sweeper' | 'triads' | 'gridclear' | 'bend' | 'trace' | 'scalebend' | 'scales';
+export type Game = 'hunter' | 'namer' | 'sweeper' | 'triads' | 'gridclear' | 'bend' | 'trace' | 'scalebend' | 'scales';
 /** What a game teaches, as the World Tour cycles them. */
 export type Kind = 'notes' | 'triads' | 'bends';
 
 export const GAME_KIND: Readonly<Record<Game, Kind>> = {
   hunter: 'notes',
+  namer: 'notes',
   sweeper: 'notes',
   triads: 'triads',
   gridclear: 'triads',
@@ -62,6 +63,7 @@ const LEVEL_WORDS: Record<BuildLevel, string> = { easy: 'Easy', hard: 'Hard' };
 export const MODES: readonly Mode[] = [
   { id: 'hunter-name', game: 'hunter', title: 'Speed Hunter', variant: 'By name', route: '/play/hunter/name', better: 'low', unit: 'seconds' },
   { id: 'hunter-advanced', game: 'hunter', title: 'Speed Hunter', variant: 'Advanced', route: '/play/hunter/advanced', better: 'low', unit: 'seconds' },
+  { id: 'namer', game: 'namer', title: 'Name That Fret', variant: 'By fret', route: '/play/namer', better: 'low', unit: 'seconds', offTour: true },
   { id: 'sweeper', game: 'sweeper', title: 'Fret Sweeper', variant: 'By note', route: '/play/sweeper/note', better: 'low', unit: 'seconds' },
   { id: 'sweeper-random', game: 'sweeper', title: 'Fret Sweeper', variant: 'Random', route: '/play/sweeper/random', better: 'low', unit: 'seconds' },
   { id: 'triads', game: 'triads', title: 'Triads', variant: 'Progressions', route: '/play/triads', better: 'high', unit: 'points', table: 'triads.2' },
@@ -183,6 +185,8 @@ export function starsBy(value: number, bars: Bars): Stars {
 /** Seconds per note, penalties included. The advanced game has one place to find, not six, and is given longer. */
 export const HUNTER_BARS: Bars = { three: 1.0, two: 1.8, one: 3.2, better: 'low' };
 export const HUNTER_ADVANCED_BARS: Bars = { three: 1.6, two: 2.6, one: 4.2, better: 'low' };
+/** Seconds per fret named, penalties included: reading a fret is a shade slower than finding a note. */
+export const NAMER_BARS: Bars = { three: 1.2, two: 2.0, one: 3.4, better: 'low' };
 /** Seconds per fret cleared, penalties included. */
 export const SWEEP_BARS: Bars = { three: 1.4, two: 2.3, one: 3.6, better: 'low' };
 /** The same, where every fret is a new note to find: nearer Speed Hunter's pace. */
@@ -203,6 +207,10 @@ export const SCALE_BUILD_BARS: Bars = { three: 10, two: 18, one: 32, better: 'lo
 
 export function starsHunter(seconds: number, prompts: number, advanced = false): Stars {
   return starsBy(seconds / prompts, advanced ? HUNTER_ADVANCED_BARS : HUNTER_BARS);
+}
+
+export function starsNamer(seconds: number, prompts: number): Stars {
+  return starsBy(seconds / prompts, NAMER_BARS);
 }
 
 export function starsSweep(seconds: number, cells: number): Stars {
@@ -262,6 +270,10 @@ function within(seconds: number): string {
 /** For a run of `prompts` notes. */
 export function hunterTargets(prompts: number, advanced = false): Targets {
   return targets('Finish within', advanced ? HUNTER_ADVANCED_BARS : HUNTER_BARS, (bar) => within(bar * prompts));
+}
+
+export function namerTargets(prompts: number): Targets {
+  return targets('Finish within', NAMER_BARS, (bar) => within(bar * prompts));
 }
 
 /** For a neck of `cells` frets. */

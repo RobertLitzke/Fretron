@@ -12,6 +12,7 @@ import { traceView } from './app/views/trace';
 import { songTraceView } from './app/views/song';
 import { homeView } from './app/views/home';
 import { hunterView } from './app/views/hunter';
+import { namerView } from './app/views/namer';
 import { referenceView } from './app/views/reference';
 import { scoresView } from './app/views/scores';
 import { scaleBendView } from './app/views/scaleBend';
@@ -86,6 +87,7 @@ function boot(): void {
   for (const base of ['', '/tour']) {
     router
       .add(`${base}/play/hunter/:variant`, hunterView)
+      .add(`${base}/play/namer`, namerView)
       .add(`${base}/play/sweeper/:variant`, sweeperView)
       .add(`${base}/play/triads`, triadsView)
       .add(`${base}/play/triads/:variant`, triadsView)

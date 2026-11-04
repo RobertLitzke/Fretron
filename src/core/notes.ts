@@ -76,6 +76,32 @@ export function makeHuntPrompt(
   }
 }
 
+// --- Name That Fret ------------------------------------------------------------
+// The other way round: a fret lights, and its note is named. Any spelling of the
+// right pitch class will do, so the answer is the pitch class alone.
+
+export const NAME_PROMPTS = 20;
+/** Seconds added for a wrong name. */
+export const NAME_PENALTY = 3;
+
+export interface NamePrompt {
+  cell: Cell;
+  pitchClass: number;
+  midi: number;
+}
+
+/** A fret from `first` to `last` that does not play the note just named. */
+export function makeNamePrompt(rng: Rng, tuning: Tuning, first: number, last: number, previous: NamePrompt | null): NamePrompt {
+  const cells = allCells(tuning, first, last);
+  for (;;) {
+    const cell = rng.pick(cells);
+    const midi = cellMidi(tuning, cell);
+    const pitchClass = pc(midi);
+    if (previous && previous.pitchClass === pitchClass && cells.length > 1) continue;
+    return { cell, pitchClass, midi };
+  }
+}
+
 // --- Fret Sweeper (design document 4.3) ---------------------------------------
 
 /** Seconds added to the clock for tapping a fret that is not the called note. */

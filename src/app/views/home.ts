@@ -21,6 +21,7 @@ const CABINETS: Cabinet[] = [
     title: 'Notes',
     games: [
       { name: 'Speed Hunter', blurb: 'A note is called. Find it, against the clock.', modes: modesOf('hunter') },
+      { name: 'Name That Fret', blurb: 'A fret lights up. Name the note, against the clock.', modes: modesOf('namer') },
       { name: 'Fret Sweeper', blurb: 'Clear the whole neck: one note at a time, or a new note every tap.', modes: modesOf('sweeper') },
     ],
   },

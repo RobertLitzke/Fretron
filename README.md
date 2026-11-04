@@ -36,6 +36,7 @@ the top if anything on a page is wider than the screen.
 |---|---|---|
 | Speed Hunter, by name | A note name is called; tap any fret that plays it | 20 notes; total time, +3 s for a wrong fret |
 | Speed Hunter, advanced | A note name is called with a string or a fret to find it on; only there will do | the same |
+| Name That Fret | A fret lights; tap its note on the row of keys under the board (either spelling counts) | 20 frets; total time, +3 s for a wrong name |
 | Fret Sweeper, by note | A note is called; tap every fret that plays it, then the next note is called, until the neck is clear | time with a note up, +3 s for a wrong tap |
 | Fret Sweeper, random | A note is called; tap one fret that plays it, and a new note is called, until the neck is clear | the same |
 | Triads, progressions | Tap three frets on neighbouring strings, then drag anywhere on the board to play the chord | about 12 chords; points for speed and for staying close to the last chord; none for a chord that had to be shown |
@@ -124,7 +125,7 @@ that and serves it from nginx.
 src/core/    pure TypeScript, no DOM or Web Audio; everything here is unit-tested
   music.ts     pitches, note names, the neck, neck sizes
   geometry.ts  where the neck sits on screen and back again (both hands)
-  notes.ts     Speed Hunter prompts, Fret Sweeper state
+  notes.ts     Speed Hunter and Name That Fret prompts, Fret Sweeper state
   triads.ts    checking and listing voicings, voice-leading distance, progressions
   bend.ts      bend prompts, travel per string and fret, traces and their scoring
   scaleBend.ts the scales, the bends each offers, Scale Bends prompts

@@ -24,6 +24,7 @@ describe('modes', () => {
 
   it('sorts the tour stops into notes, triads and bends', () => {
     expect(kindOf(modeById('sweeper-random')!)).toBe('notes');
+    expect(kindOf(modeById('namer')!)).toBe('notes');
     expect(kindOf(modeById('gridclear')!)).toBe('triads');
     expect(kindOf(modeById('scalebend-blues')!)).toBe('bends');
     expect(kindOf(modeById('scales-hard-dorian')!)).toBe('bends');
